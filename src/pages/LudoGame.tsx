@@ -20,7 +20,6 @@ const LudoGame: React.FC = () => {
   const navigate = useNavigate();
   const {
     players,
-    currentPlayerIndex,
     gamePhase,
     winner,
     message,

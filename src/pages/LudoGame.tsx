@@ -6,7 +6,7 @@ import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerPanel from '../games/ludo/components/PlayerPanel';
 import Dice3D from '../components/Dice3D';
-import { PlayerColor } from '../games/ludo/types';
+import type { PlayerColor } from '../games/ludo/types';
 import GameHeader from '../components/GameHeader';
 import PlayerSetup from '../components/PlayerSetup';
 import WinnerModal from '../components/WinnerModal';

@@ -80,15 +80,7 @@ const LudoGame: React.FC = () => {
         {/* Board */}
         <LudoBoard />
 
-        {/* Dice */}
-        <div className="flex items-center justify-center py-2">
-          <Dice3D
-            value={diceValue}
-            onRoll={rollDice}
-            disabled={gamePhase !== 'rolling'}
-            playerColor={currentColor}
-          />
-        </div>
+
       </div>
 
       {/* Winner Modal */}

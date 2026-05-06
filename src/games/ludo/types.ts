@@ -21,6 +21,7 @@ export interface LudoGameState {
   players: Player[];
   currentPlayerIndex: number;
   diceValue: number | null;
+  isRolling: boolean;
   hasRolled: boolean;
   consecutiveSixes: number;
   gamePhase: GamePhase;

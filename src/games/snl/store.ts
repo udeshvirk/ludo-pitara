@@ -12,6 +12,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
   players: [],
   currentPlayerIndex: 0,
   diceValue: null,
+  isRolling: false,
   hasRolled: false,
   gamePhase: 'setup',
   winner: null,
@@ -30,6 +31,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       players,
       currentPlayerIndex: 0,
       diceValue: null,
+      isRolling: false,
       hasRolled: false,
       gamePhase: 'rolling',
       winner: null,
@@ -48,11 +50,11 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     let newPos = currentPos + diceValue;
     let actionMessage = '';
 
-    set({ diceValue, hasRolled: true, gamePhase: 'rolling' });
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
 
-    // Wait for the 3D dice to finish its "settle" animation (400ms) before continuing logic
+    // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
     setTimeout(() => {
-      set({ gamePhase: 'moving' });
+      set({ isRolling: false, gamePhase: 'moving' });
 
       // Check if overshooting 100
       if (newPos > 100) {
@@ -164,7 +166,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
           }, 800);
         }
       }, 500);
-    }, 400); // Wait 400ms for dice to settle
+    }, 800); // Wait 800ms for dice to settle
   },
 
   resetGame: () => {
@@ -172,6 +174,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       players: [],
       currentPlayerIndex: 0,
       diceValue: null,
+      isRolling: false,
       hasRolled: false,
       gamePhase: 'setup',
       winner: null,

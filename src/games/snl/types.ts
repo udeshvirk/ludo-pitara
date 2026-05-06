@@ -11,6 +11,7 @@ export interface SNLGameState {
   players: SNLPlayer[];
   currentPlayerIndex: number;
   diceValue: number | null;
+  isRolling: boolean;
   hasRolled: boolean;
   gamePhase: SNLGamePhase;
   winner: SNLPlayer | null;

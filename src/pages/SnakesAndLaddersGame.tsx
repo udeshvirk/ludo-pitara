@@ -19,6 +19,7 @@ const SnakesAndLaddersGame: React.FC = () => {
     winner,
     message,
     lastAction,
+    isRolling,
     rollDice,
     initGame,
     resetGame,
@@ -101,6 +102,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             onRoll={rollDice}
             disabled={gamePhase !== 'rolling'}
             playerColor={currentColor}
+            isRolling={isRolling}
           />
         </div>
 

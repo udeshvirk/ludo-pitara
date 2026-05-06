@@ -6,6 +6,7 @@ interface Dice3DProps {
   onRoll: () => void;
   disabled: boolean;
   playerColor?: string;
+  isRolling?: boolean;
 }
 
 const DOT_POSITIONS: Record<number, number[][]> = {
@@ -27,38 +28,29 @@ const FACE_ROTATIONS: Record<number, { x: number; y: number; z: number }> = {
   2: { x: 90, y: 0, z: 0 },
 };
 
-const Dice3D: React.FC<Dice3DProps> = ({ value, onRoll, disabled, playerColor = '#6366f1' }) => {
-  const [isRolling, setIsRolling] = useState(false);
+const Dice3D: React.FC<Dice3DProps> = ({ value, onRoll, disabled, playerColor = '#6366f1', isRolling = false }) => {
   const [targetRot, setTargetRot] = useState({ x: 0, y: 0, z: 0 });
 
   useEffect(() => {
-    if (value && !isRolling) {
+    if (isRolling && value) {
+      // The dice is starting to roll. We know the final value immediately.
+      // We will add some extra spins to make it look like a roll.
       const baseRot = FACE_ROTATIONS[value] || FACE_ROTATIONS[1];
-      // Add multiple of 360 to ensure it always spins forward
       setTargetRot(prev => ({
-        x: baseRot.x + Math.ceil(prev.x / 360) * 360 + 360,
-        y: baseRot.y + Math.ceil(prev.y / 360) * 360 + 360,
-        z: 0, // Reset z so dots are oriented correctly
+        x: baseRot.x + prev.x - (prev.x % 360) + 720, // Spin 2 full rotations forward
+        y: baseRot.y + prev.y - (prev.y % 360) + 720,
+        z: 0, // Reset z
       }));
+    } else if (value && targetRot.x === 0 && targetRot.y === 0) {
+      // Initial render without rolling
+      const baseRot = FACE_ROTATIONS[value] || FACE_ROTATIONS[1];
+      setTargetRot({ x: baseRot.x, y: baseRot.y, z: 0 });
     }
   }, [value, isRolling]);
 
   const handleRoll = useCallback(() => {
     if (disabled || isRolling) return;
-
-    setIsRolling(true);
-    
-    // Spin randomly a few times
-    setTargetRot(prev => ({
-      x: prev.x + 720 + Math.random() * 360,
-      y: prev.y + 720 + Math.random() * 360,
-      z: prev.z + 360 + Math.random() * 180,
-    }));
-
-    setTimeout(() => {
-      setIsRolling(false);
-      onRoll(); // This will update the `value` prop, which triggers useEffect
-    }, 600);
+    onRoll();
   }, [disabled, isRolling, onRoll]);
 
   const renderFace = (faceValue: number, transform: string) => {

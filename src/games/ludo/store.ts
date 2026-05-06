@@ -68,6 +68,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   players: [],
   currentPlayerIndex: 0,
   diceValue: null,
+  isRolling: false,
   hasRolled: false,
   consecutiveSixes: 0,
   gamePhase: 'setup',
@@ -86,6 +87,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       players,
       currentPlayerIndex: 0,
       diceValue: null,
+      isRolling: false,
       hasRolled: false,
       consecutiveSixes: 0,
       gamePhase: 'rolling',
@@ -103,12 +105,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     const currentPlayer = state.players[state.currentPlayerIndex];
 
     // Only set the dice value so the 3D dice can animate to the face
-    set({ diceValue, hasRolled: true, gamePhase: 'rolling' });
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
 
-    // Wait for the 3D dice to finish its "settle" animation (400ms) before continuing logic
+    // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
     setTimeout(() => {
       // Re-fetch state in case it changed
       const currentState = get();
+      
+      // Turn off rolling animation state
+      set({ isRolling: false });
 
       if (diceValue === 6 && currentState.consecutiveSixes >= 2) {
         const nextPlayerIndex = findNextActivePlayer(currentState.currentPlayerIndex, currentState.players);
@@ -179,7 +184,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         message: `${currentPlayer.name} rolled ${diceValue} — Select a token to move!`,
         selectableTokenIds: selectableTokens,
       });
-    }, 400); // end of dice settle delay
+    }, 800); // end of dice settle delay
   },
 
   selectToken: (tokenId: string) => {
@@ -348,6 +353,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       players: [],
       currentPlayerIndex: 0,
       diceValue: null,
+      isRolling: false,
       hasRolled: false,
       consecutiveSixes: 0,
       gamePhase: 'setup',

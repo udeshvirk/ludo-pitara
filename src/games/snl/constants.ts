@@ -17,16 +17,20 @@ export const SNAKES_AND_LADDERS: SnakeOrLadder[] = [
   { from: 51, to: 67, type: 'ladder' },
   { from: 71, to: 91, type: 'ladder' },
 
-  // Snakes (8)
+  // Snakes (13)
   { from: 16, to: 6, type: 'snake' },
+  { from: 40, to: 3, type: 'snake' },
   { from: 46, to: 25, type: 'snake' },
   { from: 49, to: 11, type: 'snake' },
   { from: 62, to: 19, type: 'snake' },
   { from: 64, to: 60, type: 'snake' },
+  { from: 72, to: 12, type: 'snake' },
   { from: 74, to: 53, type: 'snake' },
+  { from: 88, to: 18, type: 'snake' },
   { from: 89, to: 68, type: 'snake' },
   { from: 92, to: 88, type: 'snake' },
   { from: 95, to: 75, type: 'snake' },
+  { from: 97, to: 25, type: 'snake' },
   { from: 99, to: 7, type: 'snake' },
 ];
 

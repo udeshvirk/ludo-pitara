@@ -231,13 +231,23 @@ const SNLBoard: React.FC = () => {
               <circle
                 cx={from.x}
                 cy={from.y}
-                r="1.2"
+                r="1.4"
                 fill={SNAKE_COLORS[i % SNAKE_COLORS.length][0]}
-                opacity="0.8"
+                opacity="0.9"
               />
-              {/* Snake eyes */}
-              <circle cx={from.x - 0.4} cy={from.y - 0.4} r="0.3" fill="white" opacity="0.9" />
-              <circle cx={from.x + 0.4} cy={from.y - 0.4} r="0.3" fill="white" opacity="0.9" />
+              {/* Scary Snake eyes */}
+              <circle cx={from.x - 0.5} cy={from.y - 0.5} r="0.4" fill="#ef4444" opacity="0.95" />
+              <circle cx={from.x + 0.5} cy={from.y - 0.5} r="0.4" fill="#ef4444" opacity="0.95" />
+              {/* Snake pupils (slits) */}
+              <ellipse cx={from.x - 0.5} cy={from.y - 0.5} rx="0.1" ry="0.25" fill="#000" />
+              <ellipse cx={from.x + 0.5} cy={from.y - 0.5} rx="0.1" ry="0.25" fill="#000" />
+              {/* Forked tongue */}
+              <path 
+                d={`M ${from.x} ${from.y - 1} L ${from.x} ${from.y - 2.5} L ${from.x - 0.6} ${from.y - 3.2} M ${from.x} ${from.y - 2.5} L ${from.x + 0.6} ${from.y - 3.2}`} 
+                stroke="#ef4444" 
+                strokeWidth="0.25" 
+                fill="none" 
+              />
             </g>
           );
         })}

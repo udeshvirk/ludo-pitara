@@ -95,25 +95,27 @@ const LudoGame: React.FC = () => {
         </div>
 
         {/* Board Container with Dice */}
-        <div className="relative w-full max-w-[95vw] flex flex-col items-center">
-          {/* Top Dice Row */}
-          <div className="w-full flex justify-between px-2 mb-2">
-            <div className="origin-bottom-left" style={{ transform: 'scale(0.85)' }}>
+        <div className="relative w-full max-w-[100vw] flex flex-row items-center justify-between px-2">
+          {/* Left Dice Column */}
+          <div className="flex flex-col justify-between h-[45vh] sm:h-[55vh] z-10">
+            <div className="origin-left" style={{ transform: 'scale(0.85)' }}>
               {getPlayerDice('red')}
             </div>
-            <div className="origin-bottom-right" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('green')}
+            <div className="origin-left" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('blue')}
             </div>
           </div>
 
-          <LudoBoard />
+          <div className="flex-1 max-w-[85vw] mx-1">
+            <LudoBoard />
+          </div>
 
-          {/* Bottom Dice Row */}
-          <div className="w-full flex justify-between px-2 mt-2">
-            <div className="origin-top-left" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('blue')}
+          {/* Right Dice Column */}
+          <div className="flex flex-col justify-between h-[45vh] sm:h-[55vh] z-10">
+            <div className="origin-right" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('green')}
             </div>
-            <div className="origin-top-right" style={{ transform: 'scale(0.85)' }}>
+            <div className="origin-right" style={{ transform: 'scale(0.85)' }}>
               {getPlayerDice('yellow')}
             </div>
           </div>

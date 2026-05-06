@@ -7,7 +7,7 @@ import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
-import type { PlayerColor } from '../games/ludo/types';
+import type { Player, PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
@@ -73,9 +73,14 @@ const LudoGame: React.FC = () => {
     }
   }, [currentPlayer, gamePhase, isRolling, diceValue, selectableTokenIds, players, rollDice, selectToken]);
 
-  const playerCount = players.length || flowPlayers.length;
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
+
+  // Each colour has a fixed yard corner, so a player's pod must always
+  // sit beside its colour — independent of where they ended up in the
+  // players[] array. Compute the slot layouts off the actual player
+  // colours rather than array indices.
+  const slots = React.useMemo(() => buildSlots(players), [players]);
 
   // On phones / tablet portrait we stack vertically (pods top + bottom).
   // On wide landscape we put the board in the centre and pods on the
@@ -144,7 +149,7 @@ const LudoGame: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-            {leftRailSlots(playerCount).map((idx, i) => (
+            {slots.leftRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`l-${i}`}
                 slots={[idx]}
@@ -165,7 +170,7 @@ const LudoGame: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-            {rightRailSlots(playerCount).map((idx, i) => (
+            {slots.rightRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`r-${i}`}
                 slots={[idx]}
@@ -185,7 +190,7 @@ const LudoGame: React.FC = () => {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <PlayerHalfRow
-              slots={topSlotsForCount(playerCount)}
+              slots={slots.top}
               rotated
               onRoll={rollDice}
               isRolling={isRolling}
@@ -203,7 +208,7 @@ const LudoGame: React.FC = () => {
 
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <PlayerHalfRow
-              slots={bottomSlotsForCount(playerCount)}
+              slots={slots.bottom}
               rotated={false}
               onRoll={rollDice}
               isRolling={isRolling}
@@ -235,43 +240,57 @@ const LudoGame: React.FC = () => {
   );
 };
 
-// Player slot helpers. Each pod must visually sit next to its own yard.
+// Each colour has a fixed yard corner on the board. A player's pod has
+// to sit next to its colour's yard, regardless of which slot in the
+// players[] array that player landed in (PlayerSetup lets users cycle
+// colours, so the array order isn't predictable).
 //
-// Player array indices (PLAYER_ORDER):
-//   2 players: [red, yellow]            (red TL,  yellow BR — diagonal)
-//   3 players: [red, green, blue]       (red TL,  green TR, blue BL)
-//   4 players: [red, green, yellow, blue] (red TL, green TR, yellow BR, blue BL)
+//   red    → top-left yard       → top row, screen-left
+//   green  → top-right yard      → top row, screen-right
+//   yellow → bottom-right yard   → bottom row, screen-right
+//   blue   → bottom-left yard    → bottom row, screen-left
 //
-// The top row is rendered with `transform: rotate(180deg)` so the people
-// sitting on the far side read their pods right-side-up. After rotating
-// flex children 180°, DOM-index 0 ends up visually on the RIGHT, and
-// DOM-index 1 ends up visually on the LEFT. So to put red (top-left
-// corner) on the screen's left side, red has to be the SECOND DOM child.
-function topSlotsForCount(count: number): Array<number | null> {
-  if (count === 2) return [null, 0]; // [_, red] → after rotation: red on screen-left
-  if (count === 3) return [1, 0];    // [green, red] → red on screen-left, green on screen-right
-  return [1, 0];                     // 4: [green, red] → red TL, green TR
-}
+// The top row uses `transform: rotate(180deg)`, which mirrors flex
+// children: DOM-index 0 ends up visually on the right, DOM-index 1 on
+// the left. So in the top row, red (which we want on screen-left) goes
+// at DOM-index 1, and green at DOM-index 0.
+//
+// The bottom row has no rotation, so DOM order matches screen order.
+//
+// Wide-landscape rails: left rail holds the colours whose yards live
+// on the board's left half (red top, blue bottom); right rail holds
+// green top + yellow bottom.
 
-// Bottom row has no rotation, so DOM order matches screen order (left → right).
-function bottomSlotsForCount(count: number): Array<number | null> {
-  if (count === 2) return [null, 1]; // [_, yellow] → yellow on screen-right (BR yard)
-  if (count === 3) return [2, null]; // [blue, _]  → blue on screen-left (BL yard)
-  return [3, 2];                     // 4: [blue, yellow] → blue BL, yellow BR
-}
+function buildSlots(players: Player[]): {
+  top: Array<number | null>;
+  bottom: Array<number | null>;
+  leftRail: number[];
+  rightRail: number[];
+} {
+  const top: Array<number | null> = [null, null];
+  const bottom: Array<number | null> = [null, null];
 
-// Wide-landscape side rails. Left rail holds the players whose yards
-// are on the board's LEFT half; right rail mirrors that.
-function leftRailSlots(count: number): number[] {
-  if (count === 2) return [0];      // red only (top-left)
-  if (count === 3) return [0, 2];   // red top, blue bottom
-  return [0, 3];                    // 4: red top, blue bottom
-}
+  const findIdx = (color: PlayerColor): number =>
+    players.findIndex(p => p.color === color);
 
-function rightRailSlots(count: number): number[] {
-  if (count === 2) return [1];      // yellow only (bottom-right)
-  if (count === 3) return [1];      // green only (top-right) — no bottom-right player
-  return [1, 2];                    // 4: green top, yellow bottom
+  const redIdx = findIdx('red');
+  const greenIdx = findIdx('green');
+  const yellowIdx = findIdx('yellow');
+  const blueIdx = findIdx('blue');
+
+  if (redIdx >= 0) top[1] = redIdx;       // rotated: DOM[1] = screen-left
+  if (greenIdx >= 0) top[0] = greenIdx;   // rotated: DOM[0] = screen-right
+  if (blueIdx >= 0) bottom[0] = blueIdx;  // bottom: DOM[0] = screen-left
+  if (yellowIdx >= 0) bottom[1] = yellowIdx;
+
+  const leftRail: number[] = [];
+  const rightRail: number[] = [];
+  if (redIdx >= 0) leftRail.push(redIdx);
+  if (blueIdx >= 0) leftRail.push(blueIdx);
+  if (greenIdx >= 0) rightRail.push(greenIdx);
+  if (yellowIdx >= 0) rightRail.push(yellowIdx);
+
+  return { top, bottom, leftRail, rightRail };
 }
 
 export default LudoGame;

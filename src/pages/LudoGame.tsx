@@ -5,7 +5,6 @@ import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerPanel from '../games/ludo/components/PlayerPanel';
-import Dice3D from '../components/Dice3D';
 import GameHeader from '../components/GameHeader';
 import PlayerSetup from '../components/PlayerSetup';
 import WinnerModal from '../components/WinnerModal';
@@ -22,17 +21,14 @@ const LudoGame: React.FC = () => {
   const {
     players,
     currentPlayerIndex,
-    diceValue,
     gamePhase,
     winner,
     message,
-    rollDice,
     initGame,
     resetGame,
   } = useLudoStore();
 
-  const currentPlayer = players[currentPlayerIndex];
-  const currentColor = currentPlayer ? PLAYER_COLORS[currentPlayer.color].bg : '#6366f1';
+
 
   const handleNewGame = () => {
     resetGame();

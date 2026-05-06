@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useLudoStore } from '../store';
 import { PLAYER_COLORS } from '../constants';
+import Dice3D from '../../../components/Dice3D';
 
 const PlayerPanel: React.FC = () => {
   const { players, currentPlayerIndex, gamePhase, diceValue, isRolling, rollDice } = useLudoStore();

@@ -128,6 +128,11 @@ body {
   .phone-frame { max-width: 100%; }
 }
 
+/* Fluid variant — used by the in-game pages so the board fills the
+   tablet's portrait width. Menu screens keep the 760 cap so titles and
+   cards don't stretch absurdly wide. */
+.phone-frame.phone-frame-fluid { max-width: 100%; }
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(245, 184, 0, 0.3); border-radius: 4px; }

@@ -139,6 +139,14 @@ export function generateSNLLayout(): SnakeOrLadder[] {
     minSameTypeDist: 3, minCrossTypeDist: 2,
   }));
 
+  // Second guaranteed big jump — rooted in the mid board and climbing
+  // 3–5 rows. This gives players a second realistic escape route.
+  tryAdd(pickSpecial(occupied, anchors, {
+    type: 'ladder', fromRange: [22, 50], toRange: [62, 90],
+    minRowSpan: 3, maxRowSpan: 5, minImpact: 25,
+    minSameTypeDist: 3, minCrossTypeDist: 2,
+  }));
+
   // Three mid-board snakes — meaningful drops (≥ 12 cells) so they're
   // not "long body, low impact" like 61 → 51.
   let midSnakes = 0;

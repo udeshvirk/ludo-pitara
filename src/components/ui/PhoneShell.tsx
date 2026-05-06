@@ -5,13 +5,16 @@ interface PhoneShellProps {
   children: React.ReactNode;
   decorative?: boolean;
   className?: string;
+  // When true, the frame opts out of the tablet-portrait max-width cap
+  // (used by in-game screens so the board can fill iPad portraits).
+  fluid?: boolean;
 }
 
 // Full-bleed festive backdrop with subtle mandalas in corners. Children are
 // laid out as the screen content above the ornaments.
-const PhoneShell: React.FC<PhoneShellProps> = ({ children, decorative = true, className }) => (
+const PhoneShell: React.FC<PhoneShellProps> = ({ children, decorative = true, className, fluid = false }) => (
   <div
-    className={`phone-frame ${className || ''}`}
+    className={`phone-frame ${fluid ? 'phone-frame-fluid' : ''} ${className || ''}`}
     style={{
       background: 'radial-gradient(ellipse at 50% 0%, var(--bg-panel-hi) 0%, var(--bg-panel) 38%, var(--bg-deep) 80%)',
       overflow: 'hidden',

@@ -119,7 +119,7 @@ const LudoGame: React.FC = () => {
   );
 
   return (
-    <PhoneShell decorative={false}>
+    <PhoneShell decorative={false} fluid>
       <Header
         title="Ludo"
         onBack={() => { resetGame(); navigate('/select'); }}

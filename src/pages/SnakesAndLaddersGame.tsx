@@ -80,7 +80,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   );
 
   return (
-    <PhoneShell decorative={false}>
+    <PhoneShell decorative={false} fluid>
       <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} />
 
       {isWide ? (

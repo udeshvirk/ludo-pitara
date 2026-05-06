@@ -99,14 +99,14 @@ const SNLBoard: React.FC = () => {
             )}
 
             {/* Player tokens */}
-            <div className="flex flex-wrap gap-[2px] items-center justify-center z-10">
+            <div className="flex flex-wrap gap-[2px] items-center justify-center z-10 w-full h-full p-1">
               {playersHere.map((player, i) => (
                 <motion.div
                   key={player.id}
                   layoutId={`snl-token-${player.id}`}
                   className="rounded-full"
                   style={{
-                    width: playersHere.length > 2 ? '40%' : playersHere.length > 1 ? '50%' : '70%',
+                    width: playersHere.length > 2 ? '30%' : playersHere.length > 1 ? '40%' : '55%',
                     aspectRatio: '1',
                     background: `radial-gradient(circle at 35% 35%, ${player.color}cc, ${player.color})`,
                     border: '2px solid rgba(255,255,255,0.7)',

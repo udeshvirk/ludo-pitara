@@ -149,15 +149,17 @@ const Dice3D: React.FC<Dice3DProps> = ({ value, onRoll, disabled, playerColor = 
         </motion.div>
       </div>
 
-      {!disabled && !isRolling && (
-        <motion.span
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-xs font-medium opacity-60"
-        >
-          Tap to roll
-        </motion.span>
-      )}
+      <div className="h-4 flex items-center justify-center">
+        {!disabled && !isRolling && (
+          <motion.span
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs font-medium opacity-60"
+          >
+            Tap to roll
+          </motion.span>
+        )}
+      </div>
     </div>
   );
 };

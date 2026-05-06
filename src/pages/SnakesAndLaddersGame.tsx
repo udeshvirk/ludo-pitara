@@ -76,7 +76,7 @@ const SnakesAndLaddersGame: React.FC = () => {
         </div>
 
         {/* Status Message Container */}
-        <div className="h-14 w-full flex justify-center items-center">
+        <div className="h-20 w-full flex justify-center items-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={message}

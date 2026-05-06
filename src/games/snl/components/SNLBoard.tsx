@@ -1,11 +1,6 @@
 import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  BOARD_SIZE,
-  SNAKES_AND_LADDERS,
-  rowColToCell,
-  cellToRowCol,
-} from '../constants';
+import { BOARD_SIZE, rowColToCell, cellToRowCol } from '../constants';
 import { useSNLStore } from '../store';
 
 const cellCenterPct = (cellNum: number) => {
@@ -131,11 +126,12 @@ const LadderShape: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
 };
 
 const SNLBoard: React.FC = () => {
-  const { players } = useSNLStore();
+  const players = useSNLStore(s => s.players);
+  const layout = useSNLStore(s => s.layout);
   const cellPct = 100 / BOARD_SIZE;
 
-  const snakes = useMemo(() => SNAKES_AND_LADDERS.filter(s => s.type === 'snake'), []);
-  const ladders = useMemo(() => SNAKES_AND_LADDERS.filter(s => s.type === 'ladder'), []);
+  const snakes = useMemo(() => layout.filter(s => s.type === 'snake'), [layout]);
+  const ladders = useMemo(() => layout.filter(s => s.type === 'ladder'), [layout]);
   const ladderBases = useMemo(() => new Set(ladders.map(l => l.from)), [ladders]);
   const snakeHeads = useMemo(() => new Set(snakes.map(s => s.from)), [snakes]);
 

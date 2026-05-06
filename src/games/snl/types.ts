@@ -18,6 +18,8 @@ export interface SNLGameState {
   winner: SNLPlayer | null;
   message: string;
   lastAction: string;
+  // Per-game randomized snakes & ladders. Empty before the first initGame.
+  layout: SnakeOrLadder[];
 }
 
 export interface SnakeOrLadder {

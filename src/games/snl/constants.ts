@@ -1,44 +1,5 @@
-import type { SnakeOrLadder } from './types';
-
 export const BOARD_SIZE = 10;
 export const TOTAL_CELLS = 100;
-
-// Snakes: head (from) → tail (to) — going DOWN
-// Ladders: bottom (from) → top (to) — going UP
-export const SNAKES_AND_LADDERS: SnakeOrLadder[] = [
-  // Ladders (8)
-  { from: 2, to: 38, type: 'ladder' },
-  { from: 7, to: 14, type: 'ladder' },
-  { from: 8, to: 31, type: 'ladder' },
-  { from: 15, to: 26, type: 'ladder' },
-  { from: 21, to: 42, type: 'ladder' },
-  { from: 28, to: 84, type: 'ladder' },
-  { from: 36, to: 44, type: 'ladder' },
-  { from: 51, to: 67, type: 'ladder' },
-  { from: 71, to: 91, type: 'ladder' },
-
-  // Snakes (13)
-  { from: 16, to: 6, type: 'snake' },
-  { from: 40, to: 3, type: 'snake' },
-  { from: 46, to: 25, type: 'snake' },
-  { from: 49, to: 11, type: 'snake' },
-  { from: 62, to: 19, type: 'snake' },
-  { from: 64, to: 60, type: 'snake' },
-  { from: 72, to: 12, type: 'snake' },
-  { from: 74, to: 53, type: 'snake' },
-  { from: 88, to: 18, type: 'snake' },
-  { from: 89, to: 68, type: 'snake' },
-  { from: 92, to: 88, type: 'snake' },
-  { from: 95, to: 75, type: 'snake' },
-  { from: 97, to: 25, type: 'snake' },
-  { from: 99, to: 7, type: 'snake' },
-];
-
-// Build lookup map for quick access
-export const BOARD_CONFIG: Record<number, number> = {};
-for (const item of SNAKES_AND_LADDERS) {
-  BOARD_CONFIG[item.from] = item.to;
-}
 
 // Player colors for SNL — match the Ludo player palette.
 export const SNL_PLAYER_COLORS = [

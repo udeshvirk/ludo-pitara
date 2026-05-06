@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { SNLGameState, SNLPlayer } from './types';
-import { BOARD_CONFIG, SNL_PLAYER_COLORS, SNAKES_AND_LADDERS } from './constants';
+import { SNL_PLAYER_COLORS } from './constants';
+import { generateSNLLayout, buildLayoutLookup } from './generator';
 import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { save, clear, load } from '../../lib/persist';
@@ -13,7 +14,7 @@ interface SNLStore extends SNLGameState {
 }
 
 const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
-const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
+const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0 && persistedSNL.layout?.length
   ? { ...persistedSNL, isRolling: false }
   : {
       players: [],
@@ -25,6 +26,7 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       winner: null,
       message: 'Set up your game!',
       lastAction: '',
+      layout: [],
     };
 
 export const useSNLStore = create<SNLStore>((set, get) => ({
@@ -49,6 +51,8 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       winner: null,
       message: `${players[0].name}'s turn — Tap the dice to roll!`,
       lastAction: '',
+      // Fresh randomized board every game.
+      layout: generateSNLLayout(),
     });
   },
 
@@ -115,11 +119,13 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         return;
       }
 
-      // Snake or ladder at the landing cell?
-      const specialTarget = BOARD_CONFIG[newPos];
+      // Snake or ladder at the landing cell? Look up against the per-game
+      // layout instead of any module-level constant.
+      const lookup = buildLayoutLookup(state.layout);
+      const specialTarget = lookup[newPos];
       let finalPos = newPos;
       if (specialTarget !== undefined) {
-        const entity = SNAKES_AND_LADDERS.find(s => s.from === newPos);
+        const entity = state.layout.find(s => s.from === newPos);
         if (entity) {
           actionMessage = entity.type === 'ladder'
             ? `🪜 Climbed ${newPos} → ${specialTarget}`
@@ -184,6 +190,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       winner: null,
       message: 'Set up your game!',
       lastAction: '',
+      layout: [],
     });
   },
 }));
@@ -204,6 +211,7 @@ useSNLStore.subscribe((state) => {
     winner: state.winner,
     message: state.message,
     lastAction: state.lastAction,
+    layout: state.layout,
   };
   save(STORAGE_KEYS.SNL, snapshot);
 });

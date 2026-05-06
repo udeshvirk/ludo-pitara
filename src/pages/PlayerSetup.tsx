@@ -19,7 +19,18 @@ const COLOR_VAR: Record<LudoColor, string> = {
   blue: 'var(--p-blue)',
 };
 
-const defaultName = (i: number) => `Player ${i + 1}`;
+// Default name = "Player N" for humans, "AI N" for CPUs, where N counts
+// only the same-type slots up to and including this one. Order:
+//   [human, cpu, human, cpu] → Player 1, AI 1, Player 2, AI 2
+function autoDefaultName(slot: number, isCPU: boolean[]): string {
+  let humans = 0;
+  let ais = 0;
+  for (let i = 0; i <= slot; i++) {
+    if (isCPU[i]) ais++;
+    else humans++;
+  }
+  return isCPU[slot] ? `AI ${ais}` : `Player ${humans}`;
+}
 
 const PlayerSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -33,12 +44,33 @@ const PlayerSetup: React.FC = () => {
   }, [game, mode, navigate]);
 
   const [count, setCount] = useState(2);
-  const [names, setNames] = useState<string[]>([defaultName(0), defaultName(1), defaultName(2), defaultName(3)]);
+  // `customNames[i]` is whatever the user typed (or an empty string for
+  // "use the auto default"). The displayed name falls back to
+  // autoDefaultName when customNames[i] is empty, so toggling Human/AI
+  // updates the name unless the user typed something explicit.
+  const [customNames, setCustomNames] = useState<string[]>(['', '', '', '']);
   const [colors, setColors] = useState<LudoColor[]>(['red', 'yellow', 'green', 'blue']);
+  // Default isCPU mirrors the mode chosen on the previous screen but is
+  // fully editable here (so a Solo player can have 2 humans + 2 AI, etc).
+  const [isCPU, setIsCPU] = useState<boolean[]>(() =>
+    mode === 'cpu' ? [false, true, true, true] : [false, false, false, false]
+  );
   const [activeNameIndex, setActiveNameIndex] = useState<number | null>(null);
   const [recents, setRecents] = useState<string[]>(() => getRecentNames());
 
+  // Re-seed defaults if the player flips the Mode page selection after
+  // the first time we landed here.
+  useEffect(() => {
+    setIsCPU(mode === 'cpu' ? [false, true, true, true] : [false, false, false, false]);
+  }, [mode]);
+
   const palette = useMemo<string[]>(() => colors.slice(0, count).map(c => COLOR_VAR[c]), [colors, count]);
+
+  const displayName = (slot: number): string => {
+    const custom = (customNames[slot] || '').trim();
+    if (custom.length > 0) return customNames[slot];
+    return autoDefaultName(slot, isCPU);
+  };
 
   const cycleColor = (idx: number) => {
     setColors(prev => {
@@ -59,8 +91,18 @@ const PlayerSetup: React.FC = () => {
     haptics.tap();
   };
 
+  const toggleCpu = (idx: number) => {
+    setIsCPU(prev => {
+      const next = [...prev];
+      next[idx] = !next[idx];
+      return next;
+    });
+    playTap();
+    haptics.tap();
+  };
+
   const updateName = (idx: number, value: string) => {
-    setNames(prev => {
+    setCustomNames(prev => {
       const next = [...prev];
       next[idx] = value;
       return next;
@@ -75,28 +117,27 @@ const PlayerSetup: React.FC = () => {
   };
 
   const start = () => {
-    const finalNames = Array.from({ length: count }, (_, i) => {
-      const v = (names[i] || '').trim();
-      return v.length > 0 ? v : defaultName(i);
-    });
-    rememberNames(finalNames);
-    setRecents(getRecentNames());
+    const finalNames = Array.from({ length: count }, (_, i) => displayName(i));
+    // Only remember user-typed names (skip auto defaults like "AI 1").
+    const typed = customNames.slice(0, count).filter(n => n.trim().length > 0);
+    if (typed.length > 0) {
+      rememberNames(typed);
+      setRecents(getRecentNames());
+    }
 
     const built: FlowPlayer[] = finalNames.map((name, i) => ({
       name,
       color: colors[i],
-      isCPU: mode === 'cpu' && i > 0,
+      isCPU: isCPU[i],
     }));
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };
 
-  // Recent-name chips for the focused row, filtered to ones not already in
-  // the current names list (case-insensitive).
   const chipsForRow = (idx: number): string[] => {
     if (recents.length === 0) return [];
     const taken = new Set(
-      names.slice(0, count).map((n, i) => (i === idx ? '' : n.toLowerCase().trim())).filter(Boolean),
+      Array.from({ length: count }, (_, i) => (i === idx ? '' : displayName(i).toLowerCase().trim())).filter(Boolean),
     );
     return recents.filter(r => !taken.has(r.toLowerCase()));
   };
@@ -134,6 +175,7 @@ const PlayerSetup: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {Array.from({ length: count }, (_, i) => {
             const chips = activeNameIndex === i ? chipsForRow(i) : [];
+            const cpu = isCPU[i];
             return (
               <motion.div
                 key={i}
@@ -150,25 +192,26 @@ const PlayerSetup: React.FC = () => {
                   border: '1px solid rgba(255,255,255,0.10)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <button
                     onClick={() => cycleColor(i)}
                     aria-label="Cycle color"
                     style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
                   >
-                    <Avatar color={palette[i]} label={(names[i] || `P${i + 1}`)[0]} size={48} ring />
+                    <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring />
                   </button>
                   <input
                     type="text"
-                    value={names[i] || ''}
+                    value={customNames[i] || ''}
                     onChange={e => updateName(i, e.target.value)}
                     onFocus={() => setActiveNameIndex(i)}
                     onBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === i ? null : prev)), 120)}
-                    placeholder={defaultName(i)}
+                    placeholder={autoDefaultName(i, isCPU)}
                     maxLength={14}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
+                      minWidth: 0,
+                      padding: '10px 12px',
                       borderRadius: 12,
                       background: 'rgba(0,0,0,0.18)',
                       border: '1px solid rgba(255,255,255,0.08)',
@@ -182,19 +225,37 @@ const PlayerSetup: React.FC = () => {
                   <button
                     onClick={() => cycleColor(i)}
                     style={{
-                      width: 28,
-                      height: 28,
+                      width: 26,
+                      height: 26,
                       borderRadius: '50%',
                       background: palette[i],
                       border: '2px solid rgba(255,255,255,0.55)',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                       cursor: 'pointer',
+                      flexShrink: 0,
                     }}
                     aria-label="Change color"
                   />
-                  {mode === 'cpu' && i > 0 && (
-                    <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 10, letterSpacing: 1.3, color: 'var(--gold)', textTransform: 'uppercase' }}>CPU</span>
-                  )}
+                  <button
+                    onClick={() => toggleCpu(i)}
+                    aria-pressed={cpu}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 999,
+                      background: cpu ? 'rgba(255, 138, 61, 0.18)' : 'transparent',
+                      border: '1px solid ' + (cpu ? 'var(--saffron)' : 'rgba(255,255,255,0.20)'),
+                      color: cpu ? 'var(--saffron)' : 'var(--ink-dim)',
+                      fontFamily: 'var(--font-ui)',
+                      fontWeight: 800,
+                      fontSize: 10,
+                      letterSpacing: 1.4,
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {cpu ? 'AI' : 'You'}
+                  </button>
                 </div>
 
                 {chips.length > 0 && (

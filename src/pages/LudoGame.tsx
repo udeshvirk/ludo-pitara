@@ -235,32 +235,43 @@ const LudoGame: React.FC = () => {
   );
 };
 
-// Split the player slots into top half (rotated 180°) and bottom half so two
-// people can sit head-to-head. With 2 players, top:1 / bottom:1. With 3,
-// top:1 / bottom:2. With 4, top:2 / bottom:2.
+// Player slot helpers. Each pod must visually sit next to its own yard.
+//
+// Player array indices (PLAYER_ORDER):
+//   2 players: [red, yellow]            (red TL,  yellow BR — diagonal)
+//   3 players: [red, green, blue]       (red TL,  green TR, blue BL)
+//   4 players: [red, green, yellow, blue] (red TL, green TR, yellow BR, blue BL)
+//
+// The top row is rendered with `transform: rotate(180deg)` so the people
+// sitting on the far side read their pods right-side-up. After rotating
+// flex children 180°, DOM-index 0 ends up visually on the RIGHT, and
+// DOM-index 1 ends up visually on the LEFT. So to put red (top-left
+// corner) on the screen's left side, red has to be the SECOND DOM child.
 function topSlotsForCount(count: number): Array<number | null> {
-  if (count === 2) return [0, null];
-  if (count === 3) return [1, null];
-  return [1, 2]; // 4-player: green + yellow on top
+  if (count === 2) return [null, 0]; // [_, red] → after rotation: red on screen-left
+  if (count === 3) return [1, 0];    // [green, red] → red on screen-left, green on screen-right
+  return [1, 0];                     // 4: [green, red] → red TL, green TR
 }
 
+// Bottom row has no rotation, so DOM order matches screen order (left → right).
 function bottomSlotsForCount(count: number): Array<number | null> {
-  if (count === 2) return [1, null];
-  if (count === 3) return [0, 2];
-  return [0, 3]; // red + blue on bottom
+  if (count === 2) return [null, 1]; // [_, yellow] → yellow on screen-right (BR yard)
+  if (count === 3) return [2, null]; // [blue, _]  → blue on screen-left (BL yard)
+  return [3, 2];                     // 4: [blue, yellow] → blue BL, yellow BR
 }
 
-// Wide-landscape rails: half the players on each side, top-to-bottom.
+// Wide-landscape side rails. Left rail holds the players whose yards
+// are on the board's LEFT half; right rail mirrors that.
 function leftRailSlots(count: number): number[] {
-  if (count === 2) return [0];
-  if (count === 3) return [0, 1];
-  return [0, 1];
+  if (count === 2) return [0];      // red only (top-left)
+  if (count === 3) return [0, 2];   // red top, blue bottom
+  return [0, 3];                    // 4: red top, blue bottom
 }
 
 function rightRailSlots(count: number): number[] {
-  if (count === 2) return [1];
-  if (count === 3) return [2];
-  return [2, 3];
+  if (count === 2) return [1];      // yellow only (bottom-right)
+  if (count === 3) return [1];      // green only (top-right) — no bottom-right player
+  return [1, 2];                    // 4: green top, yellow bottom
 }
 
 export default LudoGame;

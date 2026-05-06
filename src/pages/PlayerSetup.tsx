@@ -102,7 +102,7 @@ const PlayerSetup: React.FC = () => {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={520}>
       <Header title="Set up players" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/mode')} />
 
       <div style={{ flex: 1, padding: '8px 22px 12px', overflow: 'auto' }}>

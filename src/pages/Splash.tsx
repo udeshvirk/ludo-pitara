@@ -39,7 +39,7 @@ const Splash: React.FC = () => {
   }, [saved]);
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={520}>
       {/* Centered ambient mandala */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
         <Mandala size={420} opacity={0.08} />

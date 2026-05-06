@@ -133,7 +133,9 @@ const SNLBoard: React.FC = () => {
   const snakes = useMemo(() => layout.filter(s => s.type === 'snake'), [layout]);
   const ladders = useMemo(() => layout.filter(s => s.type === 'ladder'), [layout]);
   const ladderBases = useMemo(() => new Set(ladders.map(l => l.from)), [ladders]);
+  const ladderTops = useMemo(() => new Set(ladders.map(l => l.to)), [ladders]);
   const snakeHeads = useMemo(() => new Set(snakes.map(s => s.from)), [snakes]);
+  const snakeTails = useMemo(() => new Set(snakes.map(s => s.to)), [snakes]);
 
   const playerPositions = useMemo(() => {
     const map = new Map<number, typeof players>();
@@ -176,14 +178,23 @@ const SNLBoard: React.FC = () => {
           const cellNum = rowColToCell(row, col);
           const isDark = (row + col) % 2 === 0;
           const isLadderBase = ladderBases.has(cellNum);
+          const isLadderTop = ladderTops.has(cellNum);
           const isSnakeHead = snakeHeads.has(cellNum);
+          const isSnakeTail = snakeTails.has(cellNum);
           const baseBg = isDark ? 'var(--bg-board)' : 'var(--bg-board-cream)';
-          const tint = isLadderBase
-            ? 'rgba(46, 157, 79, 0.20)'
-            : isSnakeHead
-            ? 'rgba(229, 57, 53, 0.18)'
-            : 'transparent';
           const players = playerPositions.get(cellNum) || [];
+
+          // Marker circle per the user's spec:
+          // snake head → red, snake tail → white,
+          // ladder base → green, ladder top → white.
+          let markerFill: string | null = null;
+          let markerStroke = 'rgba(0,0,0,0.35)';
+          if (isSnakeHead) markerFill = 'var(--rose)';
+          else if (isLadderBase) markerFill = 'var(--snake)';
+          else if (isSnakeTail || isLadderTop) {
+            markerFill = '#fff';
+            markerStroke = isSnakeTail ? 'var(--rose)' : 'var(--snake)';
+          }
 
           return (
             <div
@@ -193,7 +204,6 @@ const SNLBoard: React.FC = () => {
                 background: baseBg,
                 position: 'relative',
                 border: '0.5px solid rgba(120, 80, 20, 0.18)',
-                boxShadow: tint !== 'transparent' ? `inset 0 0 0 1000px ${tint}` : undefined,
               }}
             >
               <span
@@ -211,6 +221,25 @@ const SNLBoard: React.FC = () => {
               >
                 {cellNum === 1 ? 'Start' : cellNum === 100 ? 'Home' : cellNum}
               </span>
+              {markerFill && (
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 4,
+                    width: '26%',
+                    height: '26%',
+                    minWidth: 8,
+                    minHeight: 8,
+                    borderRadius: '50%',
+                    background: markerFill,
+                    border: `1.5px solid ${markerStroke}`,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+                    zIndex: 2,
+                  }}
+                />
+              )}
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 1, padding: 2, zIndex: 4 }}>
                 {players.map((p, idx) => (
                   <motion.div

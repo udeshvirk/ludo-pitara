@@ -38,7 +38,7 @@ const GameSelect: React.FC = () => {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={520}>
       <Header
         title="Choose your game"
         subtitle="Section 1 · Entry"

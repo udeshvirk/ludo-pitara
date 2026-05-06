@@ -26,7 +26,7 @@ const Mode: React.FC = () => {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={520}>
       <Header title="Pick a mode" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/select')} />
 
       <div style={{ flex: 1, padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'auto' }}>

@@ -100,12 +100,11 @@ body {
   background: var(--bg-deep);
 }
 
-/* Letterbox / tablet-friendly frame.
-   - Phones: full-bleed up to 480 px.
-   - Tablets / large portrait viewports: grow to ~600 px.
-   - Wide / landscape (iPad landscape, desktop): up to ~880 px so the
-     board can breathe and player pods don't crowd. The in-game pages
-     opt into a side-by-side layout via `.is-wide` at this width. */
+/* Frame.
+   - Phones: full-bleed up to 480 px so iPhones get the original look.
+   - Tablets and up: the frame fills the screen so the festive bg has
+     no visible letterbox edges. Each page is responsible for capping
+     its own content width via PhoneShell's contentMaxWidth prop. */
 .phone-frame {
   width: 100%;
   max-width: 480px;
@@ -117,21 +116,8 @@ body {
 }
 
 @media (min-width: 600px) {
-  .phone-frame { max-width: 760px; }
+  .phone-frame { max-width: 100%; box-shadow: none; }
 }
-
-/* On any landscape viewport ≥ 900px the frame fills the screen — the
-   wide-layout grid inside caps itself at 1600px (see the page) so rails
-   don't grow absurdly wide on desktop monitors, while iPads use every
-   pixel they have. */
-@media (min-width: 900px) and (orientation: landscape) {
-  .phone-frame { max-width: 100%; }
-}
-
-/* Fluid variant — used by the in-game pages so the board fills the
-   tablet's portrait width. Menu screens keep the 760 cap so titles and
-   cards don't stretch absurdly wide. */
-.phone-frame.phone-frame-fluid { max-width: 100%; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

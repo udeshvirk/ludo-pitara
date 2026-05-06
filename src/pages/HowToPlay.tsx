@@ -26,7 +26,7 @@ const HowToPlay: React.FC = () => {
   const rules = tab === 'ludo' ? LUDO_RULES : SNL_RULES;
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={560}>
       <Header title="How to play" onBack={() => navigate(-1)} />
 
       <div style={{ padding: '0 22px 14px' }}>

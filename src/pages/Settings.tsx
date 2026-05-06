@@ -10,7 +10,7 @@ const SettingsPage: React.FC = () => {
   const settings = useSettings();
 
   return (
-    <PhoneShell>
+    <PhoneShell contentMaxWidth={560}>
       <Header title="Settings" onBack={() => navigate(-1)} />
 
       <div style={{ flex: 1, padding: '8px 22px 28px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 18 }}>

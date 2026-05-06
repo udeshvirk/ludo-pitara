@@ -38,14 +38,14 @@ const PlayerSetup: React.FC<PlayerSetupProps> = ({ maxPlayers, defaultColors, on
       </h3>
 
       {/* Player Count */}
-      <div className="mb-6">
-        <label className="text-sm font-medium opacity-70 mb-3 block">Players</label>
-        <div className="flex gap-3">
+      <div className="mb-8">
+        <label className="text-base font-medium opacity-70 mb-4 block">Players</label>
+        <div className="flex gap-4">
           {Array.from({ length: maxPlayers - 1 }, (_, i) => i + 2).map(count => (
             <motion.button
               key={count}
               onClick={() => setPlayerCount(count)}
-              className="flex-1 py-3 rounded-xl font-bold text-base transition-all"
+              className="flex-1 py-4 rounded-2xl font-bold text-lg transition-all"
               style={{
                 background: playerCount === count
                   ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
@@ -61,7 +61,7 @@ const PlayerSetup: React.FC<PlayerSetupProps> = ({ maxPlayers, defaultColors, on
       </div>
 
       {/* Player Names */}
-      <div className="mb-6 space-y-3">
+      <div className="mb-8 space-y-4">
         <label className="text-sm font-medium opacity-70 block">Names</label>
         {Array.from({ length: playerCount }, (_, i) => (
           <motion.div
@@ -80,7 +80,7 @@ const PlayerSetup: React.FC<PlayerSetupProps> = ({ maxPlayers, defaultColors, on
               value={names[i] || ''}
               onChange={e => handleNameChange(i, e.target.value)}
               placeholder={`Player ${i + 1}`}
-              className="w-full py-3 px-4 rounded-xl text-base font-medium bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-400/50 transition-colors"
+              className="w-full py-4 px-5 rounded-2xl text-lg font-medium bg-white/5 border border-white/10 text-white outline-none focus:border-indigo-400/50 transition-colors"
               maxLength={12}
             />
           </motion.div>
@@ -90,7 +90,7 @@ const PlayerSetup: React.FC<PlayerSetupProps> = ({ maxPlayers, defaultColors, on
       {/* Start Button */}
       <motion.button
         onClick={handleStart}
-        className="btn-primary w-full text-lg py-4 mt-2"
+        className="btn-primary w-full text-xl py-5 mt-4 rounded-2xl"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >

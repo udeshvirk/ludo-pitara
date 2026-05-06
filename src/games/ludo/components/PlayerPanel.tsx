@@ -7,7 +7,7 @@ const PlayerPanel: React.FC = () => {
   const { players, currentPlayerIndex, gamePhase } = useLudoStore();
 
   return (
-    <div className="flex flex-wrap gap-2 justify-center w-full max-w-md mx-auto">
+    <div className="flex flex-wrap gap-2 justify-center w-full max-w-md mx-auto flex-shrink-0">
       {players.map((player, index) => {
         const isActive = index === currentPlayerIndex && gamePhase !== 'finished';
         const colors = PLAYER_COLORS[player.color];

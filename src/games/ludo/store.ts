@@ -102,16 +102,21 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     const diceValue = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = state.players[state.currentPlayerIndex];
 
-    // Three consecutive 6s — turn is forfeited
-    if (diceValue === 6 && state.consecutiveSixes >= 2) {
-      const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, state.players);
-      const nextPlayer = state.players[nextPlayerIndex];
-      set({
-        diceValue,
-        hasRolled: true,
-        consecutiveSixes: 0,
-        message: `Three 6s! ${currentPlayer.name} loses their turn!`,
-      });
+    // Only set the dice value so the 3D dice can animate to the face
+    set({ diceValue, hasRolled: true, gamePhase: 'rolling' });
+
+    // Wait for the 3D dice to finish its "settle" animation (400ms) before continuing logic
+    setTimeout(() => {
+      // Re-fetch state in case it changed
+      const currentState = get();
+
+      if (diceValue === 6 && currentState.consecutiveSixes >= 2) {
+        const nextPlayerIndex = findNextActivePlayer(currentState.currentPlayerIndex, currentState.players);
+        const nextPlayer = currentState.players[nextPlayerIndex];
+        set({
+          consecutiveSixes: 0,
+          message: `Three 6s! ${currentPlayer.name} loses their turn!`,
+        });
 
       setTimeout(() => {
         set({
@@ -126,20 +131,18 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       return;
     }
 
-    // Check selectable tokens
-    const selectableTokens = getSelectableTokens(diceValue, currentPlayer);
+      // Check selectable tokens
+      const selectableTokens = getSelectableTokens(diceValue, currentPlayer);
 
-    if (selectableTokens.length === 0) {
-      // No valid moves
-      const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, state.players);
-      const nextPlayer = state.players[nextPlayerIndex];
-      set({
-        diceValue,
-        hasRolled: true,
-        consecutiveSixes: 0,
-        message: `${currentPlayer.name} rolled ${diceValue} — No valid moves!`,
-        selectableTokenIds: [],
-      });
+      if (selectableTokens.length === 0) {
+        // No valid moves
+        const nextPlayerIndex = findNextActivePlayer(currentState.currentPlayerIndex, currentState.players);
+        const nextPlayer = currentState.players[nextPlayerIndex];
+        set({
+          consecutiveSixes: 0,
+          message: `${currentPlayer.name} rolled ${diceValue} — No valid moves!`,
+          selectableTokenIds: [],
+        });
 
       setTimeout(() => {
         set({
@@ -154,16 +157,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       return;
     }
 
-    // If only one token can move, auto-select it
-    if (selectableTokens.length === 1) {
-      set({
-        diceValue,
-        hasRolled: true,
-        consecutiveSixes: diceValue === 6 ? state.consecutiveSixes + 1 : 0,
-        gamePhase: 'moving',
-        message: `${currentPlayer.name} rolled ${diceValue}!`,
-        selectableTokenIds: selectableTokens,
-      });
+      // If only one token can move, auto-select it
+      if (selectableTokens.length === 1) {
+        set({
+          consecutiveSixes: diceValue === 6 ? currentState.consecutiveSixes + 1 : 0,
+          gamePhase: 'moving',
+          message: `${currentPlayer.name} rolled ${diceValue}!`,
+          selectableTokenIds: selectableTokens,
+        });
 
       // Auto-move after a brief delay
       setTimeout(() => {
@@ -172,14 +173,13 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       return;
     }
 
-    set({
-      diceValue,
-      hasRolled: true,
-      consecutiveSixes: diceValue === 6 ? state.consecutiveSixes + 1 : 0,
-      gamePhase: 'selecting',
-      message: `${currentPlayer.name} rolled ${diceValue} — Select a token to move!`,
-      selectableTokenIds: selectableTokens,
-    });
+      set({
+        consecutiveSixes: diceValue === 6 ? currentState.consecutiveSixes + 1 : 0,
+        gamePhase: 'selecting',
+        message: `${currentPlayer.name} rolled ${diceValue} — Select a token to move!`,
+        selectableTokenIds: selectableTokens,
+      });
+    }, 400); // end of dice settle delay
   },
 
   selectToken: (tokenId: string) => {

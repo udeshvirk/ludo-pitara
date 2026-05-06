@@ -105,16 +105,18 @@ const SnakesAndLaddersGame: React.FC = () => {
         </div>
 
         {/* Last Action */}
-        {lastAction && (
-          <motion.div
-            key={lastAction}
-            className="text-xs opacity-50 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-          >
-            {lastAction}
-          </motion.div>
-        )}
+        <div className="h-4 w-full flex justify-center items-center">
+          {lastAction && (
+            <motion.div
+              key={lastAction}
+              className="text-xs opacity-50 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+            >
+              {lastAction}
+            </motion.div>
+          )}
+        </div>
       </div>
 
       {/* Winner Modal */}

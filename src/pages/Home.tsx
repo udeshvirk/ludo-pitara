@@ -107,11 +107,11 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-3 mt-5">
                   {game.features.map(feature => (
                     <span
                       key={feature}
-                      className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white/15 text-white/80"
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white/20 text-white/90"
                     >
                       {feature}
                     </span>

@@ -27,7 +27,7 @@ export const SNAKES_AND_LADDERS: SnakeOrLadder[] = [
   { from: 89, to: 68, type: 'snake' },
   { from: 92, to: 88, type: 'snake' },
   { from: 95, to: 75, type: 'snake' },
-  { from: 99, to: 80, type: 'snake' },
+  { from: 99, to: 7, type: 'snake' },
 ];
 
 // Build lookup map for quick access

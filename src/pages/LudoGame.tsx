@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
@@ -61,16 +61,21 @@ const LudoGame: React.FC = () => {
         {/* Player Panel */}
         <PlayerPanel />
 
-        {/* Status Message */}
-        <motion.div
-          key={message}
-          className="glass rounded-xl px-4 py-2 text-center text-sm font-semibold max-w-md"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {message}
-        </motion.div>
+        {/* Status Message Container */}
+        <div className="h-14 w-full flex justify-center items-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={message}
+              className="glass rounded-xl px-5 py-2.5 text-center text-sm font-bold shadow-lg"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {message}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         {/* Board */}
         <LudoBoard />

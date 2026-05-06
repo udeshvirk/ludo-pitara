@@ -48,7 +48,7 @@ export const PLAYER_COLORS: Record<PlayerColor, {
 
 // Player order for 2/3/4 players
 export const PLAYER_ORDER: Record<number, PlayerColor[]> = {
-  2: ['red', 'blue'],
+  2: ['red', 'yellow'],
   3: ['red', 'green', 'blue'],
   4: ['red', 'green', 'yellow', 'blue'],
 };

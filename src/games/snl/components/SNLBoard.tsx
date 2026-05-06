@@ -106,7 +106,7 @@ const SNLBoard: React.FC = () => {
                   layoutId={`snl-token-${player.id}`}
                   className="rounded-full"
                   style={{
-                    width: playersHere.length > 2 ? '28%' : playersHere.length > 1 ? '32%' : '50%',
+                    width: playersHere.length > 2 ? '40%' : playersHere.length > 1 ? '50%' : '70%',
                     aspectRatio: '1',
                     background: `radial-gradient(circle at 35% 35%, ${player.color}cc, ${player.color})`,
                     border: '2px solid rgba(255,255,255,0.7)',

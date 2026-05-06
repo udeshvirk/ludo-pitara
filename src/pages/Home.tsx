@@ -69,15 +69,15 @@ const Home: React.FC = () => {
         </motion.div>
 
         {/* Game Cards */}
-        <div className="flex flex-col gap-4 w-full max-w-sm">
+        <div className="flex flex-col gap-6 w-full max-w-md mt-4">
           {games.map((game, index) => (
             <motion.button
               key={game.id}
               onClick={() => navigate(game.path)}
-              className="relative w-full rounded-2xl p-5 text-left overflow-hidden"
+              className="relative w-full rounded-2xl p-6 text-left overflow-hidden border border-white/10"
               style={{
                 background: game.gradient,
-                boxShadow: `0 8px 32px ${game.shadowColor}`,
+                boxShadow: `0 12px 40px ${game.shadowColor}`,
               }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -93,17 +93,17 @@ const Home: React.FC = () => {
               <div
                 className="absolute inset-0 animate-shimmer"
                 style={{
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
                   backgroundSize: '200% 100%',
                 }}
               />
 
               <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-3xl">{game.emoji}</span>
+                <div className="flex items-center gap-4 mb-3">
+                  <span className="text-4xl">{game.emoji}</span>
                   <div>
-                    <h2 className="text-xl font-bold text-white">{game.title}</h2>
-                    <p className="text-xs text-white/70">{game.description}</p>
+                    <h2 className="text-2xl font-bold text-white mb-0.5">{game.title}</h2>
+                    <p className="text-sm text-white/80">{game.description}</p>
                   </div>
                 </div>
 

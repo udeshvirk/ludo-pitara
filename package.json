@@ -6,6 +6,8 @@
   "homepage": "https://udeshvirk.github.io/ludo-pitara",
   "scripts": {
     "dev": "vite",
+    "icons": "node scripts/gen-icons.mjs",
+    "prebuild": "node scripts/gen-icons.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -31,6 +33,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "gh-pages": "^6.3.0",
     "globals": "^17.5.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",

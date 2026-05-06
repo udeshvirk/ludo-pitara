@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Corner from '../components/ui/Corner';
+import InstallPrompt from '../components/InstallPrompt';
 import { useFlow } from '../games/flow/store';
 import type { GameId } from '../games/flow/store';
 
@@ -101,24 +102,25 @@ const GameSelect: React.FC = () => {
           </motion.button>
         ))}
 
-        <button
-          onClick={() => navigate('/how-to-play')}
-          style={{
-            marginTop: 8,
-            alignSelf: 'center',
-            padding: '8px 18px',
-            borderRadius: 999,
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: 'var(--ink-dim)',
-            fontFamily: 'var(--font-ui)',
-            fontWeight: 700,
-            fontSize: 12,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-          }}
-        >How to play</button>
+        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => navigate('/how-to-play')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 999,
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'var(--ink-dim)',
+              fontFamily: 'var(--font-ui)',
+              fontWeight: 700,
+              fontSize: 12,
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >How to play</button>
+          <InstallPrompt />
+        </div>
       </div>
     </PhoneShell>
   );

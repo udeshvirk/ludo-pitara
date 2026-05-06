@@ -11,6 +11,7 @@ import type { PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
+import { useLayoutMode } from '../lib/useLayout';
 
 const LudoGame: React.FC = () => {
   const navigate = useNavigate();
@@ -73,6 +74,45 @@ const LudoGame: React.FC = () => {
   }, [currentPlayer, gamePhase, isRolling, diceValue, selectableTokenIds, players, rollDice, selectToken]);
 
   const playerCount = players.length || flowPlayers.length;
+  const layoutMode = useLayoutMode();
+  const isWide = layoutMode === 'wide';
+
+  // On phones / tablet portrait we stack vertically (pods top + bottom).
+  // On wide landscape we put the board in the centre and pods on the
+  // left + right rails so we use the horizontal space.
+  const boardSizeStyle = isWide
+    ? { width: 'min(78vh, 560px)' }
+    : { width: '100%', maxWidth: 'min(94vw, 60vh)' };
+
+  const railWidth = 'clamp(180px, 22vw, 260px)';
+
+  const statusPill = (
+    <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={message}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            padding: '8px 18px',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            fontFamily: 'var(--font-ui)',
+            fontWeight: 600,
+            fontSize: 13,
+            color: 'var(--ink)',
+            whiteSpace: 'nowrap',
+            maxWidth: '90%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >{message}</motion.div>
+      </AnimatePresence>
+    </div>
+  );
 
   return (
     <PhoneShell decorative={false}>
@@ -81,67 +121,78 @@ const LudoGame: React.FC = () => {
         onBack={() => { resetGame(); navigate('/select'); }}
       />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
-        {/* Top half-row: 2 of the 4 player slots, rotated 180°.
-            Clamp the pod row to the same width as the board so dice don't
-            drift to the screen edges on portrait phones. */}
-        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
-          <PlayerHalfRow
-            slots={topSlotsForCount(playerCount)}
-            rotated
-            onRoll={rollDice}
-            isRolling={isRolling}
-            diceValue={diceValue}
-            activeIndex={currentPlayerIndex}
-            gamePhase={gamePhase}
-          />
+      {isWide ? (
+        // Wide landscape: pods rail-left, board centre, pods rail-right.
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 18, padding: '0 18px 18px', overflow: 'hidden' }}>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {leftRailSlots(playerCount).map((idx, i) => (
+              <PlayerHalfRow
+                key={`l-${i}`}
+                slots={[idx]}
+                rotated={false}
+                onRoll={rollDice}
+                isRolling={isRolling}
+                diceValue={diceValue}
+                activeIndex={currentPlayerIndex}
+                gamePhase={gamePhase}
+              />
+            ))}
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            {statusPill}
+            <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
+              <LudoBoard />
+            </div>
+          </div>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {rightRailSlots(playerCount).map((idx, i) => (
+              <PlayerHalfRow
+                key={`r-${i}`}
+                slots={[idx]}
+                rotated={false}
+                onRoll={rollDice}
+                isRolling={isRolling}
+                diceValue={diceValue}
+                activeIndex={currentPlayerIndex}
+                gamePhase={gamePhase}
+              />
+            ))}
+          </div>
         </div>
+      ) : (
+        // Stacked: pods on top (rotated 180°) and bottom.
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+            <PlayerHalfRow
+              slots={topSlotsForCount(playerCount)}
+              rotated
+              onRoll={rollDice}
+              isRolling={isRolling}
+              diceValue={diceValue}
+              activeIndex={currentPlayerIndex}
+              gamePhase={gamePhase}
+            />
+          </div>
 
-        {/* Status pill */}
-        <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={message}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                padding: '8px 18px',
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.10)',
-                fontFamily: 'var(--font-ui)',
-                fontWeight: 600,
-                fontSize: 13,
-                color: 'var(--ink)',
-                whiteSpace: 'nowrap',
-                maxWidth: '90%',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >{message}</motion.div>
-          </AnimatePresence>
-        </div>
+          {statusPill}
 
-        {/* Board */}
-        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)', aspectRatio: '1', position: 'relative' }}>
-          <LudoBoard />
-        </div>
+          <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
+            <LudoBoard />
+          </div>
 
-        {/* Bottom half-row, also clamped to board width. */}
-        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
-          <PlayerHalfRow
-            slots={bottomSlotsForCount(playerCount)}
-            rotated={false}
-            onRoll={rollDice}
-            isRolling={isRolling}
-            diceValue={diceValue}
-            activeIndex={currentPlayerIndex}
-            gamePhase={gamePhase}
-          />
+          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+            <PlayerHalfRow
+              slots={bottomSlotsForCount(playerCount)}
+              rotated={false}
+              onRoll={rollDice}
+              isRolling={isRolling}
+              diceValue={diceValue}
+              activeIndex={currentPlayerIndex}
+              gamePhase={gamePhase}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <WinnerModal
         isOpen={gamePhase === 'finished' && winner !== null}
@@ -176,6 +227,19 @@ function bottomSlotsForCount(count: number): Array<number | null> {
   if (count === 2) return [1, null];
   if (count === 3) return [0, 2];
   return [0, 3]; // red + blue on bottom
+}
+
+// Wide-landscape rails: half the players on each side, top-to-bottom.
+function leftRailSlots(count: number): number[] {
+  if (count === 2) return [0];
+  if (count === 3) return [0, 1];
+  return [0, 1];
+}
+
+function rightRailSlots(count: number): number[] {
+  if (count === 2) return [1];
+  if (count === 3) return [2];
+  return [2, 3];
 }
 
 export default LudoGame;

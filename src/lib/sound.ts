@@ -1,8 +1,19 @@
 // WebAudio synthesized sound effects. No assets — all generated on-the-fly.
 // AudioContext is lazy-created on first user gesture (mobile autoplay policy).
+//
+// iOS Safari quirk: the *first* WebAudio interaction must happen inside a
+// user gesture event handler, AND the context must be fully resumed (not
+// just created) before any oscillator will produce sound. Calling
+// `playDice()` from a tap handler isn't always sufficient because
+// `resume()` is async — the gesture can end before the promise settles.
+//
+// Fix: install global touchstart/click listeners that proactively unlock
+// the context the moment the user touches *anywhere* (splash tap, menu
+// click, etc.), well before they get to the dice.
 
 let ctx: AudioContext | null = null;
 let enabled = true;
+let unlocked = false;
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -13,6 +24,37 @@ function getCtx(): AudioContext | null {
   }
   if (ctx.state === 'suspended') void ctx.resume();
   return ctx;
+}
+
+// Play a silent 1-sample buffer and call resume() — together this is the
+// most reliable way to flip iOS Safari's audio state to "running".
+function unlockAudio() {
+  if (unlocked) return;
+  const ac = getCtx();
+  if (!ac) return;
+  try {
+    const buffer = ac.createBuffer(1, 1, 22050);
+    const source = ac.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ac.destination);
+    source.start(0);
+  } catch {
+    // ignore — some browsers throw if the context isn't ready yet
+  }
+  if (ac.state === 'suspended') void ac.resume();
+  if (ac.state === 'running') unlocked = true;
+}
+
+if (typeof window !== 'undefined') {
+  const events: Array<keyof DocumentEventMap> = ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'];
+  const onFirstInteraction = () => {
+    unlockAudio();
+    if (unlocked) {
+      events.forEach(e => document.removeEventListener(e, onFirstInteraction, true));
+    }
+  };
+  // Capture phase + passive so we run before button handlers and don't block scrolling.
+  events.forEach(e => document.addEventListener(e, onFirstInteraction, { passive: true, capture: true }));
 }
 
 export function setSoundEnabled(v: boolean) {

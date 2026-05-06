@@ -100,8 +100,12 @@ body {
   background: var(--bg-deep);
 }
 
-/* Letterbox: every routed screen sits in a phone-width frame on wide
-   viewports, full-bleed on phones. */
+/* Letterbox / tablet-friendly frame.
+   - Phones: full-bleed up to 480 px.
+   - Tablets / large portrait viewports: grow to ~600 px.
+   - Wide / landscape (iPad landscape, desktop): up to ~880 px so the
+     board can breathe and player pods don't crowd. The in-game pages
+     opt into a side-by-side layout via `.is-wide` at this width. */
 .phone-frame {
   width: 100%;
   max-width: 480px;
@@ -110,6 +114,18 @@ body {
   display: flex;
   flex-direction: column;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+@media (min-width: 600px) {
+  .phone-frame { max-width: 600px; }
+}
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .phone-frame { max-width: 900px; }
+}
+
+@media (min-width: 900px) and (orientation: landscape) and (min-height: 600px) {
+  .phone-frame { max-width: 1020px; }
 }
 
 ::-webkit-scrollbar { width: 4px; }

@@ -81,9 +81,16 @@ const LudoGame: React.FC = () => {
   // On wide landscape we put the board in the centre and pods on the
   // left + right rails. The rails are kept narrow and the pods compact so
   // the board can grow to fill the remaining horizontal space.
-  const railWidth = 'clamp(132px, 14vw, 160px)';
+  // Rails take whatever's left over after the board claims its vertical
+  // budget — wider rails on iPads soak up the side space that was being
+  // wasted, and the bigger numbers also let player names display without
+  // aggressive truncation.
+  const railWidth = 'clamp(160px, 18vw, 220px)';
+  // Wide-mode board: take whatever's left after the header (~70px) and the
+  // status pill (~50px) and padding. The vw subtraction accounts for the
+  // two rails plus gaps. Capped at 960px so XL displays don't overrun.
   const boardSizeStyle = isWide
-    ? { width: 'min(86vh, calc(100vw - 380px))', maxWidth: 'min(86vh, 880px)' }
+    ? { width: 'min(calc(100vh - 140px), calc(100vw - 360px))', maxWidth: 960 }
     : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
 
   const statusPill = (
@@ -123,7 +130,7 @@ const LudoGame: React.FC = () => {
 
       {isWide ? (
         // Wide landscape: pods rail-left, board centre, pods rail-right.
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px 12px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 12px', overflow: 'hidden' }}>
           <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <PlayerHalfRow

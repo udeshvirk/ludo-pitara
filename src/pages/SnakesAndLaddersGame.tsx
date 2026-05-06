@@ -45,9 +45,11 @@ const SnakesAndLaddersGame: React.FC = () => {
 
   // Same sizing strategy as Ludo — compact pods + thin rails so the board
   // can use the rest of the horizontal space on iPad landscape.
-  const railWidth = 'clamp(132px, 14vw, 160px)';
+  // Match Ludo: wider rail cap, taller board cap, tighter padding so iPad
+  // fills edge-to-edge.
+  const railWidth = 'clamp(160px, 18vw, 220px)';
   const boardSizeStyle = isWide
-    ? { width: 'min(86vh, calc(100vw - 380px))', maxWidth: 'min(86vh, 880px)' }
+    ? { width: 'min(calc(100vh - 140px), calc(100vw - 360px))', maxWidth: 960 }
     : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
 
   const statusPill = (
@@ -83,7 +85,7 @@ const SnakesAndLaddersGame: React.FC = () => {
       <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} />
 
       {isWide ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px 12px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 12px', overflow: 'hidden' }}>
           <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} compact />

@@ -12,7 +12,7 @@ import {
 } from './constants';
 
 interface LudoStore extends LudoGameState {
-  initGame: (playerCount: number, playerNames?: string[]) => void;
+  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor}[]) => void;
   rollDice: () => void;
   selectToken: (tokenId: string) => void;
   resetGame: () => void;
@@ -76,12 +76,17 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   message: 'Set up your game!',
   selectableTokenIds: [],
 
-  initGame: (playerCount: number, playerNames?: string[]) => {
-    const colors = PLAYER_ORDER[playerCount];
-    const players = colors.map((color, i) => {
-      const name = playerNames?.[i] || `Player ${i + 1}`;
-      return createPlayer(name, color);
-    });
+  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor}[]) => {
+    let players: Player[] = [];
+    if (customPlayers) {
+      players = customPlayers.map(cp => createPlayer(cp.name, cp.color));
+    } else {
+      const colors = PLAYER_ORDER[playerCount];
+      players = colors.map((color, i) => {
+        const name = playerNames?.[i] || `Player ${i + 1}`;
+        return createPlayer(name, color);
+      });
+    }
 
     set({
       players,

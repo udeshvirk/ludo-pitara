@@ -63,7 +63,26 @@ const LudoGame: React.FC = () => {
           <PlayerSetup
             maxPlayers={4}
             defaultColors={LUDO_COLORS}
-            onStart={(count, names) => initGame(count, names)}
+            onStart={(count, names) => {
+              // If 2 players, use Red and Yellow for diagonal placement!
+              const finalNames = [...names];
+              const playersToInit: { name: string; color: PlayerColor }[] = [];
+              
+              if (count === 2) {
+                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
+                playersToInit.push({ name: finalNames[1], color: 'yellow' as PlayerColor });
+              } else if (count === 3) {
+                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
+                playersToInit.push({ name: finalNames[1], color: 'green' as PlayerColor });
+                playersToInit.push({ name: finalNames[2], color: 'yellow' as PlayerColor });
+              } else {
+                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
+                playersToInit.push({ name: finalNames[1], color: 'green' as PlayerColor });
+                playersToInit.push({ name: finalNames[2], color: 'yellow' as PlayerColor });
+                playersToInit.push({ name: finalNames[3], color: 'blue' as PlayerColor });
+              }
+              initGame(count, finalNames, playersToInit);
+            }}
           />
         </div>
       </div>

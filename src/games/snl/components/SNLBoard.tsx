@@ -199,15 +199,17 @@ const SNLBoard: React.FC = () => {
               <span
                 style={{
                   position: 'absolute',
-                  top: 2,
-                  left: 4,
-                  fontSize: '0.55em',
-                  fontWeight: 700,
-                  color: 'rgba(120, 80, 20, 0.7)',
+                  top: 3,
+                  left: 5,
+                  fontSize: cellNum === 1 || cellNum === 100 ? '0.66em' : '0.78em',
+                  fontWeight: cellNum === 1 || cellNum === 100 ? 800 : 700,
+                  color: cellNum === 100 ? 'var(--gold-deep)' : cellNum === 1 ? 'var(--snake)' : 'rgba(120, 80, 20, 0.78)',
                   fontFamily: 'var(--font-ui)',
+                  letterSpacing: cellNum === 1 || cellNum === 100 ? 0.6 : 0,
+                  textTransform: 'uppercase',
                 }}
               >
-                {cellNum}
+                {cellNum === 1 ? 'Start' : cellNum === 100 ? 'Home' : cellNum}
               </span>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 1, padding: 2, zIndex: 4 }}>
                 {players.map((p, idx) => (

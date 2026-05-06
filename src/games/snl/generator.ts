@@ -58,6 +58,10 @@ interface Constraints {
   maxRowSpan: number;
   minSameTypeDist: number; // anchor-to-anchor for matching type
   minCrossTypeDist: number; // anchor-to-anchor for the other type
+  // Minimum cell-number impact (|from - to|). Filters out long-body /
+  // low-impact specials like 61 → 51, where the bezier covers half the
+  // board but the player only loses 10 cells. 0 = no minimum.
+  minImpact?: number;
 }
 
 function pickSpecial(
@@ -75,6 +79,8 @@ function pickSpecial(
 
     const rowSpan = Math.abs(rowOf(from) - rowOf(to));
     if (rowSpan < c.minRowSpan || rowSpan > c.maxRowSpan) continue;
+
+    if (c.minImpact && Math.abs(from - to) < c.minImpact) continue;
 
     const fromPt = rowColOf(from);
     const toPt = rowColOf(to);
@@ -126,40 +132,57 @@ export function generateSNLLayout(): SnakeOrLadder[] {
     minRowSpan: 3, maxRowSpan: 7, minSameTypeDist: 1, minCrossTypeDist: 2,
   }));
 
-  // Guaranteed early-game big climb (3–6 rows). Placed before the mid-
-  // board snakes so they can't accidentally box it out of cell choices.
+  // Guaranteed early-game big climb (3–6 rows, ≥ 30 cells).
   tryAdd(pickSpecial(occupied, anchors, {
     type: 'ladder', fromRange: [4, 18], toRange: [55, 88],
-    minRowSpan: 3, maxRowSpan: 6, minSameTypeDist: 3, minCrossTypeDist: 2,
+    minRowSpan: 3, maxRowSpan: 6, minImpact: 30,
+    minSameTypeDist: 3, minCrossTypeDist: 2,
   }));
 
-  // Three mid-board snakes — short drops, well-spaced from other snakes.
+  // Three mid-board snakes — meaningful drops (≥ 12 cells) so they're
+  // not "long body, low impact" like 61 → 51.
   let midSnakes = 0;
   for (let i = 0; i < 200 && midSnakes < 3; i++) {
     if (tryAdd(pickSpecial(occupied, anchors, {
       type: 'snake',
       fromRange: [25, 85],
       toRange: [4, 70],
-      minRowSpan: 1,
-      maxRowSpan: 3,
+      minRowSpan: 2,
+      maxRowSpan: 4,
+      minImpact: 14,
       minSameTypeDist: 3,
       minCrossTypeDist: 2,
     }))) midSnakes++;
   }
 
-  // Five more shorter ladders scattered through the board. Top capped at
-  // 90 so the run-up to 100 still demands an exact roll.
-  let extraLadders = 0;
-  for (let i = 0; i < 250 && extraLadders < 5; i++) {
+  // At most 1 short ladder (1-row climb) for variety. The rest of the
+  // ladders are 2-3 row climbs with at least 12 cells of impact, so they
+  // actually help the player.
+  tryAdd(pickSpecial(occupied, anchors, {
+    type: 'ladder',
+    fromRange: [10, 70],
+    toRange: [15, 85],
+    minRowSpan: 1,
+    maxRowSpan: 1,
+    minImpact: 8,
+    minSameTypeDist: 3,
+    minCrossTypeDist: 2,
+  }));
+
+  // Three medium ladders. minImpact ≥ 14 means each ladder advances you
+  // by at least one-and-a-half rows of progress.
+  let mediumLadders = 0;
+  for (let i = 0; i < 250 && mediumLadders < 3; i++) {
     if (tryAdd(pickSpecial(occupied, anchors, {
       type: 'ladder',
       fromRange: [4, 75],
       toRange: [15, 90],
-      minRowSpan: 1,
+      minRowSpan: 2,
       maxRowSpan: 3,
+      minImpact: 14,
       minSameTypeDist: 3,
       minCrossTypeDist: 2,
-    }))) extraLadders++;
+    }))) mediumLadders++;
   }
 
   return items;

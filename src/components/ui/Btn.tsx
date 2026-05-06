@@ -21,10 +21,10 @@ interface BtnProps {
 
 const VARIANT_STYLES: Record<Variant, React.CSSProperties> = {
   primary: {
-    background: 'linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, var(--gold-deep))',
-    color: '#3a1f00',
-    boxShadow: '0 6px 18px rgba(245, 184, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.18)',
-    border: '1px solid rgba(255, 225, 150, 0.6)',
+    background: 'linear-gradient(180deg, #ffa771, var(--saffron) 55%, #c25a1f)',
+    color: '#fff',
+    boxShadow: '0 6px 18px rgba(255, 138, 61, 0.45), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.18)',
+    border: '1px solid rgba(255, 195, 150, 0.55)',
   },
   danger: {
     background: 'linear-gradient(180deg, #ff7a5a, var(--rose))',

@@ -86,9 +86,9 @@ const ModeCard: React.FC<CardProps> = ({ selected, onClick, title, subtitle, bod
     style={{
       borderRadius: 20,
       padding: 18,
-      background: selected ? 'rgba(245, 184, 0, 0.10)' : 'rgba(255,255,255,0.06)',
-      border: `1px solid ${selected ? 'var(--gold)' : 'rgba(255,255,255,0.10)'}`,
-      boxShadow: selected ? '0 8px 28px rgba(245,184,0,0.20)' : 'var(--shadow-sm)',
+      background: selected ? 'rgba(255, 138, 61, 0.10)' : 'rgba(255,255,255,0.06)',
+      border: `1px solid ${selected ? 'var(--saffron)' : 'rgba(255,255,255,0.10)'}`,
+      boxShadow: selected ? '0 8px 28px rgba(255, 138, 61, 0.22)' : 'var(--shadow-sm)',
       textAlign: 'left',
       color: 'var(--ink)',
       cursor: 'pointer',
@@ -99,7 +99,7 @@ const ModeCard: React.FC<CardProps> = ({ selected, onClick, title, subtitle, bod
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22 }}>{title}</div>
       {accent}
     </div>
-    <div style={{ fontSize: 11, color: selected ? 'var(--gold)' : 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: 1.4, fontWeight: 700, fontFamily: 'var(--font-ui)' }}>{subtitle}</div>
+    <div style={{ fontSize: 11, color: selected ? 'var(--saffron)' : 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: 1.4, fontWeight: 700, fontFamily: 'var(--font-ui)' }}>{subtitle}</div>
     <div style={{ marginTop: 10, fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.4 }}>{body}</div>
   </motion.button>
 );

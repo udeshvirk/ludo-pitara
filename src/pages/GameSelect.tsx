@@ -94,7 +94,7 @@ const GameSelect: React.FC = () => {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 26, lineHeight: 1.1, color: 'var(--ink)' }}>{g.title}</div>
               <div style={{ marginTop: 4, fontSize: 13, color: 'var(--ink-dim)', fontFamily: 'var(--font-body)' }}>{g.subtitle}</div>
-              <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--gold)', fontFamily: 'var(--font-ui)', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700 }}>
+              <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--saffron)', fontFamily: 'var(--font-ui)', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700 }}>
                 Play
                 <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1l6 5-6 5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>

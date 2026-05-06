@@ -81,7 +81,7 @@ const Toggle: React.FC<{ label: string; sub?: string; value: boolean; onChange: 
       aria-pressed={value}
       style={{
         width: 48, height: 28, borderRadius: 999,
-        background: value ? 'var(--gold)' : 'rgba(255,255,255,0.16)',
+        background: value ? 'var(--saffron)' : 'rgba(255,255,255,0.16)',
         border: 'none',
         position: 'relative',
         cursor: 'pointer',
@@ -121,9 +121,9 @@ function Picker<T extends string>({ label, options, value, onChange }: PickerPro
               flex: 1,
               padding: '8px 0',
               borderRadius: 999,
-              border: '1px solid ' + (value === opt.value ? 'var(--gold)' : 'rgba(255,255,255,0.10)'),
-              background: value === opt.value ? 'rgba(245,184,0,0.16)' : 'transparent',
-              color: value === opt.value ? 'var(--gold-hi)' : 'var(--ink-dim)',
+              border: '1px solid ' + (value === opt.value ? 'var(--saffron)' : 'rgba(255,255,255,0.10)'),
+              background: value === opt.value ? 'rgba(255, 138, 61, 0.16)' : 'transparent',
+              color: value === opt.value ? 'var(--saffron)' : 'var(--ink-dim)',
               fontFamily: 'var(--font-ui)',
               fontWeight: 700,
               fontSize: 12,

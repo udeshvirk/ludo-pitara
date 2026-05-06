@@ -42,8 +42,8 @@ const HowToPlay: React.FC = () => {
                 fontFamily: 'var(--font-ui)',
                 fontWeight: 700,
                 fontSize: 13,
-                color: tab === t ? '#3a1f00' : 'var(--ink-dim)',
-                background: tab === t ? 'linear-gradient(180deg, var(--gold-hi), var(--gold))' : 'transparent',
+                color: tab === t ? '#fff' : 'var(--ink-dim)',
+                background: tab === t ? 'linear-gradient(180deg, #ffa771, var(--saffron))' : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
               }}
@@ -78,10 +78,10 @@ const HowToPlay: React.FC = () => {
               >
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
-                  background: 'linear-gradient(180deg, var(--gold-hi), var(--gold))',
+                  background: 'linear-gradient(180deg, #ffa771, var(--saffron))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, flexShrink: 0,
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
                 }}>{r.icon}</div>
                 <div>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, color: 'var(--ink)' }}>{r.title}</div>

@@ -49,13 +49,14 @@ const LudoBoard: React.FC = () => {
     return map;
   }, []);
 
-  // Token positions on the board (path or home center)
+  // Path tokens — yard and home tokens are rendered separately so the
+  // path map stays focused on actual on-track positions.
   const tokenPositions = useMemo(() => {
     const map = new Map<string, { tokenId: string; color: PlayerColor; yardIndex: number }[]>();
     for (const player of players) {
       player.tokens.forEach((token, idx) => {
-        if (token.state === 'yard') return; // yard tokens drawn inside the corner panel
-        const pos = token.state === 'home' ? { row: 7, col: 7 } : getBoardPosition(token.color, token.pathIndex);
+        if (token.state !== 'active') return;
+        const pos = getBoardPosition(token.color, token.pathIndex);
         const key = `${pos.row},${pos.col}`;
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push({ tokenId: token.id, color: token.color, yardIndex: idx });
@@ -64,21 +65,38 @@ const LudoBoard: React.FC = () => {
     return map;
   }, [players]);
 
-  // Tokens still in the yard, grouped by color so we can render them in
-  // their corner panel.
+  // Yard tokens, indexed by ORIGINAL token slot (0..3). Pinning to the
+  // original index means a token leaving the yard doesn't cause the
+  // remaining ones to shift slots — which previously made siblings
+  // briefly disappear / re-appear during a move animation.
   const yardTokens = useMemo(() => {
-    const map: Record<PlayerColor, { tokenId: string; isSelectable: boolean }[]> = {
-      red: [], green: [], yellow: [], blue: [],
+    const map: Record<PlayerColor, Array<{ tokenId: string; isSelectable: boolean } | null>> = {
+      red: [null, null, null, null],
+      green: [null, null, null, null],
+      yellow: [null, null, null, null],
+      blue: [null, null, null, null],
     };
     for (const player of players) {
-      player.tokens.forEach((t) => {
+      player.tokens.forEach((t, idx) => {
         if (t.state === 'yard') {
-          map[t.color].push({ tokenId: t.id, isSelectable: selectableTokenIds.includes(t.id) });
+          map[t.color][idx] = { tokenId: t.id, isSelectable: selectableTokenIds.includes(t.id) };
         }
       });
     }
     return map;
   }, [players, selectableTokenIds]);
+
+  // Home tokens grouped by color — placed at their wedge centroid inside
+  // the centre 3×3 instead of all piling at (7,7).
+  const homeTokens = useMemo(() => {
+    const map: Record<PlayerColor, string[]> = { red: [], green: [], yellow: [], blue: [] };
+    for (const player of players) {
+      for (const token of player.tokens) {
+        if (token.state === 'home') map[token.color].push(token.id);
+      }
+    }
+    return map;
+  }, [players]);
 
   return (
     <motion.div
@@ -157,7 +175,10 @@ const LudoBoard: React.FC = () => {
         );
       })}
 
-      {/* Center 3x3 — colored wedges + gold ring */}
+      {/* Centre 3×3 — coloured wedges + gold ring. Tokens that reached
+          home are placed at the centroid of their colour's wedge so
+          different colours fan out into their own corners instead of
+          piling onto a single point. */}
       <div style={{ gridRow: '7 / span 3', gridColumn: '7 / span 3', position: 'relative', background: 'var(--bg-board-cream)', border: '1.5px solid rgba(120, 80, 20, 0.4)' }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
           <polygon points="50,50 0,0 100,0" fill={PLAYER_COLORS.green.bg} />
@@ -167,19 +188,44 @@ const LudoBoard: React.FC = () => {
           <circle cx="50" cy="50" r="14" fill="var(--gold-hi)" stroke="var(--gold-deep)" strokeWidth="2" />
           <text x="50" y="58" textAnchor="middle" fontSize="20" fontWeight="700" fill="#3a1f00" fontFamily="var(--font-display)">★</text>
         </svg>
-        {/* Tokens that have reached home stack at the center */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {(tokenPositions.get('7,7') || []).map((t, ti) => (
-            <LudoToken
-              key={t.tokenId}
-              tokenId={t.tokenId}
-              color={t.color}
-              isSelectable={false}
-              stackIndex={ti}
-              stackSize={(tokenPositions.get('7,7') || []).length}
-            />
-          ))}
-        </div>
+
+        {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(color => {
+          const ids = homeTokens[color];
+          if (ids.length === 0) return null;
+          // Wedge centroid expressed as % of the centre 3×3 box.
+          const pos =
+            color === 'red'    ? { left: '17%', top: '50%' } :
+            color === 'green'  ? { left: '50%', top: '17%' } :
+            color === 'yellow' ? { left: '83%', top: '50%' } :
+                                 { left: '50%', top: '83%' };
+          return (
+            <div
+              key={color}
+              style={{
+                position: 'absolute',
+                left: pos.left,
+                top: pos.top,
+                transform: 'translate(-50%, -50%)',
+                width: '34%',
+                height: '34%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {ids.map((tokenId, ti) => (
+                <LudoToken
+                  key={tokenId}
+                  tokenId={tokenId}
+                  color={color}
+                  isSelectable={false}
+                  stackIndex={ti}
+                  stackSize={ids.length}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
 
       {/* Four yard corner panels */}

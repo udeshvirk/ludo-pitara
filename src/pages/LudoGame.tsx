@@ -81,16 +81,13 @@ const LudoGame: React.FC = () => {
   // On wide landscape we put the board in the centre and pods on the
   // left + right rails. The rails are kept narrow and the pods compact so
   // the board can grow to fill the remaining horizontal space.
-  // Rails take whatever's left over after the board claims its vertical
-  // budget — wider rails on iPads soak up the side space that was being
-  // wasted, and the bigger numbers also let player names display without
-  // aggressive truncation.
-  const railWidth = 'clamp(160px, 18vw, 220px)';
-  // Wide-mode board: take whatever's left after the header (~70px) and the
-  // status pill (~50px) and padding. The vw subtraction accounts for the
-  // two rails plus gaps. Capped at 960px so XL displays don't overrun.
+  // Wide-mode layout uses CSS grid `1fr auto 1fr` so the side rails flex
+  // to absorb whatever horizontal space the board doesn't claim — no more
+  // wasted gutters on any iPad size. The board sizes itself off the
+  // available vertical budget (header ~70px + status ~50px + padding) and
+  // is capped so XL displays don't overrun.
   const boardSizeStyle = isWide
-    ? { width: 'min(calc(100vh - 140px), calc(100vw - 360px))', maxWidth: 960 }
+    ? { width: 'min(calc(100vh - 140px), 960px)' }
     : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
 
   const statusPill = (
@@ -129,9 +126,19 @@ const LudoGame: React.FC = () => {
       />
 
       {isWide ? (
-        // Wide landscape: pods rail-left, board centre, pods rail-right.
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px 12px', overflow: 'hidden' }}>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        // Wide landscape: rails flex-fill, board sized at its content width.
+        <div
+          style={{
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: 'minmax(150px, 1fr) auto minmax(150px, 1fr)',
+            alignItems: 'center',
+            gap: 12,
+            padding: '0 12px 12px',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <PlayerHalfRow
                 key={`l-${i}`}
@@ -146,13 +153,13 @@ const LudoGame: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {statusPill}
             <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
               <LudoBoard />
             </div>
           </div>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <PlayerHalfRow
                 key={`r-${i}`}

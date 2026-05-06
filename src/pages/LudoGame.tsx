@@ -127,6 +127,8 @@ const LudoGame: React.FC = () => {
 
       {isWide ? (
         // Wide landscape: rails flex-fill, board sized at its content width.
+        // Grid itself caps at 1600px and centres on huge monitors so the
+        // rails don't grow to absurd widths.
         <div
           style={{
             flex: 1,
@@ -135,6 +137,9 @@ const LudoGame: React.FC = () => {
             alignItems: 'center',
             gap: 12,
             padding: '0 12px 12px',
+            maxWidth: 1600,
+            margin: '0 auto',
+            width: '100%',
             overflow: 'hidden',
           }}
         >

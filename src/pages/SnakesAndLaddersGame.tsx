@@ -92,6 +92,9 @@ const SnakesAndLaddersGame: React.FC = () => {
             alignItems: 'center',
             gap: 12,
             padding: '0 12px 12px',
+            maxWidth: 1600,
+            margin: '0 auto',
+            width: '100%',
             overflow: 'hidden',
           }}
         >

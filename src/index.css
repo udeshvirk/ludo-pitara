@@ -120,12 +120,12 @@ body {
   .phone-frame { max-width: 760px; }
 }
 
+/* On any landscape viewport ≥ 900px the frame fills the screen — the
+   wide-layout grid inside caps itself at 1600px (see the page) so rails
+   don't grow absurdly wide on desktop monitors, while iPads use every
+   pixel they have. */
 @media (min-width: 900px) and (orientation: landscape) {
   .phone-frame { max-width: 100%; }
-}
-
-@media (min-width: 1280px) and (orientation: landscape) {
-  .phone-frame { max-width: 1280px; }
 }
 
 ::-webkit-scrollbar { width: 4px; }

@@ -186,8 +186,12 @@ const LudoGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        // Stacked: pods on top (rotated 180°) and bottom.
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
+        // Stacked: status pill stays at the very top so both pod rows
+        // sit directly against the board edges. The board flexes to
+        // fill the remaining space.
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px 12px', overflow: 'hidden', gap: 6 }}>
+          {statusPill}
+
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <PlayerHalfRow
               slots={slots.top}
@@ -199,8 +203,6 @@ const LudoGame: React.FC = () => {
               gamePhase={gamePhase}
             />
           </div>
-
-          {statusPill}
 
           <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
             <LudoBoard />

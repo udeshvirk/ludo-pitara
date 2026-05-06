@@ -116,7 +116,9 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px 12px', overflow: 'hidden', gap: 6 }}>
+          {statusPill}
+
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <SNLPlayerHalfRow
               slots={topSlotsForCount(playerCount)}
@@ -124,8 +126,6 @@ const SnakesAndLaddersGame: React.FC = () => {
               onRoll={rollDice}
             />
           </div>
-
-          {statusPill}
 
           <div style={{ ...boardSizeStyle, aspectRatio: '1', alignSelf: 'center' }}>
             <SNLBoard />

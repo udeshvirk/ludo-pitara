@@ -186,10 +186,10 @@ const LudoGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        // Stacked: status pill stays at the very top so both pod rows
-        // sit directly against the board edges. The board flexes to
-        // fill the remaining space.
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px 12px', overflow: 'hidden', gap: 6 }}>
+        // Stacked: status pill stays at the very top, then pods hug the
+        // board with a small uniform gap so each section is visually
+        // distinct without drifting apart.
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 10 }}>
           {statusPill}
 
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>

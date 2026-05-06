@@ -116,7 +116,7 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px 12px', overflow: 'hidden', gap: 6 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 10 }}>
           {statusPill}
 
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>

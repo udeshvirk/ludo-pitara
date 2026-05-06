@@ -4,16 +4,30 @@ import { useLudoStore } from '../store';
 import {
   BOARD_SIZE,
   PLAYER_COLORS,
-  HOME_AREAS,
-  CENTER_AREA,
   YARD_POSITIONS,
   isPathCell,
   getColoredCells,
   getSafeSquares,
   getBoardPosition,
+  START_INDEX,
 } from '../constants';
 import type { PlayerColor } from '../types';
 import LudoToken from './Token';
+
+const COLOR_DEEP: Record<PlayerColor, string> = {
+  red: '#9a1a18',
+  green: '#185c2c',
+  yellow: '#7a5a00',
+  blue: '#0e3e7a',
+};
+
+// Player home corner: 6×6 cells starting at the given (row, col)
+const HOME_CORNERS: Record<PlayerColor, { row: number; col: number }> = {
+  red: { row: 0, col: 0 },
+  green: { row: 0, col: 9 },
+  yellow: { row: 9, col: 9 },
+  blue: { row: 9, col: 0 },
+};
 
 const LudoBoard: React.FC = () => {
   const { players, selectableTokenIds } = useLudoStore();
@@ -25,21 +39,23 @@ const LudoBoard: React.FC = () => {
     [safeSquares]
   );
 
-  // Build the token position map
+  // Map color → starting cell (for highlighting). Same data as coloredCells.
+  const startCells = useMemo(() => {
+    const map = new Map<string, PlayerColor>();
+    (Object.keys(START_INDEX) as PlayerColor[]).forEach((color) => {
+      const pos = getBoardPosition(color, 0);
+      map.set(`${pos.row},${pos.col}`, color);
+    });
+    return map;
+  }, []);
+
+  // Token positions on the board (path or home center)
   const tokenPositions = useMemo(() => {
     const map = new Map<string, { tokenId: string; color: PlayerColor; yardIndex: number }[]>();
-
     for (const player of players) {
       player.tokens.forEach((token, idx) => {
-        let pos;
-        if (token.state === 'yard') {
-          pos = YARD_POSITIONS[token.color][idx];
-        } else if (token.state === 'home') {
-          // Place at center
-          pos = { row: 7, col: 7 };
-        } else {
-          pos = getBoardPosition(token.color, token.pathIndex);
-        }
+        if (token.state === 'yard') return; // yard tokens drawn inside the corner panel
+        const pos = token.state === 'home' ? { row: 7, col: 7 } : getBoardPosition(token.color, token.pathIndex);
         const key = `${pos.row},${pos.col}`;
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push({ tokenId: token.id, color: token.color, yardIndex: idx });
@@ -48,126 +64,185 @@ const LudoBoard: React.FC = () => {
     return map;
   }, [players]);
 
-  const getCellStyle = (row: number, col: number): React.CSSProperties => {
-    const key = `${row},${col}`;
-
-    // Center area
-    if (row >= CENTER_AREA.startRow && row <= CENTER_AREA.endRow &&
-        col >= CENTER_AREA.startCol && col <= CENTER_AREA.endCol) {
-      // Center triangles
-      if (row === 7 && col === 7) {
-        return {
-          background: 'linear-gradient(135deg, #ef4444 25%, #22c55e 25%, #22c55e 50%, #eab308 50%, #eab308 75%, #3b82f6 75%)',
-          border: '2px solid rgba(255,255,255,0.3)',
-          borderRadius: '4px',
-        };
-      }
-      // Surrounding center cells colored by direction
-      if (row === 6 && col === 7) return { background: PLAYER_COLORS.green.bg };
-      if (row === 7 && col === 8) return { background: PLAYER_COLORS.yellow.bg };
-      if (row === 8 && col === 7) return { background: PLAYER_COLORS.blue.bg };
-      if (row === 7 && col === 6) return { background: PLAYER_COLORS.red.bg };
-      // Corner cells of center
-      return { background: 'rgba(255,255,255,0.05)' };
-    }
-
-    // Home areas (the large colored corners)
-    for (const color of ['red', 'green', 'yellow', 'blue'] as PlayerColor[]) {
-      const area = HOME_AREAS[color];
-      if (row >= area.startRow && row <= area.endRow && col >= area.startCol && col <= area.endCol) {
-        // Check if it's a yard position (where tokens sit)
-        const isYardPos = YARD_POSITIONS[color].some(p => p.row === row && p.col === col);
-        if (isYardPos) {
-          return {
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: '50%',
-            border: `2px solid ${PLAYER_COLORS[color].bg}`,
-          };
+  // Tokens still in the yard, grouped by color so we can render them in
+  // their corner panel.
+  const yardTokens = useMemo(() => {
+    const map: Record<PlayerColor, { tokenId: string; isSelectable: boolean }[]> = {
+      red: [], green: [], yellow: [], blue: [],
+    };
+    for (const player of players) {
+      player.tokens.forEach((t) => {
+        if (t.state === 'yard') {
+          map[t.color].push({ tokenId: t.id, isSelectable: selectableTokenIds.includes(t.id) });
         }
-        // Outer border cells of yard area
-        const isEdge = row === area.startRow || row === area.endRow ||
-                       col === area.startCol || col === area.endCol;
-        if (isEdge) {
-          return { background: PLAYER_COLORS[color].bg };
-        }
-        // Inner cells
-        return { background: PLAYER_COLORS[color].bgLight };
-      }
+      });
     }
-
-    // Colored path cells (home stretches and starting squares)
-    if (coloredCells.has(key)) {
-      const c = coloredCells.get(key)!;
-      return { background: PLAYER_COLORS[c].bgLight };
-    }
-
-    // Path cells
-    if (isPathCell(row, col)) {
-      return {
-        background: safeSquareSet.has(key)
-          ? 'rgba(255, 255, 255, 0.95)'
-          : 'rgba(255, 255, 255, 0.85)',
-      };
-    }
-
-    // Non-path, non-yard cells
-    return { background: 'transparent' };
-  };
-
-  const cells = [];
-  for (let row = 0; row < BOARD_SIZE; row++) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
-      const key = `${row},${col}`;
-      const style = getCellStyle(row, col);
-      const isSafe = safeSquareSet.has(key) && isPathCell(row, col);
-      const tokens = tokenPositions.get(key) || [];
-
-      cells.push(
-        <div
-          key={key}
-          className={`ludo-cell ${isSafe ? 'safe-star' : ''}`}
-          style={style}
-        >
-          {/* Render tokens on this cell */}
-          <div className={`flex flex-wrap items-center justify-center gap-[1px] ${tokens.length > 2 ? 'p-[1px]' : 'p-[2px]'}`}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}>
-            {tokens.map((t, i) => (
-              <LudoToken
-                key={t.tokenId}
-                tokenId={t.tokenId}
-                color={t.color}
-                isSelectable={selectableTokenIds.includes(t.tokenId)}
-                stackIndex={i}
-                stackSize={tokens.length}
-              />
-            ))}
-          </div>
-        </div>
-      );
-    }
-  }
+    return map;
+  }, [players, selectableTokenIds]);
 
   return (
     <motion.div
       className="relative mx-auto"
       style={{
+        width: '100%',
+        height: '100%',
+        aspectRatio: '1',
+        background: 'var(--bg-board-cream)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        boxShadow: 'var(--shadow-board)',
         display: 'grid',
         gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
         gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`,
-        width: 'min(88vw, 65vh)',
-        height: 'min(88vw, 65vh)',
-        aspectRatio: '1',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        border: '3px solid rgba(255,255,255,0.15)',
-        boxShadow: '0 0 40px rgba(99,102,241,0.15), 0 8px 32px rgba(0,0,0,0.4)',
-        background: 'rgba(15, 15, 35, 0.9)',
       }}
-      initial={{ scale: 0.9, opacity: 0 }}
+      initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.5, type: 'spring' }}
+      transition={{ duration: 0.4, type: 'spring' }}
     >
-      {cells}
+      {Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, i) => {
+        const row = Math.floor(i / BOARD_SIZE);
+        const col = i % BOARD_SIZE;
+        const key = `${row},${col}`;
+
+        // Center 3x3 — drawn separately as one cell below
+        if (row >= 6 && row <= 8 && col >= 6 && col <= 8) {
+          return null;
+        }
+
+        // Yard corner panels — drawn separately below
+        const inHome =
+          (row < 6 && col < 6) ||
+          (row < 6 && col > 8) ||
+          (row > 8 && col < 6) ||
+          (row > 8 && col > 8);
+        if (inHome) return null;
+
+        const tokens = tokenPositions.get(key) || [];
+        const onPath = isPathCell(row, col);
+
+        let bg = 'var(--bg-board-cream)';
+        if (coloredCells.has(key)) {
+          const c = coloredCells.get(key)!;
+          // Home stretch lanes: solid color. Start cells: 25% tinted.
+          bg = startCells.has(key) ? `${PLAYER_COLORS[c].bg}40` : PLAYER_COLORS[c].bg;
+        }
+
+        const isSafe = safeSquareSet.has(key) && onPath;
+
+        return (
+          <div
+            key={key}
+            className={`ludo-cell ${isSafe ? 'safe-star' : ''}`}
+            style={{
+              gridRow: row + 1,
+              gridColumn: col + 1,
+              background: bg,
+              border: '1px solid rgba(120, 80, 20, 0.25)',
+              position: 'relative',
+            }}
+          >
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {tokens.map((t, ti) => (
+                <LudoToken
+                  key={t.tokenId}
+                  tokenId={t.tokenId}
+                  color={t.color}
+                  isSelectable={selectableTokenIds.includes(t.tokenId)}
+                  stackIndex={ti}
+                  stackSize={tokens.length}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Center 3x3 — colored wedges + gold ring */}
+      <div style={{ gridRow: '7 / span 3', gridColumn: '7 / span 3', position: 'relative', background: 'var(--bg-board-cream)', border: '1.5px solid rgba(120, 80, 20, 0.4)' }}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
+          <polygon points="50,50 0,0 100,0" fill={PLAYER_COLORS.green.bg} />
+          <polygon points="50,50 100,0 100,100" fill={PLAYER_COLORS.yellow.bg} />
+          <polygon points="50,50 100,100 0,100" fill={PLAYER_COLORS.blue.bg} />
+          <polygon points="50,50 0,100 0,0" fill={PLAYER_COLORS.red.bg} />
+          <circle cx="50" cy="50" r="14" fill="var(--gold-hi)" stroke="var(--gold-deep)" strokeWidth="2" />
+          <text x="50" y="58" textAnchor="middle" fontSize="20" fontWeight="700" fill="#3a1f00" fontFamily="var(--font-display)">★</text>
+        </svg>
+        {/* Tokens that have reached home stack at the center */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {(tokenPositions.get('7,7') || []).map((t, ti) => (
+            <LudoToken
+              key={t.tokenId}
+              tokenId={t.tokenId}
+              color={t.color}
+              isSelectable={false}
+              stackIndex={ti}
+              stackSize={(tokenPositions.get('7,7') || []).length}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Four yard corner panels */}
+      {(Object.keys(HOME_CORNERS) as PlayerColor[]).map(color => {
+        const corner = HOME_CORNERS[color];
+        const colors = PLAYER_COLORS[color];
+        const yard = yardTokens[color];
+        return (
+          <div
+            key={color}
+            style={{
+              gridRow: `${corner.row + 1} / span 6`,
+              gridColumn: `${corner.col + 1} / span 6`,
+              background: `linear-gradient(135deg, ${colors.bg}, ${COLOR_DEEP[color]})`,
+              border: `2px solid ${COLOR_DEEP[color]}`,
+              padding: '14%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{
+              width: '100%', height: '100%',
+              background: 'var(--bg-board-cream)',
+              border: `1.5px solid ${COLOR_DEEP[color]}`,
+              borderRadius: 6,
+              padding: '10%',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{
+                width: '100%', height: '100%',
+                display: 'grid',
+                gridTemplate: '1fr 1fr / 1fr 1fr',
+                gap: '14%',
+              }}>
+                {YARD_POSITIONS[color].map((_, slot) => {
+                  const occupant = yard[slot];
+                  return (
+                    <div key={slot} style={{
+                      background: colors.bg,
+                      border: `2px solid ${COLOR_DEEP[color]}`,
+                      borderRadius: '50%',
+                      boxShadow: 'inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.4)',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {occupant && (
+                        <LudoToken
+                          tokenId={occupant.tokenId}
+                          color={color}
+                          isSelectable={occupant.isSelectable}
+                          stackIndex={0}
+                          stackSize={1}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </motion.div>
   );
 };

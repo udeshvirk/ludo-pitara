@@ -10,15 +10,19 @@ import {
   isSafePosition,
   getBoardPosition,
 } from './constants';
+import { playDice, playMove, playCapture, playWin } from '../../lib/sound';
+import { haptics } from '../../lib/haptics';
+import { save, clear, load } from '../../lib/persist';
+import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface LudoStore extends LudoGameState {
-  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor}[]) => void;
+  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[]) => void;
   rollDice: () => void;
   selectToken: (tokenId: string) => void;
   resetGame: () => void;
 }
 
-function createPlayer(name: string, color: PlayerColor): Player {
+function createPlayer(name: string, color: PlayerColor, isCPU = false): Player {
   return {
     id: color,
     name,
@@ -30,6 +34,7 @@ function createPlayer(name: string, color: PlayerColor): Player {
       pathIndex: -1,
     })),
     finishOrder: 0,
+    isCPU,
   };
 }
 
@@ -64,22 +69,30 @@ function findNextActivePlayer(currentIndex: number, players: Player[]): number {
   return next;
 }
 
-export const useLudoStore = create<LudoStore>((set, get) => ({
-  players: [],
-  currentPlayerIndex: 0,
-  diceValue: null,
-  isRolling: false,
-  hasRolled: false,
-  consecutiveSixes: 0,
-  gamePhase: 'setup',
-  winner: null,
-  message: 'Set up your game!',
-  selectableTokenIds: [],
+// Pull a saved game (or fall back to a fresh setup state) on store creation.
+const persisted = load<LudoGameState | null>(STORAGE_KEYS.LUDO, null);
+const initialState: LudoGameState = persisted && persisted.players.length > 0
+  ? { ...persisted, isRolling: false }
+  : {
+      players: [],
+      currentPlayerIndex: 0,
+      diceValue: null,
+      isRolling: false,
+      hasRolled: false,
+      consecutiveSixes: 0,
+      gamePhase: 'setup',
+      winner: null,
+      message: 'Set up your game!',
+      selectableTokenIds: [],
+    };
 
-  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor}[]) => {
+export const useLudoStore = create<LudoStore>((set, get) => ({
+  ...initialState,
+
+  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[]) => {
     let players: Player[] = [];
     if (customPlayers) {
-      players = customPlayers.map(cp => createPlayer(cp.name, cp.color));
+      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.isCPU));
     } else {
       const colors = PLAYER_ORDER[playerCount];
       players = colors.map((color, i) => {
@@ -108,6 +121,9 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     const diceValue = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = state.players[state.currentPlayerIndex];
+
+    playDice();
+    haptics.diceRoll();
 
     // Only set the dice value so the 3D dice can animate to the face
     set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
@@ -218,6 +234,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       if (newPathIndex > 56) newPathIndex = 56;
     }
 
+    playMove();
+
     // Check for capture (only on main path, not home stretch, not safe squares)
     let gotCapture = false;
     if (newState === 'active' && newPathIndex < 51 && !isSafePosition(currentPlayer.color, newPathIndex)) {
@@ -249,6 +267,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       }
 
       if (gotCapture) {
+        playCapture();
+        haptics.capture();
         // Update players with capture applied, then continue
         const myPlayer = { ...updatedPlayers[state.currentPlayerIndex], tokens: [...updatedPlayers[state.currentPlayerIndex].tokens] };
         myPlayer.tokens[tokenIndex] = { ...token, pathIndex: newPathIndex, state: newState };
@@ -296,6 +316,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     if (myPlayer.finishOrder && updatedPlayers.filter(p => p.finishOrder === 0).length <= 1) {
       // Game over
+      playWin();
+      haptics.win();
       set({
         players: updatedPlayers,
         gamePhase: 'finished',
@@ -328,6 +350,9 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         gamePhase: 'rolling',
         diceValue: null,
         hasRolled: false,
+        // Only count six-streak if it WAS a six. Captures and reach-home
+        // grant a bonus turn but should reset the six-streak counter.
+        consecutiveSixes: gotSix ? state.consecutiveSixes : 0,
         message: `${currentPlayer.name}${capturedMessage || (reachedHome ? ' reached home!' : ' rolled 6!')} Bonus turn!`,
         selectableTokenIds: [],
       });
@@ -354,6 +379,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   },
 
   resetGame: () => {
+    clear(STORAGE_KEYS.LUDO);
     set({
       players: [],
       currentPlayerIndex: 0,
@@ -368,3 +394,25 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     });
   },
 }));
+
+// Auto-persist the game on every meaningful change.
+useLudoStore.subscribe((state) => {
+  if (state.gamePhase === 'setup') return;
+  if (state.gamePhase === 'finished') {
+    clear(STORAGE_KEYS.LUDO);
+    return;
+  }
+  const snapshot: LudoGameState = {
+    players: state.players,
+    currentPlayerIndex: state.currentPlayerIndex,
+    diceValue: state.diceValue,
+    isRolling: false,
+    hasRolled: state.hasRolled,
+    consecutiveSixes: state.consecutiveSixes,
+    gamePhase: state.gamePhase,
+    winner: state.winner,
+    message: state.message,
+    selectableTokenIds: state.selectableTokenIds,
+  };
+  save(STORAGE_KEYS.LUDO, snapshot);
+});

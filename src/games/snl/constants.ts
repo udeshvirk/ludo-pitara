@@ -40,12 +40,12 @@ for (const item of SNAKES_AND_LADDERS) {
   BOARD_CONFIG[item.from] = item.to;
 }
 
-// Player colors for SNL
+// Player colors for SNL — match the Ludo player palette.
 export const SNL_PLAYER_COLORS = [
-  { name: 'Red', color: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
-  { name: 'Blue', color: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
-  { name: 'Green', color: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
-  { name: 'Yellow', color: '#eab308', glow: 'rgba(234,179,8,0.5)' },
+  { name: 'Red', color: '#e53935', glow: 'rgba(229,57,53,0.5)' },
+  { name: 'Blue', color: '#1e6fdb', glow: 'rgba(30,111,219,0.5)' },
+  { name: 'Green', color: '#2e9d4f', glow: 'rgba(46,157,79,0.5)' },
+  { name: 'Yellow', color: '#d99e00', glow: 'rgba(217,158,0,0.5)' },
 ];
 
 // Convert cell number (1-100) to row,col (0-indexed)

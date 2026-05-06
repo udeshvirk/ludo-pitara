@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ludo Pitara — Hi-Fi Designs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  * { box-sizing: border-box; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(245,184,0,.35), 0 0 16px rgba(245,184,0,.6); }
+    50% { box-shadow: 0 0 0 5px rgba(245,184,0,.5), 0 0 24px rgba(245,184,0,.85); }
+  }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="screens-shared.jsx"></script>
+<script type="text/babel" src="screens-menu.jsx"></script>
+<script type="text/babel" src="screens-ludo.jsx"></script>
+<script type="text/babel" src="screens-snakes.jsx"></script>
+
+<script type="text/babel">
+  const W = 390, H = 844;
+  function App() {
+    return (
+      <DesignCanvas>
+        <DCSection id="entry" title="Entry & Menus" subtitle="Splash → game select → setup">
+          <DCArtboard id="splash" label="01 · Splash" width={W} height={H}><SplashScreen/></DCArtboard>
+          <DCArtboard id="select" label="02 · Game Select" width={W} height={H}><GameSelectScreen/></DCArtboard>
+          <DCArtboard id="mode" label="03 · Mode" width={W} height={H}><ModeSelectScreen/></DCArtboard>
+          <DCArtboard id="players" label="04 · Players" width={W} height={H}><PlayerSetupScreen/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="ludo" title="Ludo Gameplay" subtitle="Classic 4-player board with full ornaments">
+          <DCArtboard id="ludo-turn" label="05 · Turn (idle)" width={W} height={H}><LudoGameScreen/></DCArtboard>
+          <DCArtboard id="ludo-rolled" label="06 · Rolled — pick pawn" width={W} height={H}><LudoRolledState/></DCArtboard>
+          <DCArtboard id="ludo-capture" label="07 · Capture moment" width={W} height={H}><LudoCaptureState/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="snakes" title="Snakes & Ladders" subtitle="10×10, classic snakes and ladders">
+          <DCArtboard id="snl-turn" label="08 · Turn (idle)" width={W} height={H}><SnakesGameScreen/></DCArtboard>
+          <DCArtboard id="snl-rolled" label="09 · Rolled" width={W} height={H}><SnakesRolledState/></DCArtboard>
+          <DCArtboard id="snl-snake" label="10 · Snake bite" width={W} height={H}><SnakesSlideState/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="endgame" title="Outcome & Settings" subtitle="Win celebration, rules, settings">
+          <DCArtboard id="win" label="11 · Victory" width={W} height={H}><WinScreen/></DCArtboard>
+          <DCArtboard id="rules" label="12 · How to play" width={W} height={H}><HowToPlayScreen/></DCArtboard>
+          <DCArtboard id="settings" label="13 · Settings" width={W} height={H}><SettingsScreen/></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

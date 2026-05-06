@@ -29,12 +29,12 @@ export const PLAYER_COLORS: Record<PlayerColor, {
     homeGradient: 'linear-gradient(135deg, #bbf7d0, #86efac)',
   },
   yellow: {
-    bg: '#eab308',
-    bgLight: '#fde68a',
+    bg: '#d99e00',
+    bgLight: '#f4d27a',
     text: '#fff',
-    glow: 'rgba(234,179,8,0.5)',
-    gradient: 'linear-gradient(135deg, #eab308, #ca8a04)',
-    homeGradient: 'linear-gradient(135deg, #fef9c3, #fde68a)',
+    glow: 'rgba(217, 158, 0, 0.5)',
+    gradient: 'linear-gradient(135deg, #d99e00, #a87a00)',
+    homeGradient: 'linear-gradient(135deg, #fce8a3, #f4d27a)',
   },
   blue: {
     bg: '#3b82f6',

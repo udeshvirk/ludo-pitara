@@ -15,6 +15,7 @@ export interface Player {
   color: PlayerColor;
   tokens: Token[];
   finishOrder: number; // 0 = not finished, 1 = first, 2 = second, etc.
+  isCPU?: boolean;
 }
 
 export interface LudoGameState {

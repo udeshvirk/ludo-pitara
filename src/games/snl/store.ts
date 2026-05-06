@@ -1,30 +1,42 @@
 import { create } from 'zustand';
 import type { SNLGameState, SNLPlayer } from './types';
 import { BOARD_CONFIG, SNL_PLAYER_COLORS, SNAKES_AND_LADDERS } from './constants';
+import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
+import { haptics } from '../../lib/haptics';
+import { save, clear, load } from '../../lib/persist';
+import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface SNLStore extends SNLGameState {
-  initGame: (playerCount: number, playerNames?: string[]) => void;
+  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[]) => void;
   rollDice: () => void;
   resetGame: () => void;
 }
 
-export const useSNLStore = create<SNLStore>((set, get) => ({
-  players: [],
-  currentPlayerIndex: 0,
-  diceValue: null,
-  isRolling: false,
-  hasRolled: false,
-  gamePhase: 'setup',
-  winner: null,
-  message: 'Set up your game!',
-  lastAction: '',
+const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
+const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
+  ? { ...persistedSNL, isRolling: false }
+  : {
+      players: [],
+      currentPlayerIndex: 0,
+      diceValue: null,
+      isRolling: false,
+      hasRolled: false,
+      gamePhase: 'setup',
+      winner: null,
+      message: 'Set up your game!',
+      lastAction: '',
+    };
 
-  initGame: (playerCount: number, playerNames?: string[]) => {
+export const useSNLStore = create<SNLStore>((set, get) => ({
+  ...initialSNL,
+
+  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[]) => {
     const players: SNLPlayer[] = Array.from({ length: playerCount }, (_, i) => ({
       id: `player-${i}`,
       name: playerNames?.[i] || `Player ${i + 1}`,
       color: SNL_PLAYER_COLORS[i].color,
       position: 0,
+      isCPU: isCPUFlags?.[i] ?? false,
     }));
 
     set({
@@ -47,28 +59,50 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     const diceValue = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = state.players[state.currentPlayerIndex];
     const currentPos = currentPlayer.position;
-    let newPos = currentPos + diceValue;
-    let actionMessage = '';
+
+    playDice();
+    haptics.diceRoll();
 
     set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
 
-    // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
+    // House rule: a player at position 0 has to roll a 1 to enter the
+    // board. Every other roll just passes the turn.
+    const needsEntry = currentPos === 0 && diceValue !== 1;
+
     setTimeout(() => {
       set({ isRolling: false, gamePhase: 'moving' });
 
-      // Check if overshooting 100
-      if (newPos > 100) {
-        // Bounce back
-        newPos = 100 - (newPos - 100);
-        actionMessage = `Bounced back to ${newPos}!`;
+      if (needsEntry) {
+        const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
+        setTimeout(() => {
+          set({
+            currentPlayerIndex: nextIdx,
+            diceValue: null,
+            hasRolled: false,
+            gamePhase: 'rolling',
+            lastAction: `${currentPlayer.name} needs a 1 to start`,
+            message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
+          });
+        }, 700);
+        return;
       }
 
-      // Check for exact 100
+      // Position-0 player rolling a 1 lands on cell 1.
+      let newPos = currentPos === 0 ? 1 : currentPos + diceValue;
+      let actionMessage = '';
+
+      // Overshoot 100 — stay put (need exact roll).
+      if (newPos > 100) {
+        newPos = currentPos;
+        actionMessage = `Need exact roll · stayed at ${currentPos}`;
+      }
+
+      // Reached exactly 100 — win.
       if (newPos === 100) {
-        // Winner!
         const updatedPlayers = [...state.players];
         updatedPlayers[state.currentPlayerIndex] = { ...currentPlayer, position: 100 };
-
+        playWin();
+        haptics.win();
         setTimeout(() => {
           set({
             players: updatedPlayers,
@@ -81,30 +115,39 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         return;
       }
 
-      // Check for snake or ladder at landing position
+      // Snake or ladder at the landing cell?
       const specialTarget = BOARD_CONFIG[newPos];
       let finalPos = newPos;
-
       if (specialTarget !== undefined) {
         const entity = SNAKES_AND_LADDERS.find(s => s.from === newPos);
         if (entity) {
-          if (entity.type === 'ladder') {
-            actionMessage = `🪜 Climbed ladder from ${newPos} to ${specialTarget}!`;
-          } else {
-            actionMessage = `🐍 Bitten by snake! Slid from ${newPos} to ${specialTarget}!`;
-          }
+          actionMessage = entity.type === 'ladder'
+            ? `🪜 Climbed ${newPos} → ${specialTarget}`
+            : `🐍 Snake! ${newPos} → ${specialTarget}`;
           finalPos = specialTarget;
         }
       }
 
+      playMove();
       if (!actionMessage) {
-        actionMessage = `Moved to ${newPos}`;
+        actionMessage = currentPos === 0 ? 'Entered the board' : `Moved to ${newPos}`;
       }
 
-      // Apply move with animation delay
       const updatedPlayers = [...state.players];
-      // First move to the dice position
       updatedPlayers[state.currentPlayerIndex] = { ...currentPlayer, position: newPos };
+
+      // Pass turn to the next player. Per house rule there is NO bonus turn
+      // on a 6 in Snakes & Ladders.
+      const advanceTurn = () => {
+        const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
+        set({
+          currentPlayerIndex: nextIdx,
+          diceValue: null,
+          hasRolled: false,
+          gamePhase: 'rolling',
+          message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
+        });
+      };
 
       setTimeout(() => {
         set({
@@ -113,63 +156,24 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
           message: `${currentPlayer.name}: ${actionMessage}`,
         });
 
-        // If there's a snake/ladder, apply the second move after a delay
         if (finalPos !== newPos) {
+          const isLadder = finalPos > newPos;
+          if (isLadder) playLadder(); else { playSnake(); haptics.capture(); }
           setTimeout(() => {
             const players2 = [...get().players];
             players2[state.currentPlayerIndex] = { ...players2[state.currentPlayerIndex], position: finalPos };
             set({ players: players2 });
-
-            // Move to next player
-            setTimeout(() => {
-              const gotSix = diceValue === 6;
-              if (gotSix) {
-                set({
-                  diceValue: null,
-                  hasRolled: false,
-                  gamePhase: 'rolling',
-                  message: `${currentPlayer.name} rolled 6! Bonus turn!`,
-                });
-              } else {
-                const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
-                set({
-                  currentPlayerIndex: nextIdx,
-                  diceValue: null,
-                  hasRolled: false,
-                  gamePhase: 'rolling',
-                  message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
-                });
-              }
-            }, 400);
+            setTimeout(advanceTurn, 400);
           }, 600);
         } else {
-          // No snake/ladder, just move to next player
-          setTimeout(() => {
-            const gotSix = diceValue === 6;
-            if (gotSix) {
-              set({
-                diceValue: null,
-                hasRolled: false,
-                gamePhase: 'rolling',
-                message: `${currentPlayer.name} rolled 6! Bonus turn!`,
-              });
-            } else {
-              const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
-              set({
-                currentPlayerIndex: nextIdx,
-                diceValue: null,
-                hasRolled: false,
-                gamePhase: 'rolling',
-                message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
-              });
-            }
-          }, 800);
+          setTimeout(advanceTurn, 800);
         }
       }, 500);
-    }, 800); // Wait 800ms for dice to settle
+    }, 800);
   },
 
   resetGame: () => {
+    clear(STORAGE_KEYS.SNL);
     set({
       players: [],
       currentPlayerIndex: 0,
@@ -183,3 +187,23 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     });
   },
 }));
+
+useSNLStore.subscribe((state) => {
+  if (state.gamePhase === 'setup') return;
+  if (state.gamePhase === 'finished') {
+    clear(STORAGE_KEYS.SNL);
+    return;
+  }
+  const snapshot: SNLGameState = {
+    players: state.players,
+    currentPlayerIndex: state.currentPlayerIndex,
+    diceValue: state.diceValue,
+    isRolling: false,
+    hasRolled: state.hasRolled,
+    gamePhase: state.gamePhase,
+    winner: state.winner,
+    message: state.message,
+    lastAction: state.lastAction,
+  };
+  save(STORAGE_KEYS.SNL, snapshot);
+});

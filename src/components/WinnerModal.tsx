@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Btn from './ui/Btn';
 
 interface WinnerModalProps {
   isOpen: boolean;
   winnerName: string;
   winnerColor: string;
+  stat?: string;
   onPlayAgain: () => void;
   onGoHome: () => void;
 }
@@ -16,28 +18,24 @@ interface ConfettiPiece {
   delay: number;
   duration: number;
   size: number;
+  rotate: number;
 }
 
-const CONFETTI_COLORS = ['#ef4444', '#22c55e', '#eab308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316'];
+const CONFETTI_COLORS = ['#e53935', '#2e9d4f', '#f5b800', '#1e6fdb', '#ff8a3d', '#ffd966'];
 
-const WinnerModal: React.FC<WinnerModalProps> = ({
-  isOpen,
-  winnerName,
-  winnerColor,
-  onPlayAgain,
-  onGoHome,
-}) => {
+const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerColor, stat, onPlayAgain, onGoHome }) => {
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      const pieces: ConfettiPiece[] = Array.from({ length: 50 }, (_, i) => ({
+      const pieces: ConfettiPiece[] = Array.from({ length: 60 }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        delay: Math.random() * 2,
-        duration: 2 + Math.random() * 3,
+        delay: Math.random() * 1.4,
+        duration: 2 + Math.random() * 2.5,
         size: 6 + Math.random() * 8,
+        rotate: Math.random() * 360,
       }));
       setConfetti(pieces);
     }
@@ -52,85 +50,81 @@ const WinnerModal: React.FC<WinnerModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-0" style={{ background: 'rgba(25, 10, 46, 0.78)', backdropFilter: 'blur(12px)' }} />
+
+          {/* Expanding gold ring */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0.7 }}
+            animate={{ scale: 6, opacity: 0 }}
+            transition={{ duration: 1.4, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              border: '3px solid var(--gold)',
+              boxShadow: '0 0 40px rgba(245,184,0,0.7)',
+            }}
+          />
 
           {/* Confetti */}
-          {confetti.map(piece => (
+          {confetti.map(p => (
             <motion.div
-              key={piece.id}
-              className="absolute top-0 rounded-sm"
+              key={p.id}
               style={{
-                left: `${piece.x}%`,
-                width: piece.size,
-                height: piece.size,
-                background: piece.color,
+                position: 'absolute',
+                top: 0,
+                left: `${p.x}%`,
+                width: p.size,
+                height: p.size,
+                background: p.color,
+                borderRadius: 2,
               }}
-              initial={{ y: -20, rotate: 0, opacity: 1 }}
-              animate={{
-                y: '100vh',
-                rotate: 720,
-                opacity: 0,
-              }}
-              transition={{
-                duration: piece.duration,
-                delay: piece.delay,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
+              initial={{ y: -20, rotate: p.rotate, opacity: 1 }}
+              animate={{ y: '110vh', rotate: p.rotate + 720, opacity: 0 }}
+              transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: 'linear' }}
             />
           ))}
 
-          {/* Modal */}
           <motion.div
-            className="glass-strong rounded-3xl p-8 text-center z-10 mx-4 max-w-sm w-full"
-            initial={{ scale: 0.5, y: 50 }}
+            className="relative z-10 mx-4 max-w-sm w-full text-center"
+            initial={{ scale: 0.7, y: 30 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.5, y: 50 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            exit={{ scale: 0.7, y: 30 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+            style={{
+              padding: 28,
+              borderRadius: 26,
+              background: 'rgba(42, 18, 72, 0.85)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              boxShadow: 'var(--shadow)',
+            }}
           >
-            {/* Trophy */}
             <motion.div
-              className="text-6xl mb-4"
-              animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, -10, 10, 0],
+              animate={{ scale: [1, 1.1, 1], rotate: [0, -6, 6, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                width: 96,
+                height: 96,
+                margin: '0 auto 16px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 60%, var(--gold-deep))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 48,
+                boxShadow: '0 0 40px rgba(245,184,0,0.55), inset 0 -8px 16px rgba(0,0,0,0.25)',
               }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            >
-              🏆
-            </motion.div>
+            >🏆</motion.div>
 
-            <h2 className="text-2xl font-black mb-2" style={{ fontFamily: 'Outfit' }}>
-              Congratulations!
-            </h2>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 36, lineHeight: 1.05, color: winnerColor }}>{winnerName}</div>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ink-dim)' }}>wins the round</div>
 
-            <motion.p
-              className="text-xl font-bold mb-6"
-              style={{ color: winnerColor }}
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {winnerName} Wins!
-            </motion.p>
+            {stat && <div style={{ marginTop: 14, fontSize: 13, color: 'var(--ink-dim)' }}>{stat}</div>}
 
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={onPlayAgain}
-                className="btn-primary w-full"
-              >
-                🎮 Play Again
-              </button>
-              <button
-                onClick={onGoHome}
-                className="w-full py-3 px-6 rounded-xl font-semibold text-sm opacity-70 hover:opacity-100 transition-opacity glass"
-              >
-                Back to Menu
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
+              <Btn variant="primary" fullWidth onClick={onPlayAgain}>Rematch</Btn>
+              <Btn variant="ghost" fullWidth onClick={onGoHome}>Main menu</Btn>
             </div>
           </motion.div>
         </motion.div>

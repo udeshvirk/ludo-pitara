@@ -3,6 +3,7 @@ export interface SNLPlayer {
   name: string;
   color: string;
   position: number; // 0 = not started, 1-100
+  isCPU?: boolean;
 }
 
 export type SNLGamePhase = 'setup' | 'rolling' | 'moving' | 'finished';

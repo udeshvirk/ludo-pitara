@@ -1,256 +1,252 @@
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   BOARD_SIZE,
   SNAKES_AND_LADDERS,
   rowColToCell,
-  getCellCenter,
-  SNAKE_COLORS,
+  cellToRowCol,
 } from '../constants';
 import { useSNLStore } from '../store';
 
+const cellCenterPct = (cellNum: number) => {
+  const { row, col } = cellToRowCol(cellNum);
+  const size = 100 / BOARD_SIZE; // each cell is 10% wide on a 0-100 viewbox
+  return { x: col * size + size / 2, y: row * size + size / 2 };
+};
+
+interface ShapeProps {
+  from: number;
+  to: number;
+  cellPct: number; // size of one cell in viewbox-percent units
+}
+
+const SnakeShape: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
+  const reactId = useId();
+  const id = `snake-${reactId.replace(/:/g, '')}`;
+  const a = cellCenterPct(from);
+  const b = cellCenterPct(to);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const perp = Math.atan2(dy, dx) + Math.PI / 2;
+  const angDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const wave = cellPct * 0.7;
+  const c1x = a.x + dx * 0.3 + Math.cos(perp) * wave;
+  const c1y = a.y + dy * 0.3 + Math.sin(perp) * wave;
+  const c2x = a.x + dx * 0.7 - Math.cos(perp) * wave;
+  const c2y = a.y + dy * 0.7 - Math.sin(perp) * wave;
+  const headR = cellPct * 0.3;
+  const path = `M ${a.x} ${a.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${b.x} ${b.y}`;
+
+  return (
+    <g>
+      <defs>
+        <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#1a4a28" />
+          <stop offset="50%" stopColor="var(--snake)" />
+          <stop offset="100%" stopColor="#0f3018" />
+        </linearGradient>
+      </defs>
+      {/* shadow */}
+      <path d={`M ${a.x} ${a.y + 0.3} C ${c1x} ${c1y + 0.3}, ${c2x} ${c2y + 0.3}, ${b.x} ${b.y + 0.3}`} stroke="rgba(0,0,0,0.4)" strokeWidth={cellPct * 0.36} fill="none" strokeLinecap="round" />
+      {/* body */}
+      <path d={path} stroke={`url(#${id})`} strokeWidth={cellPct * 0.32} fill="none" strokeLinecap="round" />
+      {/* belly highlight */}
+      <path d={path} stroke="rgba(180,255,180,0.35)" strokeWidth={cellPct * 0.06} fill="none" strokeLinecap="round" />
+      {/* dashed scales */}
+      <path d={path} stroke="rgba(0,0,0,0.35)" strokeWidth={cellPct * 0.18} fill="none" strokeLinecap="butt" strokeDasharray="0.6 1.5" />
+      {/* tail tip */}
+      <circle cx={b.x} cy={b.y} r={cellPct * 0.08} fill="#0f3018" />
+
+      {/* HEAD — bigger, menacing */}
+      <g transform={`translate(${a.x} ${a.y}) rotate(${angDeg + 180})`}>
+        <path
+          d={`M 0 ${-headR * 0.8} Q ${headR * 1.1} ${-headR * 0.6}, ${headR * 1.2} 0 Q ${headR * 1.1} ${headR * 0.6}, 0 ${headR * 0.8} Q ${-headR * 0.3} 0, 0 ${-headR * 0.8} Z`}
+          fill="var(--snake)"
+          stroke="#0a1f10"
+          strokeWidth="0.25"
+        />
+        <ellipse cx={headR * 0.4} cy={-headR * 0.3} rx={headR * 0.45} ry={headR * 0.2} fill="rgba(180,255,180,0.4)" />
+        {/* fangs */}
+        <path d={`M ${headR * 0.95} ${-headR * 0.25} L ${headR * 1.15} ${headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
+        <path d={`M ${headR * 0.95} ${headR * 0.25} L ${headR * 1.15} ${-headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
+        {/* forked tongue */}
+        <path
+          d={`M ${headR * 1.1} 0 L ${headR * 1.9} ${-headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.9} ${headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.55} 0`}
+          stroke="#e63946"
+          strokeWidth="0.32"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* eyes — yellow with slit pupils */}
+        <ellipse cx={headR * 0.15} cy={-headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
+        <ellipse cx={headR * 0.15} cy={headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
+        <ellipse cx={headR * 0.18} cy={-headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
+        <ellipse cx={headR * 0.18} cy={headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
+        <circle cx={headR * 0.95} cy={-headR * 0.12} r={headR * 0.04} fill="#000" />
+        <circle cx={headR * 0.95} cy={headR * 0.12} r={headR * 0.04} fill="#000" />
+      </g>
+    </g>
+  );
+};
+
+const LadderShape: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
+  const a = cellCenterPct(from);
+  const b = cellCenterPct(to);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const w = cellPct * 0.18;
+
+  const ax1 = a.x + px * w;
+  const ay1 = a.y + py * w;
+  const ax2 = a.x - px * w;
+  const ay2 = a.y - py * w;
+  const bx1 = b.x + px * w;
+  const by1 = b.y + py * w;
+  const bx2 = b.x - px * w;
+  const by2 = b.y - py * w;
+
+  const rungs = Math.max(3, Math.floor(len / (cellPct * 0.45)));
+  const items: React.ReactNode[] = [];
+  for (let i = 1; i < rungs; i++) {
+    const t = i / rungs;
+    const r1x = ax1 + (bx1 - ax1) * t;
+    const r1y = ay1 + (by1 - ay1) * t;
+    const r2x = ax2 + (bx2 - ax2) * t;
+    const r2y = ay2 + (by2 - ay2) * t;
+    items.push(<line key={i} x1={r1x} y1={r1y} x2={r2x} y2={r2y} stroke="var(--ladder)" strokeWidth="0.45" strokeLinecap="round" />);
+  }
+
+  return (
+    <g>
+      <line x1={ax1} y1={ay1} x2={bx1} y2={by1} stroke="var(--ladder)" strokeWidth="0.65" strokeLinecap="round" />
+      <line x1={ax2} y1={ay2} x2={bx2} y2={by2} stroke="var(--ladder)" strokeWidth="0.65" strokeLinecap="round" />
+      {items}
+    </g>
+  );
+};
+
 const SNLBoard: React.FC = () => {
   const { players } = useSNLStore();
+  const cellPct = 100 / BOARD_SIZE;
 
-  // Build player position map
+  const snakes = useMemo(() => SNAKES_AND_LADDERS.filter(s => s.type === 'snake'), []);
+  const ladders = useMemo(() => SNAKES_AND_LADDERS.filter(s => s.type === 'ladder'), []);
+  const ladderBases = useMemo(() => new Set(ladders.map(l => l.from)), [ladders]);
+  const snakeHeads = useMemo(() => new Set(snakes.map(s => s.from)), [snakes]);
+
   const playerPositions = useMemo(() => {
     const map = new Map<number, typeof players>();
-    for (const player of players) {
-      if (player.position === 0) continue;
-      if (!map.has(player.position)) map.set(player.position, []);
-      map.get(player.position)!.push(player);
+    for (const p of players) {
+      if (p.position === 0) continue;
+      if (!map.has(p.position)) map.set(p.position, []);
+      map.get(p.position)!.push(p);
     }
     return map;
   }, [players]);
-
-  // Generate cells
-  const cells = useMemo(() => {
-    const result = [];
-    for (let row = 0; row < BOARD_SIZE; row++) {
-      for (let col = 0; col < BOARD_SIZE; col++) {
-        const cellNum = rowColToCell(row, col);
-        const isSnakeHead = SNAKES_AND_LADDERS.some(s => s.type === 'snake' && s.from === cellNum);
-        const isLadderBottom = SNAKES_AND_LADDERS.some(s => s.type === 'ladder' && s.from === cellNum);
-        const playersHere = playerPositions.get(cellNum) || [];
-
-        // Alternating cell colors
-        const isDark = (row + col) % 2 === 0;
-
-        result.push({
-          row, col, cellNum, isSnakeHead, isLadderBottom, playersHere, isDark,
-        });
-      }
-    }
-    return result;
-  }, [playerPositions]);
 
   return (
     <motion.div
       className="relative mx-auto"
       style={{
-        width: 'min(92vw, 65vh)',
-        height: 'min(92vw, 65vh)',
+        width: '100%',
+        height: '100%',
         aspectRatio: '1',
+        background: 'var(--bg-board-cream)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        boxShadow: 'var(--shadow-board)',
       }}
-      initial={{ scale: 0.9, opacity: 0 }}
+      initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.5, type: 'spring' }}
+      transition={{ duration: 0.4, type: 'spring' }}
     >
-      {/* Board Grid */}
       <div
-        className="w-full h-full rounded-2xl overflow-hidden relative"
         style={{
+          width: '100%',
+          height: '100%',
           display: 'grid',
           gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
           gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`,
-          border: '3px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 0 40px rgba(99,102,241,0.15), 0 8px 32px rgba(0,0,0,0.4)',
         }}
       >
-        {cells.map(({ row, col, cellNum, isSnakeHead, isLadderBottom, playersHere, isDark }) => (
-          <div
-            key={`${row}-${col}`}
-            className="snl-cell"
-            style={{
-              background: isDark
-                ? 'rgba(99, 102, 241, 0.08)'
-                : 'rgba(139, 92, 246, 0.04)',
-              borderBottom: row < BOARD_SIZE - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-              borderRight: col < BOARD_SIZE - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-            }}
-          >
-            {/* Cell number */}
-            <span
-              className="absolute top-0.5 left-1 text-[0.55em] opacity-40 font-semibold"
+        {Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, i) => {
+          const row = Math.floor(i / BOARD_SIZE);
+          const col = i % BOARD_SIZE;
+          const cellNum = rowColToCell(row, col);
+          const isDark = (row + col) % 2 === 0;
+          const isLadderBase = ladderBases.has(cellNum);
+          const isSnakeHead = snakeHeads.has(cellNum);
+          const baseBg = isDark ? 'var(--bg-board)' : 'var(--bg-board-cream)';
+          const tint = isLadderBase
+            ? 'rgba(46, 157, 79, 0.20)'
+            : isSnakeHead
+            ? 'rgba(229, 57, 53, 0.18)'
+            : 'transparent';
+          const players = playerPositions.get(cellNum) || [];
+
+          return (
+            <div
+              key={`${row}-${col}`}
+              className="snl-cell"
               style={{
-                color: isSnakeHead ? '#ef4444' : isLadderBottom ? '#22c55e' : undefined,
-                opacity: isSnakeHead || isLadderBottom ? 0.8 : 0.4,
+                background: baseBg,
+                position: 'relative',
+                border: '0.5px solid rgba(120, 80, 20, 0.18)',
+                boxShadow: tint !== 'transparent' ? `inset 0 0 0 1000px ${tint}` : undefined,
               }}
             >
-              {cellNum}
-            </span>
-
-            {/* Snake/Ladder indicator */}
-            {isSnakeHead && (
-              <span className="absolute bottom-0.5 right-0.5 text-[0.7em]">🐍</span>
-            )}
-            {isLadderBottom && (
-              <span className="absolute bottom-0.5 right-0.5 text-[0.7em]">🪜</span>
-            )}
-
-            {/* Player tokens */}
-            <div className="flex flex-wrap gap-[2px] items-center justify-center z-10 w-full h-full p-1">
-              {playersHere.map((player, i) => (
-                <motion.div
-                  key={player.id}
-                  layoutId={`snl-token-${player.id}`}
-                  className="rounded-full"
-                  style={{
-                    width: playersHere.length > 2 ? '30%' : playersHere.length > 1 ? '40%' : '55%',
-                    aspectRatio: '1',
-                    background: `radial-gradient(circle at 35% 35%, ${player.color}cc, ${player.color})`,
-                    border: '2px solid rgba(255,255,255,0.7)',
-                    boxShadow: `0 2px 8px ${player.color}60`,
-                    zIndex: 10 + i,
-                  }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 25,
-                  }}
-                />
-              ))}
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: 4,
+                  fontSize: '0.55em',
+                  fontWeight: 700,
+                  color: 'rgba(120, 80, 20, 0.7)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                {cellNum}
+              </span>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 1, padding: 2, zIndex: 4 }}>
+                {players.map((p, idx) => (
+                  <motion.div
+                    key={p.id}
+                    layoutId={`snl-token-${p.id}`}
+                    style={{
+                      width: players.length > 2 ? '32%' : players.length > 1 ? '42%' : '60%',
+                      aspectRatio: '1',
+                      borderRadius: '50%',
+                      background: `radial-gradient(circle at 35% 30%, #fff, ${p.color}cc 35%, ${p.color})`,
+                      border: '2px solid rgba(255,255,255,0.85)',
+                      boxShadow: `0 2px 6px rgba(0,0,0,0.4), 0 0 8px ${p.color}66`,
+                      zIndex: 10 + idx,
+                    }}
+                    transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* SVG Overlay for Snakes and Ladders */}
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 3 }}
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
-        <defs>
-          {SNAKES_AND_LADDERS.filter(s => s.type === 'snake').map((_, i) => {
-            const colors = SNAKE_COLORS[i % SNAKE_COLORS.length];
-            return (
-              <linearGradient key={`snake-grad-${i}`} id={`snake-grad-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={colors[0]} stopOpacity="0.7" />
-                <stop offset="100%" stopColor={colors[1]} stopOpacity="0.7" />
-              </linearGradient>
-            );
-          })}
-        </defs>
-
-        {/* Ladders */}
-        {SNAKES_AND_LADDERS.filter(s => s.type === 'ladder').map((ladder, i) => {
-          const from = getCellCenter(ladder.from);
-          const to = getCellCenter(ladder.to);
-
-          // Calculate perpendicular offset for ladder rails
-          const dx = to.x - from.x;
-          const dy = to.y - from.y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          const nx = (-dy / len) * 1.2;
-          const ny = (dx / len) * 1.2;
-
-          const rungs = 4;
-          const rungLines = Array.from({ length: rungs }, (_, j) => {
-            const t = (j + 1) / (rungs + 1);
-            const mx = from.x + dx * t;
-            const my = from.y + dy * t;
-            return { x1: mx + nx, y1: my + ny, x2: mx - nx, y2: my - ny };
-          });
-
-          return (
-            <g key={`ladder-${i}`}>
-              {/* Rail 1 */}
-              <line
-                x1={from.x + nx} y1={from.y + ny}
-                x2={to.x + nx} y2={to.y + ny}
-                stroke="#b45309"
-                strokeWidth="0.7"
-                strokeLinecap="round"
-                opacity="0.75"
-              />
-              {/* Rail 2 */}
-              <line
-                x1={from.x - nx} y1={from.y - ny}
-                x2={to.x - nx} y2={to.y - ny}
-                stroke="#b45309"
-                strokeWidth="0.7"
-                strokeLinecap="round"
-                opacity="0.75"
-              />
-              {/* Rungs */}
-              {rungLines.map((rung, j) => (
-                <line
-                  key={j}
-                  x1={rung.x1} y1={rung.y1}
-                  x2={rung.x2} y2={rung.y2}
-                  stroke="#d97706"
-                  strokeWidth="0.5"
-                  strokeLinecap="round"
-                  opacity="0.65"
-                />
-              ))}
-            </g>
-          );
-        })}
-
-        {/* Snakes */}
-        {SNAKES_AND_LADDERS.filter(s => s.type === 'snake').map((snake, i) => {
-          const from = getCellCenter(snake.from); // head
-          const to = getCellCenter(snake.to); // tail
-
-          // Perpendicular for waves
-          const dx = to.x - from.x;
-          const dy = to.y - from.y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          const waveMag = len * 0.15;
-          const nx = -dy / len;
-          const ny = dx / len;
-
-          const cp1x = from.x + dx * 0.25 + nx * waveMag;
-          const cp1y = from.y + dy * 0.25 + ny * waveMag;
-          const cp2x = from.x + dx * 0.75 - nx * waveMag;
-          const cp2y = from.y + dy * 0.75 - ny * waveMag;
-
-          return (
-            <g key={`snake-${i}`}>
-              {/* Snake body */}
-              <path
-                d={`M ${from.x} ${from.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${to.x} ${to.y}`}
-                fill="none"
-                stroke={`url(#snake-grad-${i})`}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              {/* Snake head dot */}
-              <circle
-                cx={from.x}
-                cy={from.y}
-                r="1.4"
-                fill={SNAKE_COLORS[i % SNAKE_COLORS.length][0]}
-                opacity="0.9"
-              />
-              {/* Scary Snake eyes */}
-              <circle cx={from.x - 0.5} cy={from.y - 0.5} r="0.4" fill="#ef4444" opacity="0.95" />
-              <circle cx={from.x + 0.5} cy={from.y - 0.5} r="0.4" fill="#ef4444" opacity="0.95" />
-              {/* Snake pupils (slits) */}
-              <ellipse cx={from.x - 0.5} cy={from.y - 0.5} rx="0.1" ry="0.25" fill="#000" />
-              <ellipse cx={from.x + 0.5} cy={from.y - 0.5} rx="0.1" ry="0.25" fill="#000" />
-              {/* Forked tongue */}
-              <path 
-                d={`M ${from.x} ${from.y - 1} L ${from.x} ${from.y - 2.5} L ${from.x - 0.6} ${from.y - 3.2} M ${from.x} ${from.y - 2.5} L ${from.x + 0.6} ${from.y - 3.2}`} 
-                stroke="#ef4444" 
-                strokeWidth="0.25" 
-                fill="none" 
-              />
-            </g>
-          );
-        })}
+        {ladders.map(l => (
+          <LadderShape key={`l-${l.from}-${l.to}`} from={l.from} to={l.to} cellPct={cellPct} />
+        ))}
+        {snakes.map(s => (
+          <SnakeShape key={`s-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
+        ))}
       </svg>
     </motion.div>
   );

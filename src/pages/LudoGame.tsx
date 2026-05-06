@@ -1,25 +1,23 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import PhoneShell from '../components/ui/PhoneShell';
+import Header from '../components/ui/Header';
 import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
-import PlayerPanel from '../games/ludo/components/PlayerPanel';
-import Dice3D from '../components/Dice3D';
+import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
 import type { PlayerColor } from '../games/ludo/types';
-import GameHeader from '../components/GameHeader';
-import PlayerSetup from '../components/PlayerSetup';
 import WinnerModal from '../components/WinnerModal';
-
-const LUDO_COLORS = [
-  { name: 'Red', color: PLAYER_COLORS.red.bg },
-  { name: 'Green', color: PLAYER_COLORS.green.bg },
-  { name: 'Yellow', color: PLAYER_COLORS.yellow.bg },
-  { name: 'Blue', color: PLAYER_COLORS.blue.bg },
-];
+import { useFlow } from '../games/flow/store';
+import { pickCpuToken } from '../games/ludo/cpu';
 
 const LudoGame: React.FC = () => {
   const navigate = useNavigate();
+  const initialized = useRef(false);
+  const flowPlayers = useFlow(s => s.players);
+  const flowGame = useFlow(s => s.game);
+
   const {
     players,
     currentPlayerIndex,
@@ -29,136 +27,155 @@ const LudoGame: React.FC = () => {
     winner,
     message,
     rollDice,
+    selectToken,
     initGame,
     resetGame,
+    selectableTokenIds,
   } = useLudoStore();
 
+  // Bootstrap on mount. Three cases:
+  //  1. Resumed from a save → store has players, gamePhase != 'setup'. Do nothing.
+  //  2. Fresh setup just completed → flowPlayers populated. Init the game.
+  //  3. Landed cold (e.g. deep link) with neither → bounce back to game select.
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    if (gamePhase !== 'setup' && players.length > 0) return;
+    if (!flowPlayers.length) {
+      navigate('/select');
+      return;
+    }
+    const playersToInit = flowPlayers.map(p => ({
+      name: p.name,
+      color: p.color as PlayerColor,
+      isCPU: p.isCPU,
+    }));
+    const names = playersToInit.map(p => p.name);
+    initGame(playersToInit.length, names, playersToInit);
+  }, [flowPlayers, flowGame, navigate, initGame, gamePhase, players.length]);
 
+  // CPU autoplay — when a CPU player's turn starts, auto-roll, then auto-pick
+  // a token after the roll resolves.
+  const currentPlayer = players[currentPlayerIndex];
+  useEffect(() => {
+    if (!currentPlayer?.isCPU) return;
+    if (gamePhase === 'rolling' && !isRolling && diceValue === null) {
+      const t = setTimeout(rollDice, 700);
+      return () => clearTimeout(t);
+    }
+    if (gamePhase === 'selecting' && diceValue !== null && selectableTokenIds.length > 0) {
+      const choice = pickCpuToken(currentPlayer, selectableTokenIds, diceValue, players);
+      if (choice) {
+        const t = setTimeout(() => selectToken(choice), 600);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [currentPlayer, gamePhase, isRolling, diceValue, selectableTokenIds, players, rollDice, selectToken]);
 
-  const getPlayerDice = (color: PlayerColor) => {
-    const pIndex = players.findIndex(p => p.color === color);
-    if (pIndex === -1) return <div className="w-[64px] h-[64px]" />; // Empty placeholder
-
-    const isActive = pIndex === currentPlayerIndex && gamePhase !== 'finished';
-    return (
-      <Dice3D
-        value={isActive ? diceValue : null}
-        onRoll={rollDice}
-        disabled={!isActive || gamePhase !== 'rolling'}
-        playerColor={PLAYER_COLORS[color].bg}
-        isRolling={isActive && isRolling}
-      />
-    );
-  };
-
-  const handleNewGame = () => {
-    resetGame();
-  };
-
-  if (gamePhase === 'setup') {
-    return (
-      <div className="flex flex-col h-full">
-        <GameHeader title="Ludo" onNewGame={undefined} />
-        <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-          <PlayerSetup
-            maxPlayers={4}
-            defaultColors={LUDO_COLORS}
-            onStart={(count, names) => {
-              // If 2 players, use Red and Yellow for diagonal placement!
-              const finalNames = [...names];
-              const playersToInit: { name: string; color: PlayerColor }[] = [];
-              
-              if (count === 2) {
-                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
-                playersToInit.push({ name: finalNames[1], color: 'yellow' as PlayerColor });
-              } else if (count === 3) {
-                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
-                playersToInit.push({ name: finalNames[1], color: 'green' as PlayerColor });
-                playersToInit.push({ name: finalNames[2], color: 'yellow' as PlayerColor });
-              } else {
-                playersToInit.push({ name: finalNames[0], color: 'red' as PlayerColor });
-                playersToInit.push({ name: finalNames[1], color: 'green' as PlayerColor });
-                playersToInit.push({ name: finalNames[2], color: 'yellow' as PlayerColor });
-                playersToInit.push({ name: finalNames[3], color: 'blue' as PlayerColor });
-              }
-              initGame(count, finalNames, playersToInit);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
+  const playerCount = players.length || flowPlayers.length;
 
   return (
-    <div className="flex flex-col h-full">
-      <GameHeader title="Ludo" onNewGame={handleNewGame} />
+    <PhoneShell decorative={false}>
+      <Header
+        title="Ludo"
+        onBack={() => { resetGame(); navigate('/select'); }}
+      />
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-3 overflow-hidden">
-        {/* Player Panel */}
-        <PlayerPanel />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
+        {/* Top half-row: 2 of the 4 player slots, rotated 180°.
+            Clamp the pod row to the same width as the board so dice don't
+            drift to the screen edges on portrait phones. */}
+        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <PlayerHalfRow
+            slots={topSlotsForCount(playerCount)}
+            rotated
+            onRoll={rollDice}
+            isRolling={isRolling}
+            diceValue={diceValue}
+            activeIndex={currentPlayerIndex}
+            gamePhase={gamePhase}
+          />
+        </div>
 
-        {/* Status Message Container */}
-        <div className="h-20 w-full flex justify-center items-center">
+        {/* Status pill */}
+        <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={message}
-              className="glass rounded-full px-6 py-3 min-h-[3rem] flex items-center justify-center text-center text-base font-bold shadow-lg"
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
+              exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.2 }}
-            >
-              {message}
-            </motion.div>
+              style={{
+                padding: '8px 18px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                fontFamily: 'var(--font-ui)',
+                fontWeight: 600,
+                fontSize: 13,
+                color: 'var(--ink)',
+                whiteSpace: 'nowrap',
+                maxWidth: '90%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >{message}</motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Board Container with Dice */}
-        <div className="relative w-full max-w-[100vw] flex flex-row items-center justify-between px-2">
-          {/* Left Dice Column */}
-          <div className="flex flex-col justify-between h-[45vh] sm:h-[55vh] z-10">
-            <div className="origin-left" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('red')}
-            </div>
-            <div className="origin-left" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('blue')}
-            </div>
-          </div>
-
-          <div className="flex-1 max-w-[85vw] mx-1">
-            <LudoBoard />
-          </div>
-
-          {/* Right Dice Column */}
-          <div className="flex flex-col justify-between h-[45vh] sm:h-[55vh] z-10">
-            <div className="origin-right" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('green')}
-            </div>
-            <div className="origin-right" style={{ transform: 'scale(0.85)' }}>
-              {getPlayerDice('yellow')}
-            </div>
-          </div>
+        {/* Board */}
+        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)', aspectRatio: '1', position: 'relative' }}>
+          <LudoBoard />
         </div>
 
-
+        {/* Bottom half-row, also clamped to board width. */}
+        <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <PlayerHalfRow
+            slots={bottomSlotsForCount(playerCount)}
+            rotated={false}
+            onRoll={rollDice}
+            isRolling={isRolling}
+            diceValue={diceValue}
+            activeIndex={currentPlayerIndex}
+            gamePhase={gamePhase}
+          />
+        </div>
       </div>
 
-      {/* Winner Modal */}
       <WinnerModal
         isOpen={gamePhase === 'finished' && winner !== null}
         winnerName={winner?.name || ''}
         winnerColor={winner ? PLAYER_COLORS[winner.color].bg : '#fff'}
+        stat={`Tokens home: ${winner?.tokens.filter(t => t.state === 'home').length || 0}/4`}
         onPlayAgain={() => {
+          const count = players.length;
+          const snapshot = players.map(p => ({ name: p.name, color: p.color, isCPU: p.isCPU }));
           resetGame();
-          initGame(players.length);
+          initGame(count, snapshot.map(s => s.name), snapshot);
         }}
         onGoHome={() => {
           resetGame();
           navigate('/');
         }}
       />
-    </div>
+    </PhoneShell>
   );
 };
+
+// Split the player slots into top half (rotated 180°) and bottom half so two
+// people can sit head-to-head. With 2 players, top:1 / bottom:1. With 3,
+// top:1 / bottom:2. With 4, top:2 / bottom:2.
+function topSlotsForCount(count: number): Array<number | null> {
+  if (count === 2) return [0, null];
+  if (count === 3) return [1, null];
+  return [1, 2]; // 4-player: green + yellow on top
+}
+
+function bottomSlotsForCount(count: number): Array<number | null> {
+  if (count === 2) return [1, null];
+  if (count === 3) return [0, 2];
+  return [0, 3]; // red + blue on bottom
+}
 
 export default LudoGame;

@@ -1,33 +1,70 @@
 @import "tailwindcss";
 
-/* ===== Custom Properties ===== */
+/* ===== Design Tokens (from design_handoff_ludo_pitara/screens-shared.jsx) ===== */
 :root {
-  --color-bg-primary: #0f0f23;
-  --color-bg-secondary: #1a1a3e;
-  --color-bg-tertiary: #252552;
-  --color-accent: #6366f1;
-  --color-accent-glow: #818cf8;
+  /* surfaces */
+  --bg-deep: #190a2e;
+  --bg-panel: #2a1248;
+  --bg-panel-hi: #3a1a5e;
+  --bg-card: rgba(255, 255, 255, 0.06);
+  --bg-card-hi: rgba(255, 255, 255, 0.10);
+  --bg-board: #fbf0d4;
+  --bg-board-cream: #fff7e1;
 
-  --color-red: #ef4444;
-  --color-red-glow: #ff6b6b;
-  --color-green: #22c55e;
-  --color-green-glow: #4ade80;
-  --color-yellow: #eab308;
-  --color-yellow-glow: #facc15;
-  --color-blue: #3b82f6;
-  --color-blue-glow: #60a5fa;
+  /* ink */
+  --ink: #fff8e7;
+  --ink-dim: rgba(255, 248, 231, 0.62);
+  --ink-faint: rgba(255, 248, 231, 0.32);
+  --ink-on-light: #2a1248;
 
-  --font-primary: 'Outfit', 'Inter', system-ui, sans-serif;
-  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  /* accents */
+  --gold: #f5b800;
+  --gold-hi: #ffd966;
+  --gold-deep: #b07a00;
+  --saffron: #ff8a3d;
+  --rose: #e53935;
 
-  /* Safe area insets */
+  /* player tokens — yellow softened from #f5b800 to a deeper amber so it
+     doesn't out-shout red/green/blue on the board. */
+  --p-red: #e53935;
+  --p-green: #2e9d4f;
+  --p-yellow: #d99e00;
+  --p-blue: #1e6fdb;
+  --p-red-deep: #9a1a18;
+  --p-green-deep: #185c2c;
+  --p-yellow-deep: #7a5a00;
+  --p-blue-deep: #0e3e7a;
+
+  /* board features */
+  --snake: #2c8a4a;
+  --ladder: #c8853a;
+
+  /* shadows */
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.28);
+  --shadow-dice-active:
+    0 6px 18px rgba(245, 184, 0, 0.45),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+  --shadow-board:
+    0 0 0 4px var(--gold-deep),
+    0 0 0 6px var(--gold-hi),
+    0 0 0 9px var(--gold-deep),
+    0 18px 50px rgba(0, 0, 0, 0.55);
+
+  /* type — Fraunces for display, Inter for everything else (smoother render) */
+  --font-display: 'Fraunces', 'Playfair Display', Georgia, serif;
+  --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* safe area insets */
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* ===== Base Styles ===== */
+/* ===== Base ===== */
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -40,11 +77,13 @@ html, body, #root {
 }
 
 body {
-  font-family: var(--font-primary);
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-primary) 100%);
-  color: #e2e8f0;
+  font-family: var(--font-body);
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  background: var(--bg-deep);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   touch-action: manipulation;
   overscroll-behavior: none;
   user-select: none;
@@ -56,75 +95,36 @@ body {
 
 #root {
   display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: var(--bg-deep);
+}
+
+/* Letterbox: every routed screen sits in a phone-width frame on wide
+   viewports, full-bleed on phones. */
+.phone-frame {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  position: relative;
+  display: flex;
   flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 30px 80px rgba(0, 0, 0, 0.55);
 }
 
-/* ===== Scrollbar ===== */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
-  border-radius: 4px;
-}
-
-/* ===== Glass Effect ===== */
-.glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-.glass-strong {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
-}
-
-/* ===== Glow Effects ===== */
-.glow-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), 0 0 40px rgba(239, 68, 68, 0.2);
-}
-.glow-green {
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.2);
-}
-.glow-yellow {
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.4), 0 0 40px rgba(234, 179, 8, 0.2);
-}
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
-}
-.glow-accent {
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2);
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(245, 184, 0, 0.3); border-radius: 4px; }
 
 /* ===== Animations ===== */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.55), 0 0 16px rgba(245, 184, 0, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 184, 0, 0.25), 0 0 24px rgba(245, 184, 0, 0.85); transform: scale(1.05); }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
-}
-
-@keyframes confetti-fall {
-  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes shimmer {
@@ -132,26 +132,48 @@ body {
   100% { background-position: 200% 0; }
 }
 
-.animate-float { animation: float 3s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
-.animate-shake { animation: shake 0.5s ease-in-out; }
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
 }
 
-/* ===== Ludo Board Specific ===== */
+.animate-pulse-ring { animation: pulse-ring 1.5s ease-in-out infinite; border-radius: 9999px; }
+.animate-float-y { animation: float-y 3s ease-in-out infinite; }
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.4s infinite;
+}
+
+/* ===== Typography helpers ===== */
+.font-display { font-family: var(--font-display); }
+.font-ui { font-family: var(--font-ui); }
+.font-body { font-family: var(--font-body); }
+
+/* ===== Glassmorphism panels ===== */
+.glass {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.glass-hi {
+  background: var(--bg-card-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ===== Board cells ===== */
 .ludo-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  border: 0.5px solid rgba(0, 0, 0, 0.18);
   position: relative;
   font-size: clamp(6px, 1.2vmin, 10px);
 }
 
-/* ===== SNL Board ===== */
 .snl-cell {
   display: flex;
   align-items: center;
@@ -159,44 +181,15 @@ body {
   position: relative;
   font-size: clamp(7px, 1.5vmin, 12px);
   font-weight: 600;
-  transition: background-color 0.2s;
 }
 
-/* ===== Button Styles ===== */
-.btn-primary {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  font-weight: 700;
-  border-radius: 16px;
-  padding: 14px 32px;
-  font-size: 1rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
-}
-.btn-primary:active {
-  transform: translateY(0px);
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
-}
-
-/* ===== Star for safe squares ===== */
+/* ===== Safe-square gold star ===== */
 .safe-star::after {
   content: '★';
   position: absolute;
-  font-size: clamp(8px, 2vmin, 16px);
-  color: rgba(0, 0, 0, 0.2);
+  font-size: clamp(10px, 2.4vmin, 18px);
+  color: var(--gold-deep);
   pointer-events: none;
-}
-
-/* ===== Dice Face Dots ===== */
-.dice-dot {
-  width: 18%;
-  height: 18%;
-  background: #1a1a3e;
-  border-radius: 50%;
+  opacity: 0.85;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }

@@ -107,7 +107,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-4">
                   {game.features.map(feature => (
                     <span
                       key={feature}

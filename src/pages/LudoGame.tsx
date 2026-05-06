@@ -66,7 +66,7 @@ const LudoGame: React.FC = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={message}
-              className="glass rounded-xl px-5 py-2.5 text-center text-sm font-bold shadow-lg"
+              className="glass rounded-full px-6 py-3 min-h-[3rem] flex items-center justify-center text-center text-base font-bold shadow-lg"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}

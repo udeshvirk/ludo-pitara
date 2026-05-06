@@ -18,7 +18,7 @@ const PlayerPanel: React.FC = () => {
         return (
           <motion.div
             key={player.id}
-            className="glass rounded-xl px-4 py-3 flex-1 min-w-[160px]"
+            className="glass rounded-2xl px-5 py-4 flex-1 min-w-[160px] flex flex-col justify-center"
             animate={{
               borderColor: isActive ? colors.bg : 'rgba(255,255,255,0.08)',
               scale: isActive ? 1.05 : 1,

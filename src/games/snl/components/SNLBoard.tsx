@@ -15,71 +15,108 @@ interface ShapeProps {
   cellPct: number; // size of one cell in viewbox-percent units
 }
 
-const SnakeShape: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
-  const reactId = useId();
-  const id = `snake-${reactId.replace(/:/g, '')}`;
+// Geometry shared by SnakeBody and SnakeHead.
+function snakeGeometry(from: number, to: number, cellPct: number) {
   const a = cellCenterPct(from);
   const b = cellCenterPct(to);
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  const perp = Math.atan2(dy, dx) + Math.PI / 2;
-  const angDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
-  const wave = cellPct * 0.7;
-  const c1x = a.x + dx * 0.3 + Math.cos(perp) * wave;
-  const c1y = a.y + dy * 0.3 + Math.sin(perp) * wave;
-  const c2x = a.x + dx * 0.7 - Math.cos(perp) * wave;
-  const c2y = a.y + dy * 0.7 - Math.sin(perp) * wave;
-  const headR = cellPct * 0.3;
-  const path = `M ${a.x} ${a.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${b.x} ${b.y}`;
+  const len = Math.hypot(dx, dy) || 1;
+  const ang = Math.atan2(dy, dx);
+  const angDeg = (ang * 180) / Math.PI;
+  const perpX = -Math.sin(ang);
+  const perpY = Math.cos(ang);
 
+  // Cap the wave amplitude so no sample point leaves the [margin,
+  // 100−margin] viewbox.
+  const margin = cellPct * 0.45;
+  let allowed = cellPct * 0.4;
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24;
+    const bx = a.x + dx * t;
+    const by = a.y + dy * t;
+    if (Math.abs(perpX) > 1e-6) {
+      allowed = Math.min(allowed, (bx - margin) / Math.abs(perpX), (100 - margin - bx) / Math.abs(perpX));
+    }
+    if (Math.abs(perpY) > 1e-6) {
+      allowed = Math.min(allowed, (by - margin) / Math.abs(perpY), (100 - margin - by) / Math.abs(perpY));
+    }
+  }
+  const waveAmp = Math.max(cellPct * 0.1, allowed);
+  const waves = Math.max(2, Math.round(len / (cellPct * 2.2)));
+  const samples = Math.max(48, waves * 24);
+
+  let bodyPath = '';
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const taper = Math.sin(Math.PI * t);
+    const offset = Math.sin(t * Math.PI * 2 * waves) * waveAmp * taper;
+    const x = a.x + dx * t + perpX * offset;
+    const y = a.y + dy * t + perpY * offset;
+    bodyPath += (i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+  return { a, b, angDeg, bodyPath };
+}
+
+const SnakeBody: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
+  const reactId = useId();
+  const id = `snake-${reactId.replace(/:/g, '')}`;
+  const { b, bodyPath } = snakeGeometry(from, to, cellPct);
   return (
     <g>
       <defs>
-        <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#1a4a28" />
           <stop offset="50%" stopColor="var(--snake)" />
           <stop offset="100%" stopColor="#0f3018" />
         </linearGradient>
       </defs>
       {/* shadow */}
-      <path d={`M ${a.x} ${a.y + 0.3} C ${c1x} ${c1y + 0.3}, ${c2x} ${c2y + 0.3}, ${b.x} ${b.y + 0.3}`} stroke="rgba(0,0,0,0.4)" strokeWidth={cellPct * 0.36} fill="none" strokeLinecap="round" />
+      <g transform="translate(0 0.4)">
+        <path d={bodyPath} stroke="rgba(0,0,0,0.35)" strokeWidth={cellPct * 0.36} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
       {/* body */}
-      <path d={path} stroke={`url(#${id})`} strokeWidth={cellPct * 0.32} fill="none" strokeLinecap="round" />
+      <path d={bodyPath} stroke={`url(#${id})`} strokeWidth={cellPct * 0.32} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {/* belly highlight */}
-      <path d={path} stroke="rgba(180,255,180,0.35)" strokeWidth={cellPct * 0.06} fill="none" strokeLinecap="round" />
+      <path d={bodyPath} stroke="rgba(200,255,200,0.45)" strokeWidth={cellPct * 0.08} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {/* dashed scales */}
-      <path d={path} stroke="rgba(0,0,0,0.35)" strokeWidth={cellPct * 0.18} fill="none" strokeLinecap="butt" strokeDasharray="0.6 1.5" />
+      <path d={bodyPath} stroke="rgba(0,0,0,0.32)" strokeWidth={cellPct * 0.2} fill="none" strokeLinecap="butt" strokeDasharray="0.5 1.6" />
       {/* tail tip */}
       <circle cx={b.x} cy={b.y} r={cellPct * 0.08} fill="#0f3018" />
+    </g>
+  );
+};
 
-      {/* HEAD — bigger, menacing */}
-      <g transform={`translate(${a.x} ${a.y}) rotate(${angDeg + 180})`}>
-        <path
-          d={`M 0 ${-headR * 0.8} Q ${headR * 1.1} ${-headR * 0.6}, ${headR * 1.2} 0 Q ${headR * 1.1} ${headR * 0.6}, 0 ${headR * 0.8} Q ${-headR * 0.3} 0, 0 ${-headR * 0.8} Z`}
-          fill="var(--snake)"
-          stroke="#0a1f10"
-          strokeWidth="0.25"
-        />
-        <ellipse cx={headR * 0.4} cy={-headR * 0.3} rx={headR * 0.45} ry={headR * 0.2} fill="rgba(180,255,180,0.4)" />
-        {/* fangs */}
-        <path d={`M ${headR * 0.95} ${-headR * 0.25} L ${headR * 1.15} ${headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
-        <path d={`M ${headR * 0.95} ${headR * 0.25} L ${headR * 1.15} ${-headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
-        {/* forked tongue */}
-        <path
-          d={`M ${headR * 1.1} 0 L ${headR * 1.9} ${-headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.9} ${headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.55} 0`}
-          stroke="#e63946"
-          strokeWidth="0.32"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {/* eyes — yellow with slit pupils */}
-        <ellipse cx={headR * 0.15} cy={-headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
-        <ellipse cx={headR * 0.15} cy={headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
-        <ellipse cx={headR * 0.18} cy={-headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
-        <ellipse cx={headR * 0.18} cy={headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
-        <circle cx={headR * 0.95} cy={-headR * 0.12} r={headR * 0.04} fill="#000" />
-        <circle cx={headR * 0.95} cy={headR * 0.12} r={headR * 0.04} fill="#000" />
-      </g>
+const SnakeHead: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
+  const { a, angDeg } = snakeGeometry(from, to, cellPct);
+  const headR = cellPct * 0.32;
+  return (
+    <g transform={`translate(${a.x} ${a.y}) rotate(${angDeg + 180})`}>
+      <path
+        d={`M 0 ${-headR * 0.8} Q ${headR * 1.1} ${-headR * 0.6}, ${headR * 1.2} 0 Q ${headR * 1.1} ${headR * 0.6}, 0 ${headR * 0.8} Q ${-headR * 0.3} 0, 0 ${-headR * 0.8} Z`}
+        fill="var(--snake)"
+        stroke="#0a1f10"
+        strokeWidth="0.25"
+      />
+      <ellipse cx={headR * 0.4} cy={-headR * 0.3} rx={headR * 0.45} ry={headR * 0.2} fill="rgba(180,255,180,0.4)" />
+      {/* fangs */}
+      <path d={`M ${headR * 0.95} ${-headR * 0.25} L ${headR * 1.15} ${headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
+      <path d={`M ${headR * 0.95} ${headR * 0.25} L ${headR * 1.15} ${-headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
+      {/* forked tongue */}
+      <path
+        d={`M ${headR * 1.1} 0 L ${headR * 1.9} ${-headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.9} ${headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.55} 0`}
+        stroke="#e63946"
+        strokeWidth="0.32"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* eyes */}
+      <ellipse cx={headR * 0.15} cy={-headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
+      <ellipse cx={headR * 0.15} cy={headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
+      <ellipse cx={headR * 0.18} cy={-headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
+      <ellipse cx={headR * 0.18} cy={headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
+      <circle cx={headR * 0.95} cy={-headR * 0.12} r={headR * 0.04} fill="#000" />
+      <circle cx={headR * 0.95} cy={headR * 0.12} r={headR * 0.04} fill="#000" />
     </g>
   );
 };
@@ -192,10 +229,10 @@ const SNLBoard: React.FC = () => {
           let badgeBg: string | null = null;
           let badgeBorder: string | null = null;
           let badgeText = 'rgba(120, 80, 20, 0.85)';
-          if (isSnakeHead) { badgeBg = 'var(--rose)'; badgeText = '#fff'; }
-          else if (isLadderBase) { badgeBg = 'var(--snake)'; badgeText = '#fff'; }
-          else if (isSnakeTail) { badgeBg = '#fff'; badgeBorder = 'var(--rose)'; badgeText = 'var(--rose)'; }
-          else if (isLadderTop) { badgeBg = '#fff'; badgeBorder = 'var(--snake)'; badgeText = 'var(--snake)'; }
+          if (isSnakeHead) { badgeBg = 'rgba(229, 57, 53, 0.55)'; badgeText = '#fff'; }
+          else if (isLadderBase) { badgeBg = 'rgba(44, 138, 74, 0.55)'; badgeText = '#fff'; }
+          else if (isSnakeTail) { badgeBg = 'rgba(255,255,255,0.65)'; badgeBorder = 'rgba(229, 57, 53, 0.55)'; badgeText = 'rgba(154, 26, 24, 0.9)'; }
+          else if (isLadderTop) { badgeBg = 'rgba(255,255,255,0.65)'; badgeBorder = 'rgba(44, 138, 74, 0.55)'; badgeText = 'rgba(24, 92, 44, 0.9)'; }
 
           const isAnchor = badgeBg !== null;
           const isLabel = cellNum === 1 || cellNum === 100;
@@ -215,24 +252,23 @@ const SNLBoard: React.FC = () => {
                 <span
                   style={{
                     position: 'absolute',
-                    top: 4,
-                    left: 4,
-                    minWidth: 18,
-                    minHeight: 18,
-                    width: '40%',
-                    height: '40%',
+                    top: 3,
+                    left: 3,
+                    minWidth: 14,
+                    minHeight: 14,
+                    width: '32%',
+                    height: '32%',
                     aspectRatio: '1',
                     borderRadius: '50%',
                     background: badgeBg!,
-                    border: badgeBorder ? `1.5px solid ${badgeBorder}` : '1px solid rgba(0,0,0,0.18)',
+                    border: badgeBorder ? `1px solid ${badgeBorder}` : '1px solid rgba(0,0,0,0.10)',
                     color: badgeText,
                     fontFamily: 'var(--font-ui)',
-                    fontWeight: 800,
-                    fontSize: '0.62em',
+                    fontWeight: 700,
+                    fontSize: '0.58em',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
                     zIndex: 2,
                     lineHeight: 1,
                   }}
@@ -287,8 +323,13 @@ const SNLBoard: React.FC = () => {
         {ladders.map(l => (
           <LadderShape key={`l-${l.from}-${l.to}`} from={l.from} to={l.to} cellPct={cellPct} />
         ))}
+        {/* Two passes so every snake's head sits above every body, even
+            when bodies cross other heads. */}
         {snakes.map(s => (
-          <SnakeShape key={`s-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
+          <SnakeBody key={`sb-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
+        ))}
+        {snakes.map(s => (
+          <SnakeHead key={`sh-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
         ))}
       </svg>
     </motion.div>

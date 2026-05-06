@@ -8,7 +8,7 @@ import { save, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface SNLStore extends SNLGameState {
-  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[]) => void;
+  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[], playerColors?: string[]) => void;
   rollDice: () => void;
   resetGame: () => void;
 }
@@ -32,11 +32,11 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
 export const useSNLStore = create<SNLStore>((set, get) => ({
   ...initialSNL,
 
-  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[]) => {
+  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[], playerColors?: string[]) => {
     const players: SNLPlayer[] = Array.from({ length: playerCount }, (_, i) => ({
       id: `player-${i}`,
       name: playerNames?.[i] || `Player ${i + 1}`,
-      color: SNL_PLAYER_COLORS[i].color,
+      color: playerColors?.[i] || SNL_PLAYER_COLORS[i].color,
       position: 0,
       isCPU: isCPUFlags?.[i] ?? false,
     }));

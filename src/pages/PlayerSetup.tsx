@@ -72,19 +72,15 @@ const PlayerSetup: React.FC = () => {
     return autoDefaultName(slot, isCPU);
   };
 
-  const cycleColor = (idx: number) => {
+  // Picking a colour that's already on another row swaps the two rows'
+  // colours so every player still has a unique colour.
+  const setColorAt = (idx: number, color: LudoColor) => {
     setColors(prev => {
+      if (prev[idx] === color) return prev;
       const next = [...prev];
-      const taken = new Set(prev.filter((_, i) => i !== idx));
-      const cur = prev[idx];
-      const start = LUDO_COLORS.indexOf(cur);
-      for (let step = 1; step <= LUDO_COLORS.length; step++) {
-        const candidate = LUDO_COLORS[(start + step) % LUDO_COLORS.length];
-        if (!taken.has(candidate)) {
-          next[idx] = candidate;
-          break;
-        }
-      }
+      const swapWith = next.indexOf(color);
+      if (swapWith !== -1) next[swapWith] = next[idx];
+      next[idx] = color;
       return next;
     });
     playTap();
@@ -193,13 +189,7 @@ const PlayerSetup: React.FC = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <button
-                    onClick={() => cycleColor(i)}
-                    aria-label="Cycle color"
-                    style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
-                  >
-                    <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring />
-                  </button>
+                  <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring />
                   <input
                     type="text"
                     value={customNames[i] || ''}
@@ -223,20 +213,6 @@ const PlayerSetup: React.FC = () => {
                     }}
                   />
                   <button
-                    onClick={() => cycleColor(i)}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      background: palette[i],
-                      border: '2px solid rgba(255,255,255,0.55)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                    aria-label="Change color"
-                  />
-                  <button
                     onClick={() => toggleCpu(i)}
                     aria-pressed={cpu}
                     style={{
@@ -256,6 +232,39 @@ const PlayerSetup: React.FC = () => {
                   >
                     {cpu ? 'AI' : 'You'}
                   </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 56 }}>
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
+                    Color
+                  </span>
+                  {LUDO_COLORS.map(c => {
+                    const selected = colors[i] === c;
+                    const ownedBy = colors.indexOf(c);
+                    const ownedByOther = ownedBy !== -1 && ownedBy !== i && ownedBy < count;
+                    return (
+                      <button
+                        key={c}
+                        onClick={() => setColorAt(i, c)}
+                        aria-pressed={selected}
+                        aria-label={c}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          background: COLOR_VAR[c],
+                          border: selected ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+                          boxShadow: selected
+                            ? '0 0 0 2px var(--saffron), 0 2px 6px rgba(0,0,0,0.4)'
+                            : '0 1px 4px rgba(0,0,0,0.3)',
+                          opacity: ownedByOther ? 0.45 : 1,
+                          cursor: 'pointer',
+                          padding: 0,
+                          flexShrink: 0,
+                        }}
+                      />
+                    );
+                  })}
                 </div>
 
                 {chips.length > 0 && (

@@ -10,6 +10,17 @@ import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
 
+// Map the player-colour key chosen on PlayerSetup ('red' | 'green' |
+// 'yellow' | 'blue') to the hex used by the SNL board. Falls back to
+// passing the value through (so a hex from Play-Again still works).
+const SNL_HEX_BY_NAME: Record<string, string> = {
+  red: '#e53935',
+  blue: '#1e6fdb',
+  green: '#2e9d4f',
+  yellow: '#d99e00',
+};
+const toSnlHex = (c: string) => SNL_HEX_BY_NAME[c] ?? c;
+
 const SnakesAndLaddersGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
@@ -26,7 +37,8 @@ const SnakesAndLaddersGame: React.FC = () => {
     }
     const names = flowPlayers.map(p => p.name);
     const cpuFlags = flowPlayers.map(p => p.isCPU);
-    initGame(flowPlayers.length, names, cpuFlags);
+    const colors = flowPlayers.map(p => toSnlHex(p.color));
+    initGame(flowPlayers.length, names, cpuFlags, colors);
   }, [flowPlayers, navigate, initGame, gamePhase, players.length]);
 
   // CPU autoplay — auto-roll for CPU players' turns.
@@ -149,8 +161,9 @@ const SnakesAndLaddersGame: React.FC = () => {
           const count = players.length;
           const snapshotNames = players.map(p => p.name);
           const snapshotCpu = players.map(p => p.isCPU ?? false);
+          const snapshotColors = players.map(p => p.color);
           resetGame();
-          initGame(count, snapshotNames, snapshotCpu);
+          initGame(count, snapshotNames, snapshotCpu, snapshotColors);
         }}
         onGoHome={() => { resetGame(); navigate('/'); }}
       />

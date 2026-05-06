@@ -28,7 +28,9 @@ interface SettingsStore extends Settings {
   reset: () => void;
 }
 
-const initial = load<Settings>('settings', DEFAULTS);
+// Merge with defaults so newly added fields fill in for users with
+// older persisted settings.
+const initial: Settings = { ...DEFAULTS, ...load<Partial<Settings>>('settings', DEFAULTS) };
 setSoundEnabled(initial.sound);
 setHapticsEnabled(initial.haptics);
 

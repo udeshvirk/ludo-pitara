@@ -90,7 +90,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             display: 'grid',
             gridTemplateColumns: 'minmax(150px, 1fr) auto minmax(150px, 1fr)',
             alignItems: 'center',
-            gap: 12,
+            gap: 18,
             padding: '0 12px 12px',
             maxWidth: 1600,
             margin: '0 auto',
@@ -116,7 +116,7 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 10 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 16 }}>
           {statusPill}
 
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>

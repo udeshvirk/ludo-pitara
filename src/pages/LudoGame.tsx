@@ -140,7 +140,9 @@ const LudoGame: React.FC = () => {
             display: 'grid',
             gridTemplateColumns: 'minmax(150px, 1fr) auto minmax(150px, 1fr)',
             alignItems: 'center',
-            gap: 12,
+            // Bumped past the board's 9px gold ring so rails have real
+            // breathing room.
+            gap: 18,
             padding: '0 12px 12px',
             maxWidth: 1600,
             margin: '0 auto',
@@ -187,9 +189,11 @@ const LudoGame: React.FC = () => {
         </div>
       ) : (
         // Stacked: status pill stays at the very top, then pods hug the
-        // board with a small uniform gap so each section is visually
-        // distinct without drifting apart.
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 10 }}>
+        // board with a small visible gap. The board has a 9px triple
+        // gold-ring drop-shadow that paints into the gap, so the column
+        // gap needs to be large enough to leave a few pixels of clear
+        // space *outside* the ring.
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 16 }}>
           {statusPill}
 
           <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>

@@ -184,17 +184,22 @@ const SNLBoard: React.FC = () => {
           const baseBg = isDark ? 'var(--bg-board)' : 'var(--bg-board-cream)';
           const players = playerPositions.get(cellNum) || [];
 
-          // Marker circle per the user's spec:
-          // snake head → red, snake tail → white,
-          // ladder base → green, ladder top → white.
-          let markerFill: string | null = null;
-          let markerStroke = 'rgba(0,0,0,0.35)';
-          if (isSnakeHead) markerFill = 'var(--rose)';
-          else if (isLadderBase) markerFill = 'var(--snake)';
-          else if (isSnakeTail || isLadderTop) {
-            markerFill = '#fff';
-            markerStroke = isSnakeTail ? 'var(--rose)' : 'var(--snake)';
-          }
+          // Number-badge styling per the user's spec — the cell number
+          // itself sits inside a coloured circle when the cell is a
+          // snake/ladder anchor:
+          //   snake head → solid red,    snake tail → white (red ring)
+          //   ladder base → solid green, ladder top → white (green ring)
+          let badgeBg: string | null = null;
+          let badgeBorder: string | null = null;
+          let badgeText = 'rgba(120, 80, 20, 0.85)';
+          if (isSnakeHead) { badgeBg = 'var(--rose)'; badgeText = '#fff'; }
+          else if (isLadderBase) { badgeBg = 'var(--snake)'; badgeText = '#fff'; }
+          else if (isSnakeTail) { badgeBg = '#fff'; badgeBorder = 'var(--rose)'; badgeText = 'var(--rose)'; }
+          else if (isLadderTop) { badgeBg = '#fff'; badgeBorder = 'var(--snake)'; badgeText = 'var(--snake)'; }
+
+          const isAnchor = badgeBg !== null;
+          const isLabel = cellNum === 1 || cellNum === 100;
+          const labelText = cellNum === 1 ? 'Start' : cellNum === 100 ? 'Home' : String(cellNum);
 
           return (
             <div
@@ -206,39 +211,50 @@ const SNLBoard: React.FC = () => {
                 border: '0.5px solid rgba(120, 80, 20, 0.18)',
               }}
             >
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 3,
-                  left: 5,
-                  fontSize: cellNum === 1 || cellNum === 100 ? '0.66em' : '0.78em',
-                  fontWeight: cellNum === 1 || cellNum === 100 ? 800 : 700,
-                  color: cellNum === 100 ? 'var(--gold-deep)' : cellNum === 1 ? 'var(--snake)' : 'rgba(120, 80, 20, 0.78)',
-                  fontFamily: 'var(--font-ui)',
-                  letterSpacing: cellNum === 1 || cellNum === 100 ? 0.6 : 0,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {cellNum === 1 ? 'Start' : cellNum === 100 ? 'Home' : cellNum}
-              </span>
-              {markerFill && (
+              {isAnchor ? (
                 <span
-                  aria-hidden
                   style={{
                     position: 'absolute',
-                    bottom: 4,
-                    right: 4,
-                    width: '26%',
-                    height: '26%',
-                    minWidth: 8,
-                    minHeight: 8,
+                    top: 4,
+                    left: 4,
+                    minWidth: 18,
+                    minHeight: 18,
+                    width: '40%',
+                    height: '40%',
+                    aspectRatio: '1',
                     borderRadius: '50%',
-                    background: markerFill,
-                    border: `1.5px solid ${markerStroke}`,
+                    background: badgeBg!,
+                    border: badgeBorder ? `1.5px solid ${badgeBorder}` : '1px solid rgba(0,0,0,0.18)',
+                    color: badgeText,
+                    fontFamily: 'var(--font-ui)',
+                    fontWeight: 800,
+                    fontSize: '0.62em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
                     zIndex: 2,
+                    lineHeight: 1,
                   }}
-                />
+                >
+                  {cellNum}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: 5,
+                    fontSize: isLabel ? '0.66em' : '0.78em',
+                    fontWeight: isLabel ? 800 : 700,
+                    color: cellNum === 100 ? 'var(--gold-deep)' : cellNum === 1 ? 'var(--snake)' : 'rgba(120, 80, 20, 0.85)',
+                    fontFamily: 'var(--font-ui)',
+                    letterSpacing: isLabel ? 0.6 : 0,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {labelText}
+                </span>
               )}
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 1, padding: 2, zIndex: 4 }}>
                 {players.map((p, idx) => (

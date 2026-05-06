@@ -19,7 +19,7 @@ const PlayerPanel: React.FC = () => {
         return (
           <motion.div
             key={player.id}
-            className="glass rounded-2xl p-3 flex-1 min-w-[150px] flex justify-between items-center"
+            className="glass rounded-2xl p-4 flex-1 min-w-[150px] flex justify-between items-center"
             animate={{
               borderColor: isActive ? colors.bg : 'rgba(255,255,255,0.08)',
               scale: isActive ? 1.03 : 1,
@@ -30,8 +30,20 @@ const PlayerPanel: React.FC = () => {
             }}
             transition={{ duration: 0.3 }}
           >
-            <div className="flex flex-col flex-1 min-w-0 pr-2">
-              <div className="flex items-center gap-2 mb-2 w-full">
+            {index % 2 === 1 && (
+              <div className="flex items-center justify-center mr-3" style={{ transform: 'scale(0.75)', transformOrigin: 'left center' }}>
+                <Dice3D
+                  value={isActive ? diceValue : null}
+                  onRoll={rollDice}
+                  disabled={!isActive || gamePhase !== 'rolling'}
+                  playerColor={colors.bg}
+                  isRolling={isActive && isRolling}
+                />
+              </div>
+            )}
+
+            <div className={`flex flex-col flex-1 min-w-0 ${index % 2 === 1 ? 'items-end text-right' : 'items-start text-left'}`}>
+              <div className={`flex items-center gap-2 mb-2 w-full ${index % 2 === 1 ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div
                   className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
                   style={{ background: colors.bg, boxShadow: `0 0 10px ${colors.bg}` }}
@@ -40,25 +52,27 @@ const PlayerPanel: React.FC = () => {
                   {player.name}
                 </span>
                 {player.finishOrder > 0 && (
-                  <span className="text-xs ml-auto flex-shrink-0">🏆 #{player.finishOrder}</span>
+                  <span className={`text-xs flex-shrink-0 ${index % 2 === 1 ? 'mr-auto' : 'ml-auto'}`}>🏆 #{player.finishOrder}</span>
                 )}
               </div>
-              <div className="flex gap-3 text-sm font-medium opacity-80 mt-1 w-full">
+              <div className={`flex gap-3 text-sm font-medium opacity-80 mt-1 w-full ${index % 2 === 1 ? 'justify-end' : 'justify-start'}`}>
                 <span className="flex items-center gap-1">🏠 {tokensHome}</span>
                 <span className="flex items-center gap-1">🎯 {tokensActive}</span>
                 <span className="flex items-center gap-1">⬜ {tokensYard}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-center ml-2" style={{ transform: 'scale(0.65)', transformOrigin: 'right center' }}>
-              <Dice3D
-                value={isActive ? diceValue : null}
-                onRoll={rollDice}
-                disabled={!isActive || gamePhase !== 'rolling'}
-                playerColor={colors.bg}
-                isRolling={isActive && isRolling}
-              />
-            </div>
+            {index % 2 === 0 && (
+              <div className="flex items-center justify-center ml-3" style={{ transform: 'scale(0.75)', transformOrigin: 'right center' }}>
+                <Dice3D
+                  value={isActive ? diceValue : null}
+                  onRoll={rollDice}
+                  disabled={!isActive || gamePhase !== 'rolling'}
+                  playerColor={colors.bg}
+                  isRolling={isActive && isRolling}
+                />
+              </div>
+            )}
           </motion.div>
         );
       })}

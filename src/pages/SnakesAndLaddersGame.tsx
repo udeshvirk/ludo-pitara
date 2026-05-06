@@ -43,11 +43,12 @@ const SnakesAndLaddersGame: React.FC = () => {
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
 
+  // Same sizing strategy as Ludo — compact pods + thin rails so the board
+  // can use the rest of the horizontal space on iPad landscape.
+  const railWidth = 'clamp(132px, 14vw, 160px)';
   const boardSizeStyle = isWide
-    ? { width: 'min(78vh, 560px)' }
-    : { width: '100%', maxWidth: 'min(94vw, 60vh)' };
-
-  const railWidth = 'clamp(180px, 22vw, 260px)';
+    ? { width: 'min(86vh, calc(100vw - 380px))', maxWidth: 'min(86vh, 880px)' }
+    : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
 
   const statusPill = (
     <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
@@ -82,27 +83,27 @@ const SnakesAndLaddersGame: React.FC = () => {
       <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} />
 
       {isWide ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 18, padding: '0 18px 18px', overflow: 'hidden' }}>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px 12px', overflow: 'hidden' }}>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} />
+              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} compact />
             ))}
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {statusPill}
             <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
               <SNLBoard />
             </div>
           </div>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} />
+              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} compact />
             ))}
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
-          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <SNLPlayerHalfRow
               slots={topSlotsForCount(playerCount)}
               rotated
@@ -116,7 +117,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             <SNLBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <SNLPlayerHalfRow
               slots={bottomSlotsForCount(playerCount)}
               rotated={false}

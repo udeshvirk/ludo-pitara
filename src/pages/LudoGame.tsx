@@ -79,12 +79,12 @@ const LudoGame: React.FC = () => {
 
   // On phones / tablet portrait we stack vertically (pods top + bottom).
   // On wide landscape we put the board in the centre and pods on the
-  // left + right rails so we use the horizontal space.
+  // left + right rails. The rails are kept narrow and the pods compact so
+  // the board can grow to fill the remaining horizontal space.
+  const railWidth = 'clamp(132px, 14vw, 160px)';
   const boardSizeStyle = isWide
-    ? { width: 'min(78vh, 560px)' }
-    : { width: '100%', maxWidth: 'min(94vw, 60vh)' };
-
-  const railWidth = 'clamp(180px, 22vw, 260px)';
+    ? { width: 'min(86vh, calc(100vw - 380px))', maxWidth: 'min(86vh, 880px)' }
+    : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
 
   const statusPill = (
     <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
@@ -123,8 +123,8 @@ const LudoGame: React.FC = () => {
 
       {isWide ? (
         // Wide landscape: pods rail-left, board centre, pods rail-right.
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 18, padding: '0 18px 18px', overflow: 'hidden' }}>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px 12px', overflow: 'hidden' }}>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <PlayerHalfRow
                 key={`l-${i}`}
@@ -135,16 +135,17 @@ const LudoGame: React.FC = () => {
                 diceValue={diceValue}
                 activeIndex={currentPlayerIndex}
                 gamePhase={gamePhase}
+                compact
               />
             ))}
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {statusPill}
             <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
               <LudoBoard />
             </div>
           </div>
-          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ width: railWidth, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <PlayerHalfRow
                 key={`r-${i}`}
@@ -155,6 +156,7 @@ const LudoGame: React.FC = () => {
                 diceValue={diceValue}
                 activeIndex={currentPlayerIndex}
                 gamePhase={gamePhase}
+                compact
               />
             ))}
           </div>
@@ -162,7 +164,7 @@ const LudoGame: React.FC = () => {
       ) : (
         // Stacked: pods on top (rotated 180°) and bottom.
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 16px', overflow: 'hidden' }}>
-          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <PlayerHalfRow
               slots={topSlotsForCount(playerCount)}
               rotated
@@ -180,7 +182,7 @@ const LudoGame: React.FC = () => {
             <LudoBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(94vw, 60vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
             <PlayerHalfRow
               slots={bottomSlotsForCount(playerCount)}
               rotated={false}

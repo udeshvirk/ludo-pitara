@@ -117,15 +117,15 @@ body {
 }
 
 @media (min-width: 600px) {
-  .phone-frame { max-width: 600px; }
+  .phone-frame { max-width: 760px; }
 }
 
 @media (min-width: 900px) and (orientation: landscape) {
-  .phone-frame { max-width: 900px; }
+  .phone-frame { max-width: 100%; }
 }
 
-@media (min-width: 900px) and (orientation: landscape) and (min-height: 600px) {
-  .phone-frame { max-width: 1020px; }
+@media (min-width: 1280px) and (orientation: landscape) {
+  .phone-frame { max-width: 1280px; }
 }
 
 ::-webkit-scrollbar { width: 4px; }

@@ -5,6 +5,8 @@ import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerPanel from '../games/ludo/components/PlayerPanel';
+import Dice3D from '../components/Dice3D';
+import { PlayerColor } from '../games/ludo/types';
 import GameHeader from '../components/GameHeader';
 import PlayerSetup from '../components/PlayerSetup';
 import WinnerModal from '../components/WinnerModal';
@@ -20,14 +22,34 @@ const LudoGame: React.FC = () => {
   const navigate = useNavigate();
   const {
     players,
+    currentPlayerIndex,
+    diceValue,
+    isRolling,
     gamePhase,
     winner,
     message,
+    rollDice,
     initGame,
     resetGame,
   } = useLudoStore();
 
 
+
+  const getPlayerDice = (color: PlayerColor) => {
+    const pIndex = players.findIndex(p => p.color === color);
+    if (pIndex === -1) return <div className="w-[64px] h-[64px]" />; // Empty placeholder
+
+    const isActive = pIndex === currentPlayerIndex && gamePhase !== 'finished';
+    return (
+      <Dice3D
+        value={isActive ? diceValue : null}
+        onRoll={rollDice}
+        disabled={!isActive || gamePhase !== 'rolling'}
+        playerColor={PLAYER_COLORS[color].bg}
+        isRolling={isActive && isRolling}
+      />
+    );
+  };
 
   const handleNewGame = () => {
     resetGame();
@@ -72,8 +94,30 @@ const LudoGame: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Board */}
-        <LudoBoard />
+        {/* Board Container with Dice */}
+        <div className="relative w-full max-w-[95vw] flex flex-col items-center">
+          {/* Top Dice Row */}
+          <div className="w-full flex justify-between px-2 mb-2">
+            <div className="origin-bottom-left" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('red')}
+            </div>
+            <div className="origin-bottom-right" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('green')}
+            </div>
+          </div>
+
+          <LudoBoard />
+
+          {/* Bottom Dice Row */}
+          <div className="w-full flex justify-between px-2 mt-2">
+            <div className="origin-top-left" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('blue')}
+            </div>
+            <div className="origin-top-right" style={{ transform: 'scale(0.85)' }}>
+              {getPlayerDice('yellow')}
+            </div>
+          </div>
+        </div>
 
 
       </div>

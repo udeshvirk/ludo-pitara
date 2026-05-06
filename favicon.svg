@@ -1,10 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#3a1a5e"/>
+      <stop offset="55%" stop-color="#2a1248"/>
+      <stop offset="100%" stop-color="#190a2e"/>
+    </radialGradient>
+    <radialGradient id="medallion" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#ffd966"/>
+      <stop offset="55%" stop-color="#f5b800"/>
+      <stop offset="100%" stop-color="#b07a00"/>
+    </radialGradient>
+    <linearGradient id="die" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#fff7e1"/>
+      <stop offset="100%" stop-color="#f0e4c8"/>
     </linearGradient>
   </defs>
-  <rect width="100" height="100" rx="20" fill="url(#bg)"/>
-  <text x="50" y="65" text-anchor="middle" font-size="55" fill="white">🎲</text>
+
+  <!-- Rounded background -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Decorative mandala ring (gold @ low opacity) -->
+  <g transform="translate(256 256)" stroke="#f5b800" stroke-opacity="0.28" fill="none">
+    <circle r="220" stroke-width="2"/>
+    <circle r="190" stroke-width="1.6" stroke-dasharray="4 8"/>
+    <circle r="155" stroke-width="2"/>
+    <g>
+      <!-- 16 petal strokes -->
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(22.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(45)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(67.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(90)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(112.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(135)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(157.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(180)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(202.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(225)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(247.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(270)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(292.5)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(315)"/>
+      <ellipse cx="0" cy="-118" rx="13" ry="48" stroke-width="2.2" transform="rotate(337.5)"/>
+    </g>
+  </g>
+
+  <!-- Gold medallion -->
+  <circle cx="256" cy="256" r="135" fill="url(#medallion)" stroke="#7a5a00" stroke-width="3"/>
+  <circle cx="256" cy="256" r="135" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+
+  <!-- Die centred on the medallion -->
+  <g transform="translate(186 186)">
+    <rect x="0" y="0" width="140" height="140" rx="30" ry="30" fill="url(#die)" stroke="rgba(0,0,0,0.18)" stroke-width="2"/>
+    <!-- pip pattern: 5 -->
+    <circle cx="32" cy="32" r="11" fill="#1a0e2e"/>
+    <circle cx="108" cy="32" r="11" fill="#1a0e2e"/>
+    <circle cx="70" cy="70" r="11" fill="#1a0e2e"/>
+    <circle cx="32" cy="108" r="11" fill="#1a0e2e"/>
+    <circle cx="108" cy="108" r="11" fill="#1a0e2e"/>
+  </g>
 </svg>

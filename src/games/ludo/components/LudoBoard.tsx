@@ -21,6 +21,18 @@ const COLOR_DEEP: Record<PlayerColor, string> = {
   blue: '#0e3e7a',
 };
 
+// Path direction by colour — the triangle-glyph that points along the
+// home stretch toward the centre, and identifies each colour's start
+// cell entry direction. Both the start cell and the home-stretch cells
+// use the same direction (each colour's stretch flows to the centre
+// in the same direction the player enters the path).
+const PATH_ARROW: Record<PlayerColor, string> = {
+  red: '▶',
+  green: '▼',
+  yellow: '◀',
+  blue: '▲',
+};
+
 // Player home corner: 6×6 cells starting at the given (row, col)
 const HOME_CORNERS: Record<PlayerColor, { row: number; col: number }> = {
   red: { row: 0, col: 0 },
@@ -173,20 +185,50 @@ const LudoBoard: React.FC = () => {
         }
 
         const isSafe = safeSquareSet.has(key) && onPath;
+        const cellColor = coloredCells.get(key);
+        const isStartCell = startCells.has(key);
+        const isHomeStretch = !!cellColor && !isStartCell;
+        // Star and arrow share the cell — start cells get an arrow
+        // (entry direction); home-stretch cells get a smaller arrow
+        // toward the centre; safe squares that aren't start cells get
+        // the gold star.
+        const showStar = isSafe && !isStartCell;
+        const arrow = isStartCell || isHomeStretch ? PATH_ARROW[cellColor!] : null;
 
         return (
           <div
             key={key}
-            className={`ludo-cell ${isSafe ? 'safe-star' : ''}`}
+            className={`ludo-cell ${showStar ? 'safe-star' : ''}`}
             style={{
               gridRow: row + 1,
               gridColumn: col + 1,
               background: bg,
-              border: '1px solid rgba(120, 80, 20, 0.25)',
-              position: 'relative',
             }}
           >
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {arrow && (
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                  fontSize: isStartCell ? 'clamp(11px, 2.4vmin, 18px)' : 'clamp(9px, 1.8vmin, 14px)',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  color: isStartCell ? COLOR_DEEP[cellColor!] : 'rgba(255,255,255,0.78)',
+                  textShadow: isStartCell
+                    ? '0 1px 0 rgba(255,255,255,0.65)'
+                    : '0 1px 0 rgba(0,0,0,0.25)',
+                  zIndex: 1,
+                }}
+              >
+                {arrow}
+              </span>
+            )}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
               {tokens.map((t, ti) => (
                 <LudoToken
                   key={t.tokenId}
@@ -202,18 +244,40 @@ const LudoBoard: React.FC = () => {
         );
       })}
 
-      {/* Centre 3×3 — coloured wedges + gold ring. Tokens that reached
-          home are placed at the centroid of their colour's wedge so
-          different colours fan out into their own corners instead of
-          piling onto a single point. */}
+      {/* Centre 3×3 — coloured wedges with edge-to-centre gradients,
+          and a glowing gold medallion in the middle. */}
       <div style={{ gridRow: '7 / span 3', gridColumn: '7 / span 3', position: 'relative', background: 'var(--bg-board-cream)', border: '1.5px solid rgba(120, 80, 20, 0.4)' }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
-          <polygon points="50,50 0,0 100,0" fill={PLAYER_COLORS.green.bg} />
-          <polygon points="50,50 100,0 100,100" fill={PLAYER_COLORS.yellow.bg} />
-          <polygon points="50,50 100,100 0,100" fill={PLAYER_COLORS.blue.bg} />
-          <polygon points="50,50 0,100 0,0" fill={PLAYER_COLORS.red.bg} />
-          <circle cx="50" cy="50" r="14" fill="var(--gold-hi)" stroke="var(--gold-deep)" strokeWidth="2" />
-          <text x="50" y="58" textAnchor="middle" fontSize="20" fontWeight="700" fill="#3a1f00" fontFamily="var(--font-display)">★</text>
+          <defs>
+            {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(c => (
+              <radialGradient key={c} id={`wedge-${c}`} cx="50%" cy="50%" r="65%">
+                <stop offset="0%" stopColor={PLAYER_COLORS[c].bgLight} />
+                <stop offset="100%" stopColor={PLAYER_COLORS[c].bg} />
+              </radialGradient>
+            ))}
+            <radialGradient id="centerDisc" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" stopColor="#fff5c2" />
+              <stop offset="55%" stopColor="var(--gold-hi)" />
+              <stop offset="100%" stopColor="var(--gold-deep)" />
+            </radialGradient>
+            <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="rgba(255, 217, 102, 0.7)" />
+              <stop offset="100%" stopColor="rgba(255, 217, 102, 0)" />
+            </radialGradient>
+          </defs>
+          <polygon points="50,50 0,0 100,0" fill="url(#wedge-green)" />
+          <polygon points="50,50 100,0 100,100" fill="url(#wedge-yellow)" />
+          <polygon points="50,50 100,100 0,100" fill="url(#wedge-blue)" />
+          <polygon points="50,50 0,100 0,0" fill="url(#wedge-red)" />
+          {/* Wedge separators */}
+          <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(0,0,0,0.18)" strokeWidth="0.6" />
+          <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(0,0,0,0.18)" strokeWidth="0.6" />
+          {/* Outer glow ring around the medallion */}
+          <circle cx="50" cy="50" r="22" fill="url(#centerGlow)" />
+          {/* Medallion */}
+          <circle cx="50" cy="50" r="16" fill="url(#centerDisc)" stroke="var(--gold-deep)" strokeWidth="1.5" />
+          <circle cx="50" cy="50" r="13" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+          <text x="50" y="58.5" textAnchor="middle" fontSize="22" fontWeight="700" fill="#3a1f00" fontFamily="var(--font-display)">★</text>
         </svg>
 
         {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(color => {
@@ -327,10 +391,19 @@ const LudoBoard: React.FC = () => {
                   const occupant = yard[slot];
                   return (
                     <div key={slot} style={{
+                      // Recessed socket: top-inset shadow simulates the
+                      // far wall of a well; bottom inset highlight is
+                      // light reflecting off the near rim. Combined
+                      // with the colored ring border, the token reads
+                      // as sitting inside a hole rather than on top of
+                      // a flat disc.
                       background: colors.bg,
                       border: `2px solid ${COLOR_DEEP[color]}`,
                       borderRadius: '50%',
-                      boxShadow: 'inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.4)',
+                      boxShadow:
+                        'inset 0 5px 8px rgba(0,0,0,0.40), ' +
+                        'inset 0 -2px 2px rgba(255,255,255,0.30), ' +
+                        '0 1px 0 rgba(255,255,255,0.45)',
                       position: 'relative',
                       display: 'flex',
                       alignItems: 'center',

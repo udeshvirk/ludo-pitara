@@ -19,17 +19,17 @@ const COLOR_VAR: Record<LudoColor, string> = {
   blue: 'var(--p-blue)',
 };
 
-// Default name = "Player N" for humans, "AI N" for CPUs, where N counts
-// only the same-type slots up to and including this one. Order:
-//   [human, cpu, human, cpu] → Player 1, AI 1, Player 2, AI 2
+// Default name = "Player N" for humans, "Bot N" for CPUs, where N
+// counts only the same-type slots up to and including this one.
+// Order: [human, cpu, human, cpu] → Player 1, Bot 1, Player 2, Bot 2.
 function autoDefaultName(slot: number, isCPU: boolean[]): string {
   let humans = 0;
-  let ais = 0;
+  let bots = 0;
   for (let i = 0; i <= slot; i++) {
-    if (isCPU[i]) ais++;
+    if (isCPU[i]) bots++;
     else humans++;
   }
-  return isCPU[slot] ? `AI ${ais}` : `Player ${humans}`;
+  return isCPU[slot] ? `Bot ${bots}` : `Player ${humans}`;
 }
 
 const PlayerSetup: React.FC = () => {
@@ -49,7 +49,14 @@ const PlayerSetup: React.FC = () => {
   // autoDefaultName when customNames[i] is empty, so toggling Human/AI
   // updates the name unless the user typed something explicit.
   const [customNames, setCustomNames] = useState<string[]>(['', '', '', '']);
-  const [colors, setColors] = useState<LudoColor[]>(['red', 'yellow', 'green', 'blue']);
+  // Default colour order so the slot-0 player (the human in cpu mode)
+  // lands on a bottom yard, and slot-1 lands diagonally on a top yard
+  // — so a 1-human + 1-bot Ludo game seats them across the board:
+  //   slot 0 → blue   (bottom-left yard)   [human in 1H+1B]
+  //   slot 1 → green  (top-right yard)     [bot   in 1H+1B]
+  //   slot 2 → yellow (bottom-right yard)
+  //   slot 3 → red    (top-left yard)
+  const [colors, setColors] = useState<LudoColor[]>(['blue', 'green', 'yellow', 'red']);
   // Default isCPU mirrors the mode chosen on the previous screen but is
   // fully editable here (so a Solo player can have 2 humans + 2 AI, etc).
   const [isCPU, setIsCPU] = useState<boolean[]>(() =>
@@ -114,7 +121,7 @@ const PlayerSetup: React.FC = () => {
 
   const start = () => {
     const finalNames = Array.from({ length: count }, (_, i) => displayName(i));
-    // Only remember user-typed names (skip auto defaults like "AI 1").
+    // Only remember user-typed names (skip auto defaults like "Bot 1").
     const typed = customNames.slice(0, count).filter(n => n.trim().length > 0);
     if (typed.length > 0) {
       rememberNames(typed);
@@ -230,7 +237,7 @@ const PlayerSetup: React.FC = () => {
                       flexShrink: 0,
                     }}
                   >
-                    {cpu ? 'AI' : 'You'}
+                    {cpu ? 'Bot' : 'You'}
                   </button>
                 </div>
 

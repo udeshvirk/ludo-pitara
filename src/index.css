@@ -177,9 +177,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 0.5px solid rgba(0, 0, 0, 0.18);
+  border: 0.5px solid rgba(120, 80, 20, 0.30);
   position: relative;
   font-size: clamp(6px, 1.2vmin, 10px);
+  /* Faint inner top-light + bottom-shadow so cells read as raised
+     tiles instead of flat grid squares. The shadows are intentionally
+     subtle so they don't fight with the warm cream background. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(120, 80, 20, 0.10);
 }
 
 .snl-cell {
@@ -195,9 +201,11 @@ body {
 .safe-star::after {
   content: '★';
   position: absolute;
-  font-size: clamp(10px, 2.4vmin, 18px);
+  font-size: clamp(13px, 3vmin, 22px);
   color: var(--gold-deep);
   pointer-events: none;
-  opacity: 0.85;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85),
+    0 0 6px rgba(245, 184, 0, 0.55);
 }

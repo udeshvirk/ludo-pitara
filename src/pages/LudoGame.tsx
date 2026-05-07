@@ -84,7 +84,7 @@ const LudoGame: React.FC = () => {
   // space. Header ≈ 64px + two pod rows ≈ 160px + padding ≈ 24px.
   const boardSizeStyle = isWide
     ? { width: 'min(calc(100vh - 100px), 1000px)' }
-    : { width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' };
+    : { width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -143,8 +143,8 @@ const LudoGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 8 }}>
-          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 18 }}>
+          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' }}>
             <PlayerHalfRow
               slots={slots.top}
               onRoll={rollDice}
@@ -159,7 +159,7 @@ const LudoGame: React.FC = () => {
             <LudoBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
+          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' }}>
             <PlayerHalfRow
               slots={slots.bottom}
               onRoll={rollDice}

@@ -72,7 +72,7 @@ const SnakesAndLaddersGame: React.FC = () => {
       }
     : {
         aspectRatio: '5 / 6',
-        height: 'min(calc(100vh - 220px), calc(98vw * 6 / 5))',
+        height: 'min(calc(100vh - 240px), calc((100vw - 26px) * 6 / 5))',
       };
 
   return (
@@ -111,8 +111,8 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 8 }}>
-          <div style={{ width: '100%', maxWidth: '98vw' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 18 }}>
+          <div style={{ width: '100%', maxWidth: 'calc(100vw - 26px)' }}>
             <SNLPlayerHalfRow
               slots={topSlotsForCount(playerCount)}
               top
@@ -124,7 +124,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             <SNLBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: '98vw' }}>
+          <div style={{ width: '100%', maxWidth: 'calc(100vw - 26px)' }}>
             <SNLPlayerHalfRow
               slots={bottomSlotsForCount(playerCount)}
               top={false}

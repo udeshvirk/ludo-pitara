@@ -188,7 +188,6 @@ const SNLBoard: React.FC = () => {
       style={{
         width: '100%',
         height: '100%',
-        aspectRatio: '1',
         background: 'var(--bg-board-cream)',
         borderRadius: 12,
         overflow: 'hidden',

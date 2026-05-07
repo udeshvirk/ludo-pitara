@@ -29,6 +29,25 @@ const HOME_CORNERS: Record<PlayerColor, { row: number; col: number }> = {
   blue: { row: 9, col: 0 },
 };
 
+// Nameplate position (relative to the colored corner panel) and
+// rotation. Each plate sits on the panel's outer edge — the side that
+// faces away from the centre of the board — and rotates so it reads
+// "facing the player's seat" (Ludo-King style).
+//
+//   blue   (bottom-left)  → bottom edge, 0°
+//   red    (top-left)     → left edge,   90° CW
+//   green  (top-right)    → top edge,    180°
+//   yellow (bottom-right) → right edge, 270° (-90°)
+const NAMEPLATE_LAYOUT: Record<PlayerColor, {
+  position: React.CSSProperties;
+  rotation: string;
+}> = {
+  blue:   { position: { left: 0, right: 0, bottom: 0, height: '14%' },         rotation: 'rotate(0deg)' },
+  red:    { position: { left: 0, top: 0, bottom: 0, width: '14%' },            rotation: 'rotate(90deg)' },
+  green:  { position: { left: 0, right: 0, top: 0, height: '14%' },            rotation: 'rotate(180deg)' },
+  yellow: { position: { right: 0, top: 0, bottom: 0, width: '14%' },           rotation: 'rotate(-90deg)' },
+};
+
 const LudoBoard: React.FC = () => {
   const { players, selectableTokenIds } = useLudoStore();
 
@@ -95,6 +114,14 @@ const LudoBoard: React.FC = () => {
         if (token.state === 'home') map[token.color].push(token.id);
       }
     }
+    return map;
+  }, [players]);
+
+  // Player name keyed by colour, so each yard panel can label itself
+  // (Ludo-King-style nameplate on the colored corner).
+  const nameByColor = useMemo(() => {
+    const map: Partial<Record<PlayerColor, string>> = {};
+    for (const p of players) map[p.color] = p.name;
     return map;
   }, [players]);
 
@@ -233,6 +260,12 @@ const LudoBoard: React.FC = () => {
         const corner = HOME_CORNERS[color];
         const colors = PLAYER_COLORS[color];
         const yard = yardTokens[color];
+        const name = nameByColor[color];
+        // Nameplate position + rotation per corner (Ludo-King style: each
+        // name is on the outer edge of its yard, rotated to face the
+        // player's seat — 0° at bottom-left, +90° clockwise at every
+        // corner going around).
+        const nameplate = NAMEPLATE_LAYOUT[color];
         return (
           <div
             key={color}
@@ -243,8 +276,39 @@ const LudoBoard: React.FC = () => {
               border: `2px solid ${COLOR_DEEP[color]}`,
               padding: '14%',
               boxSizing: 'border-box',
+              position: 'relative',
             }}
           >
+            {name && (
+              <div
+                style={{
+                  position: 'absolute',
+                  ...nameplate.position,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              >
+                <span
+                  style={{
+                    transform: nameplate.rotation,
+                    transformOrigin: 'center center',
+                    whiteSpace: 'nowrap',
+                    color: '#fff',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    fontSize: 'clamp(11px, 2vmin, 17px)',
+                    letterSpacing: 1.2,
+                    textTransform: 'uppercase',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                  }}
+                >
+                  {name}
+                </span>
+              </div>
+            )}
             <div style={{
               width: '100%', height: '100%',
               background: 'var(--bg-board-cream)',

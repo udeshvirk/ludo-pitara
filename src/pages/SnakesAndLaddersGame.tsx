@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import { useSNLStore } from '../games/snl/store';
@@ -25,7 +24,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
-  const { players, currentPlayerIndex, gamePhase, winner, message, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
+  const { players, currentPlayerIndex, gamePhase, winner, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
 
   useEffect(() => {
     if (initialized.current) return;
@@ -55,41 +54,13 @@ const SnakesAndLaddersGame: React.FC = () => {
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
 
-  // Same sizing strategy as Ludo — compact pods + thin rails so the board
-  // can use the rest of the horizontal space on iPad landscape.
-  // Same grid-fill wide layout as Ludo (rails flex-fill, board sized off
-  // the vertical budget).
+  // Status pill is gone, so the board can claim the freed vertical
+  // space. Roughly: header ≈ 64px, top + bottom pod (~80px each) ≈
+  // 160px, gaps + safe area ≈ 24px → board can use up to ~calc(100vh -
+  // 250px) tall. Capped by 96vw on narrow phones.
   const boardSizeStyle = isWide
-    ? { width: 'min(calc(100vh - 140px), 960px)' }
-    : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
-
-  const statusPill = (
-    <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={message}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.2 }}
-          style={{
-            padding: '8px 18px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            fontFamily: 'var(--font-ui)',
-            fontWeight: 600,
-            fontSize: 13,
-            color: 'var(--ink)',
-            whiteSpace: 'nowrap',
-            maxWidth: '92%',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >{message}</motion.div>
-      </AnimatePresence>
-    </div>
-  );
+    ? { width: 'min(calc(100vh - 100px), 1000px)' }
+    : { width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -100,10 +71,10 @@ const SnakesAndLaddersGame: React.FC = () => {
           style={{
             flex: 1,
             display: 'grid',
-            gridTemplateColumns: 'minmax(150px, 1fr) auto minmax(150px, 1fr)',
+            gridTemplateColumns: 'minmax(140px, 1fr) auto minmax(140px, 1fr)',
             alignItems: 'center',
-            gap: 18,
-            padding: '0 12px 12px',
+            gap: 14,
+            padding: '0 10px 10px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',
@@ -112,29 +83,26 @@ const SnakesAndLaddersGame: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} compact />
+              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            {statusPill}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
               <SNLBoard />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} rotated={false} onRoll={rollDice} compact />
+              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 16 }}>
-          {statusPill}
-
-          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 8 }}>
+          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
             <SNLPlayerHalfRow
               slots={topSlotsForCount(playerCount)}
-              rotated
+              top
               onRoll={rollDice}
             />
           </div>
@@ -143,10 +111,10 @@ const SnakesAndLaddersGame: React.FC = () => {
             <SNLBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
             <SNLPlayerHalfRow
               slots={bottomSlotsForCount(playerCount)}
-              rotated={false}
+              top={false}
               onRoll={rollDice}
             />
           </div>
@@ -171,17 +139,19 @@ const SnakesAndLaddersGame: React.FC = () => {
   );
 };
 
-// Same head-to-head split as Ludo: with 2 players, 1 top / 1 bottom; with
-// 3, 1 top / 2 bottom; with 4, 2 top / 2 bottom.
+// Slot layout — pods sit at the four corners of the board.
+//   2 players  → diagonal: P0 bottom-left, P1 top-right
+//   3 players  → P0 bottom-left, P1 top-left, P2 top-right
+//   4 players  → all four corners (P0 BL, P1 BR, P2 TL, P3 TR)
 function topSlotsForCount(count: number): Array<number | null> {
-  if (count === 2) return [1, null];
-  if (count === 3) return [2, null];
+  if (count === 2) return [null, 1];
+  if (count === 3) return [1, 2];
   return [2, 3];
 }
 
 function bottomSlotsForCount(count: number): Array<number | null> {
   if (count === 2) return [0, null];
-  if (count === 3) return [0, 1];
+  if (count === 3) return [0, null];
   return [0, 1];
 }
 

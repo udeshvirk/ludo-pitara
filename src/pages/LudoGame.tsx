@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import { useLudoStore } from '../games/ludo/store';
@@ -26,7 +25,6 @@ const LudoGame: React.FC = () => {
     isRolling,
     gamePhase,
     winner,
-    message,
     rollDice,
     selectToken,
     initGame,
@@ -82,46 +80,11 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // On phones / tablet portrait we stack vertically (pods top + bottom).
-  // On wide landscape we put the board in the centre and pods on the
-  // left + right rails. The rails are kept narrow and the pods compact so
-  // the board can grow to fill the remaining horizontal space.
-  // Wide-mode layout uses CSS grid `1fr auto 1fr` so the side rails flex
-  // to absorb whatever horizontal space the board doesn't claim — no more
-  // wasted gutters on any iPad size. The board sizes itself off the
-  // available vertical budget (header ~70px + status ~50px + padding) and
-  // is capped so XL displays don't overrun.
+  // Status pill is gone, so the board can claim the freed vertical
+  // space. Header ≈ 64px + two pod rows ≈ 160px + padding ≈ 24px.
   const boardSizeStyle = isWide
-    ? { width: 'min(calc(100vh - 140px), 960px)' }
-    : { width: '100%', maxWidth: 'min(96vw, 72vh)' };
-
-  const statusPill = (
-    <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={message}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.2 }}
-          style={{
-            padding: '8px 18px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            fontFamily: 'var(--font-ui)',
-            fontWeight: 600,
-            fontSize: 13,
-            color: 'var(--ink)',
-            whiteSpace: 'nowrap',
-            maxWidth: '90%',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >{message}</motion.div>
-      </AnimatePresence>
-    </div>
-  );
+    ? { width: 'min(calc(100vh - 100px), 1000px)' }
+    : { width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -131,19 +94,14 @@ const LudoGame: React.FC = () => {
       />
 
       {isWide ? (
-        // Wide landscape: rails flex-fill, board sized at its content width.
-        // Grid itself caps at 1600px and centres on huge monitors so the
-        // rails don't grow to absurd widths.
         <div
           style={{
             flex: 1,
             display: 'grid',
-            gridTemplateColumns: 'minmax(150px, 1fr) auto minmax(150px, 1fr)',
+            gridTemplateColumns: 'minmax(140px, 1fr) auto minmax(140px, 1fr)',
             alignItems: 'center',
-            // Bumped past the board's 9px gold ring so rails have real
-            // breathing room.
-            gap: 18,
-            padding: '0 12px 12px',
+            gap: 14,
+            padding: '0 10px 10px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',
@@ -155,7 +113,6 @@ const LudoGame: React.FC = () => {
               <PlayerHalfRow
                 key={`l-${i}`}
                 slots={[idx]}
-                rotated={false}
                 onRoll={rollDice}
                 isRolling={isRolling}
                 diceValue={diceValue}
@@ -165,8 +122,7 @@ const LudoGame: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            {statusPill}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
               <LudoBoard />
             </div>
@@ -176,7 +132,6 @@ const LudoGame: React.FC = () => {
               <PlayerHalfRow
                 key={`r-${i}`}
                 slots={[idx]}
-                rotated={false}
                 onRoll={rollDice}
                 isRolling={isRolling}
                 diceValue={diceValue}
@@ -188,18 +143,10 @@ const LudoGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        // Stacked: status pill stays at the very top, then pods hug the
-        // board with a small visible gap. The board has a 9px triple
-        // gold-ring drop-shadow that paints into the gap, so the column
-        // gap needs to be large enough to leave a few pixels of clear
-        // space *outside* the ring.
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px 12px', overflow: 'hidden', gap: 16 }}>
-          {statusPill}
-
-          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 8 }}>
+          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
             <PlayerHalfRow
               slots={slots.top}
-              rotated
               onRoll={rollDice}
               isRolling={isRolling}
               diceValue={diceValue}
@@ -212,10 +159,9 @@ const LudoGame: React.FC = () => {
             <LudoBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(96vw, 72vh)' }}>
+          <div style={{ width: '100%', maxWidth: 'min(98vw, calc(100vh - 220px))' }}>
             <PlayerHalfRow
               slots={slots.bottom}
-              rotated={false}
               onRoll={rollDice}
               isRolling={isRolling}
               diceValue={diceValue}
@@ -246,26 +192,20 @@ const LudoGame: React.FC = () => {
   );
 };
 
-// Each colour has a fixed yard corner on the board. A player's pod has
-// to sit next to its colour's yard, regardless of which slot in the
-// players[] array that player landed in (PlayerSetup lets users cycle
-// colours, so the array order isn't predictable).
+// Each colour has a fixed yard corner on the board. A player's pod
+// must sit beside its yard so the avatar/die line up with the colored
+// 6×6 corner panel.
 //
-//   red    → top-left yard       → top row, screen-left
-//   green  → top-right yard      → top row, screen-right
-//   yellow → bottom-right yard   → bottom row, screen-right
-//   blue   → bottom-left yard    → bottom row, screen-left
+//   red    → top-left yard       → top row,    DOM[0] (screen-left)
+//   green  → top-right yard      → top row,    DOM[1] (screen-right)
+//   blue   → bottom-left yard    → bottom row, DOM[0] (screen-left)
+//   yellow → bottom-right yard   → bottom row, DOM[1] (screen-right)
 //
-// The top row uses `transform: rotate(180deg)`, which mirrors flex
-// children: DOM-index 0 ends up visually on the right, DOM-index 1 on
-// the left. So in the top row, red (which we want on screen-left) goes
-// at DOM-index 1, and green at DOM-index 0.
+// Rows have no rotation, so DOM order maps directly to screen order.
 //
-// The bottom row has no rotation, so DOM order matches screen order.
-//
-// Wide-landscape rails: left rail holds the colours whose yards live
-// on the board's left half (red top, blue bottom); right rail holds
-// green top + yellow bottom.
+// Wide-landscape rails: left rail holds colours with left-side yards
+// (red top, blue bottom); right rail holds the right-side ones
+// (green top, yellow bottom).
 
 function buildSlots(players: Player[]): {
   top: Array<number | null>;
@@ -284,9 +224,9 @@ function buildSlots(players: Player[]): {
   const yellowIdx = findIdx('yellow');
   const blueIdx = findIdx('blue');
 
-  if (redIdx >= 0) top[1] = redIdx;       // rotated: DOM[1] = screen-left
-  if (greenIdx >= 0) top[0] = greenIdx;   // rotated: DOM[0] = screen-right
-  if (blueIdx >= 0) bottom[0] = blueIdx;  // bottom: DOM[0] = screen-left
+  if (redIdx >= 0) top[0] = redIdx;
+  if (greenIdx >= 0) top[1] = greenIdx;
+  if (blueIdx >= 0) bottom[0] = blueIdx;
   if (yellowIdx >= 0) bottom[1] = yellowIdx;
 
   const leftRail: number[] = [];

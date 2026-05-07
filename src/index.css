@@ -52,8 +52,9 @@
     0 0 0 9px var(--gold-deep),
     0 18px 50px rgba(0, 0, 0, 0.55);
 
-  /* type — Fraunces for display, Inter for everything else (smoother render) */
-  --font-display: 'Fraunces', 'Playfair Display', Georgia, serif;
+  /* type — Fredoka for display (rounded, playful — fits the game feel),
+     Inter for UI / body (clean, highly legible at small sizes). */
+  --font-display: 'Fredoka', 'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 

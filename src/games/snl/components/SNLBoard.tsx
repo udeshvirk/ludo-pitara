@@ -72,51 +72,49 @@ const SnakeBody: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
         </linearGradient>
       </defs>
       {/* shadow */}
-      <g transform="translate(0 0.4)">
-        <path d={bodyPath} stroke="rgba(0,0,0,0.35)" strokeWidth={cellPct * 0.36} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <g transform="translate(0 0.3)">
+        <path d={bodyPath} stroke="rgba(0,0,0,0.32)" strokeWidth={cellPct * 0.24} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </g>
       {/* body */}
-      <path d={bodyPath} stroke={`url(#${id})`} strokeWidth={cellPct * 0.32} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={bodyPath} stroke={`url(#${id})`} strokeWidth={cellPct * 0.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {/* belly highlight */}
-      <path d={bodyPath} stroke="rgba(200,255,200,0.45)" strokeWidth={cellPct * 0.08} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={bodyPath} stroke="rgba(200,255,200,0.45)" strokeWidth={cellPct * 0.05} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {/* dashed scales */}
-      <path d={bodyPath} stroke="rgba(0,0,0,0.32)" strokeWidth={cellPct * 0.2} fill="none" strokeLinecap="butt" strokeDasharray="0.5 1.6" />
+      <path d={bodyPath} stroke="rgba(0,0,0,0.32)" strokeWidth={cellPct * 0.12} fill="none" strokeLinecap="butt" strokeDasharray="0.4 1.4" />
       {/* tail tip */}
-      <circle cx={b.x} cy={b.y} r={cellPct * 0.08} fill="#0f3018" />
+      <circle cx={b.x} cy={b.y} r={cellPct * 0.06} fill="#0f3018" />
     </g>
   );
 };
 
 const SnakeHead: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
   const { a, angDeg } = snakeGeometry(from, to, cellPct);
-  const headR = cellPct * 0.32;
+  const headR = cellPct * 0.22;
+  // Tongue is clipped at headR * 1.05 (just past the snout) so it
+  // never crosses the cell boundary.
+  const tongueTip = headR * 1.05;
   return (
     <g transform={`translate(${a.x} ${a.y}) rotate(${angDeg + 180})`}>
       <path
         d={`M 0 ${-headR * 0.8} Q ${headR * 1.1} ${-headR * 0.6}, ${headR * 1.2} 0 Q ${headR * 1.1} ${headR * 0.6}, 0 ${headR * 0.8} Q ${-headR * 0.3} 0, 0 ${-headR * 0.8} Z`}
         fill="var(--snake)"
         stroke="#0a1f10"
-        strokeWidth="0.25"
+        strokeWidth="0.18"
       />
       <ellipse cx={headR * 0.4} cy={-headR * 0.3} rx={headR * 0.45} ry={headR * 0.2} fill="rgba(180,255,180,0.4)" />
-      {/* fangs */}
-      <path d={`M ${headR * 0.95} ${-headR * 0.25} L ${headR * 1.15} ${headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
-      <path d={`M ${headR * 0.95} ${headR * 0.25} L ${headR * 1.15} ${-headR * 0.05} L ${headR * 0.85} 0 Z`} fill="#fff" />
-      {/* forked tongue */}
+      {/* forked tongue — kept short so it doesn't bleed into the next cell */}
       <path
-        d={`M ${headR * 1.1} 0 L ${headR * 1.9} ${-headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.9} ${headR * 0.15} M ${headR * 1.1} 0 L ${headR * 1.55} 0`}
+        d={`M ${headR * 0.7} 0 L ${tongueTip} ${-headR * 0.12} M ${headR * 0.7} 0 L ${tongueTip} ${headR * 0.12}`}
         stroke="#e63946"
-        strokeWidth="0.32"
+        strokeWidth="0.22"
         strokeLinecap="round"
         fill="none"
       />
       {/* eyes */}
-      <ellipse cx={headR * 0.15} cy={-headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
-      <ellipse cx={headR * 0.15} cy={headR * 0.45} rx={headR * 0.22} ry={headR * 0.18} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.12" />
-      <ellipse cx={headR * 0.18} cy={-headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
-      <ellipse cx={headR * 0.18} cy={headR * 0.45} rx={headR * 0.04} ry={headR * 0.14} fill="#000" />
-      <circle cx={headR * 0.95} cy={-headR * 0.12} r={headR * 0.04} fill="#000" />
-      <circle cx={headR * 0.95} cy={headR * 0.12} r={headR * 0.04} fill="#000" />
+      <ellipse cx={headR * 0.15} cy={-headR * 0.45} rx={headR * 0.2} ry={headR * 0.16} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.08" />
+      <ellipse cx={headR * 0.15} cy={headR * 0.45} rx={headR * 0.2} ry={headR * 0.16} fill="#ffd54a" stroke="#0a1f10" strokeWidth="0.08" />
+      <ellipse cx={headR * 0.18} cy={-headR * 0.45} rx={headR * 0.04} ry={headR * 0.12} fill="#000" />
+      <ellipse cx={headR * 0.18} cy={headR * 0.45} rx={headR * 0.04} ry={headR * 0.12} fill="#000" />
     </g>
   );
 };

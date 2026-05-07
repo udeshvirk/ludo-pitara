@@ -11,10 +11,12 @@ import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
 import { useLayoutMode } from '../lib/useLayout';
+import { recordGame } from '../lib/stats';
 
 const LudoGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
+  const recordedRef = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowGame = useFlow(s => s.game);
 
@@ -53,6 +55,19 @@ const LudoGame: React.FC = () => {
     initGame(playersToInit.length, names, playersToInit);
   }, [flowPlayers, flowGame, navigate, initGame, gamePhase, players.length]);
 
+  // Record the result the first time the game flips to 'finished'.
+  // recordedRef gates this per-game; it resets on Play Again because
+  // resetGame() puts gamePhase back to 'setup'.
+  useEffect(() => {
+    if (gamePhase !== 'finished') {
+      recordedRef.current = false;
+      return;
+    }
+    if (recordedRef.current || !winner) return;
+    recordedRef.current = true;
+    recordGame('ludo', players.map(p => p.name), winner.name);
+  }, [gamePhase, winner, players]);
+
   // CPU autoplay — when a CPU player's turn starts, auto-roll, then auto-pick
   // a token after the roll resolves.
   const currentPlayer = players[currentPlayerIndex];
@@ -84,7 +99,7 @@ const LudoGame: React.FC = () => {
   // space. Header ≈ 64px + two pod rows ≈ 160px + padding ≈ 24px.
   const boardSizeStyle = isWide
     ? { width: 'min(calc(100vh - 100px), 1000px)' }
-    : { width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' };
+    : { width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -144,7 +159,7 @@ const LudoGame: React.FC = () => {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 18 }}>
-          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' }}>
+          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' }}>
             <PlayerHalfRow
               slots={slots.top}
               onRoll={rollDice}
@@ -159,7 +174,7 @@ const LudoGame: React.FC = () => {
             <LudoBoard />
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 240px))' }}>
+          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' }}>
             <PlayerHalfRow
               slots={slots.bottom}
               onRoll={rollDice}

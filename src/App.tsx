@@ -7,6 +7,7 @@ import Mode from './pages/Mode';
 import PlayerSetup from './pages/PlayerSetup';
 import HowToPlay from './pages/HowToPlay';
 import SettingsPage from './pages/Settings';
+import StatsPage from './pages/Stats';
 import LudoGame from './pages/LudoGame';
 import SnakesAndLaddersGame from './pages/SnakesAndLaddersGame';
 
@@ -20,6 +21,7 @@ const App: React.FC = () => {
         <Route path="/players" element={<PlayerSetup />} />
         <Route path="/how-to-play" element={<HowToPlay />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/stats" element={<StatsPage />} />
         <Route path="/ludo" element={<LudoGame />} />
         <Route path="/snakes-and-ladders" element={<SnakesAndLaddersGame />} />
       </Routes>

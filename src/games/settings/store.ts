@@ -5,14 +5,12 @@ import { setHapticsEnabled } from '../../lib/haptics';
 
 export type AnimationSpeed = 'slow' | 'normal' | 'fast';
 export type BoardTheme = 'cream' | 'night' | 'royal';
-export type Language = 'en' | 'hi';
 
 export interface Settings {
   sound: boolean;
   haptics: boolean;
   animationSpeed: AnimationSpeed;
   boardTheme: BoardTheme;
-  language: Language;
 }
 
 const DEFAULTS: Settings = {
@@ -20,7 +18,6 @@ const DEFAULTS: Settings = {
   haptics: true,
   animationSpeed: 'normal',
   boardTheme: 'cream',
-  language: 'en',
 };
 
 interface SettingsStore extends Settings {
@@ -57,7 +54,6 @@ function extractSettings(s: SettingsStore): Settings {
     haptics: s.haptics,
     animationSpeed: s.animationSpeed,
     boardTheme: s.boardTheme,
-    language: s.language,
   };
 }
 

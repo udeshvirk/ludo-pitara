@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
-import { useSettings, type AnimationSpeed, type BoardTheme, type Language } from '../games/settings/store';
+import { useSettings, type AnimationSpeed, type BoardTheme } from '../games/settings/store';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,15 +39,6 @@ const SettingsPage: React.FC = () => {
             ]}
             value={settings.boardTheme}
             onChange={v => settings.set('boardTheme', v)}
-          />
-          <Picker<Language>
-            label="Language"
-            options={[
-              { value: 'en', label: 'English' },
-              { value: 'hi', label: 'हिंदी' },
-            ]}
-            value={settings.language}
-            onChange={v => settings.set('language', v)}
           />
         </Section>
 

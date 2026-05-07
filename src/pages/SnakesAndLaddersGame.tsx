@@ -8,6 +8,7 @@ import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
 import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
+import { recordGame } from '../lib/stats';
 
 // Map the player-colour key chosen on PlayerSetup ('red' | 'green' |
 // 'yellow' | 'blue') to the hex used by the SNL board. Falls back to
@@ -23,6 +24,7 @@ const toSnlHex = (c: string) => SNL_HEX_BY_NAME[c] ?? c;
 const SnakesAndLaddersGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
+  const recordedRef = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const { players, currentPlayerIndex, gamePhase, winner, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
 
@@ -40,6 +42,19 @@ const SnakesAndLaddersGame: React.FC = () => {
     initGame(flowPlayers.length, names, cpuFlags, colors);
   }, [flowPlayers, navigate, initGame, gamePhase, players.length]);
 
+  // Record the result the first time the game flips to 'finished'.
+  // Resets on Play Again because resetGame() restores gamePhase to
+  // 'setup', which clears the ref via the early return below.
+  useEffect(() => {
+    if (gamePhase !== 'finished') {
+      recordedRef.current = false;
+      return;
+    }
+    if (recordedRef.current || !winner) return;
+    recordedRef.current = true;
+    recordGame('snl', players.map(p => p.name), winner.name);
+  }, [gamePhase, winner, players]);
+
   // CPU autoplay — auto-roll for CPU players' turns.
   const currentPlayer = players[currentPlayerIndex];
   useEffect(() => {
@@ -54,25 +69,24 @@ const SnakesAndLaddersGame: React.FC = () => {
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
 
-  // Board sizing —
-  //   Phone (portrait viewport): board is mildly portrait at 5:6 width:
-  //     height. Cells become slightly tall, but not stretched.
-  //   Wide / iPad (landscape viewport): board is square, sized to use
-  //     the remaining horizontal space alongside the side rails. This
-  //     prevents the big empty gutters on iPad landscape that a
-  //     portrait board left behind.
-  // The grid + SVG overlay both stretch via preserveAspectRatio="none",
-  // so changing the wrapper's aspect ratio is enough.
+  // Board sizing
+  //   Wide / iPad landscape: hold the 5:6 aspect; sized off the
+  //     vertical budget or width-after-rails, capped at 1000 px tall.
+  //   Phone / iPad portrait: prefer to FILL the viewport width and
+  //     let the board be slightly less tall (rather than shrinking
+  //     the width to keep 5:6). On phones, width-from-aspect is
+  //     usually the binding constraint so the board stays 5:6 by
+  //     coincidence; on iPad portrait, the vertical budget is
+  //     binding, so the board becomes nearly square and uses the
+  //     full screen width.
   const boardWrapperStyle = isWide
     ? {
-        aspectRatio: '1',
-        // Whichever is the binding constraint: vertical budget, or
-        // horizontal space minus two side rails (~150px each + gaps).
-        height: 'min(calc(100vh - 100px), calc(100vw - 320px), 1000px)',
+        aspectRatio: '5 / 6',
+        height: 'min(calc(100vh - 100px), calc((100vw - 360px) * 6 / 5), 1000px)',
       }
     : {
-        aspectRatio: '5 / 6',
-        height: 'min(calc(100vh - 240px), calc((100vw - 26px) * 6 / 5))',
+        width: 'calc(100vw - 26px)',
+        height: 'min(calc(100vh - 320px), calc((100vw - 26px) * 6 / 5))',
       };
 
   return (

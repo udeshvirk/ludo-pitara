@@ -6,6 +6,8 @@ import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
 import Avatar from '../components/ui/Avatar';
 import { useFlow, type FlowPlayer } from '../games/flow/store';
+import { useLudoStore } from '../games/ludo/store';
+import { useSNLStore } from '../games/snl/store';
 import { playTap } from '../lib/sound';
 import { haptics } from '../lib/haptics';
 import { getRecentNames, rememberNames } from '../lib/recentNames';
@@ -133,6 +135,16 @@ const PlayerSetup: React.FC = () => {
       color: colors[i],
       isCPU: isCPU[i],
     }));
+    // Reset the destination game store BEFORE navigating, otherwise
+    // any persisted in-progress game would resume and the new player
+    // setup would be ignored. The destination page's bootstrap
+    // useEffect then sees gamePhase='setup' and re-inits with the
+    // fresh flowPlayers.
+    if (game === 'ludo') {
+      useLudoStore.getState().resetGame();
+    } else {
+      useSNLStore.getState().resetGame();
+    }
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };

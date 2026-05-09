@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
@@ -11,6 +11,7 @@ import { useSNLStore } from '../games/snl/store';
 import { playTap } from '../lib/sound';
 import { haptics } from '../lib/haptics';
 import { getRecentNames, rememberNames } from '../lib/recentNames';
+import { getLastSetup, saveLastSetup } from '../lib/lastSetup';
 
 type LudoColor = 'red' | 'green' | 'yellow' | 'blue';
 const LUDO_COLORS: LudoColor[] = ['red', 'green', 'yellow', 'blue'];
@@ -45,12 +46,22 @@ const PlayerSetup: React.FC = () => {
     else if (!mode) navigate('/mode');
   }, [game, mode, navigate]);
 
-  const [count, setCount] = useState(2);
+  // PWA quality-of-life: pre-fill from the user's most recent setup so
+  // they don't have to retype the same players every session. Captured
+  // once on mount; later state writes don't affect this snapshot.
+  const lastSetupRef = useRef(getLastSetup());
+  const last = lastSetupRef.current;
+
+  const [count, setCount] = useState(() => last?.count ?? 2);
   // `customNames[i]` is whatever the user typed (or an empty string for
   // "use the auto default"). The displayed name falls back to
   // autoDefaultName when customNames[i] is empty, so toggling Human/AI
   // updates the name unless the user typed something explicit.
-  const [customNames, setCustomNames] = useState<string[]>(['', '', '', '']);
+  const [customNames, setCustomNames] = useState<string[]>(() =>
+    last
+      ? [...last.names, '', '', '', ''].slice(0, 4)
+      : ['', '', '', ''],
+  );
   // Default colour order so the slot-0 player (the human in cpu mode)
   // lands on a bottom yard, and slot-1 lands diagonally on a top yard
   // — so a 1-human + 1-bot Ludo game seats them across the board:
@@ -58,18 +69,31 @@ const PlayerSetup: React.FC = () => {
   //   slot 1 → green  (top-right yard)     [bot   in 1H+1B]
   //   slot 2 → yellow (bottom-right yard)
   //   slot 3 → red    (top-left yard)
-  const [colors, setColors] = useState<LudoColor[]>(['blue', 'green', 'yellow', 'red']);
+  const defaultColors: LudoColor[] = ['blue', 'green', 'yellow', 'red'];
+  const [colors, setColors] = useState<LudoColor[]>(() => {
+    if (!last) return defaultColors;
+    // Pad/truncate to 4. Any missing slots fall back to whatever default
+    // colour wasn't already used by the restored setup.
+    const used = new Set(last.colors);
+    const padding = defaultColors.filter(c => !used.has(c));
+    return [...last.colors, ...padding].slice(0, 4) as LudoColor[];
+  });
   // Default isCPU mirrors the mode chosen on the previous screen but is
   // fully editable here (so a Solo player can have 2 humans + 2 AI, etc).
-  const [isCPU, setIsCPU] = useState<boolean[]>(() =>
-    mode === 'cpu' ? [false, true, true, true] : [false, false, false, false]
-  );
+  const [isCPU, setIsCPU] = useState<boolean[]>(() => {
+    if (last) return [...last.isCPU, false, false, false, false].slice(0, 4);
+    return mode === 'cpu' ? [false, true, true, true] : [false, false, false, false];
+  });
   const [activeNameIndex, setActiveNameIndex] = useState<number | null>(null);
   const [recents, setRecents] = useState<string[]>(() => getRecentNames());
 
   // Re-seed defaults if the player flips the Mode page selection after
-  // the first time we landed here.
+  // the first time we landed here. Skip the first effect-run so we don't
+  // clobber the restored isCPU snapshot from lastSetup.
+  const initialModeRef = useRef(mode);
   useEffect(() => {
+    if (mode === initialModeRef.current) return;
+    initialModeRef.current = mode;
     setIsCPU(mode === 'cpu' ? [false, true, true, true] : [false, false, false, false]);
   }, [mode]);
 
@@ -129,6 +153,15 @@ const PlayerSetup: React.FC = () => {
       rememberNames(typed);
       setRecents(getRecentNames());
     }
+
+    // Persist the whole setup so the next session pre-fills with these
+    // exact players (count, names, colours, human/CPU per slot).
+    saveLastSetup({
+      count,
+      names: finalNames,
+      colors: colors.slice(0, count),
+      isCPU: isCPU.slice(0, count),
+    });
 
     const built: FlowPlayer[] = finalNames.map((name, i) => ({
       name,

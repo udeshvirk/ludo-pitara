@@ -11,12 +11,11 @@ import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
 import { useLayoutMode } from '../lib/useLayout';
-import { recordGame } from '../lib/stats';
+import { useRecordOnFinish } from '../lib/useRecordOnFinish';
 
 const LudoGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
-  const recordedRef = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowGame = useFlow(s => s.game);
 
@@ -55,18 +54,12 @@ const LudoGame: React.FC = () => {
     initGame(playersToInit.length, names, playersToInit);
   }, [flowPlayers, flowGame, navigate, initGame, gamePhase, players.length]);
 
-  // Record the result the first time the game flips to 'finished'.
-  // recordedRef gates this per-game; it resets on Play Again because
-  // resetGame() puts gamePhase back to 'setup'.
-  useEffect(() => {
-    if (gamePhase !== 'finished') {
-      recordedRef.current = false;
-      return;
-    }
-    if (recordedRef.current || !winner) return;
-    recordedRef.current = true;
-    recordGame('ludo', players.map(p => p.name), winner.name);
-  }, [gamePhase, winner, players]);
+  useRecordOnFinish(
+    'ludo',
+    gamePhase === 'finished',
+    React.useMemo(() => players.map(p => p.name), [players]),
+    winner?.name,
+  );
 
   // CPU autoplay — when a CPU player's turn starts, auto-roll, then auto-pick
   // a token after the roll resolves.
@@ -138,16 +131,7 @@ const LudoGame: React.FC = () => {
         >
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.leftRail.map((idx, i) => (
-              <PlayerHalfRow
-                key={`l-${i}`}
-                slots={[idx]}
-                onRoll={rollDice}
-                isRolling={isRolling}
-                diceValue={diceValue}
-                activeIndex={currentPlayerIndex}
-                gamePhase={gamePhase}
-                compact
-              />
+              <PlayerHalfRow key={`l-${i}`} slots={[idx]} compact />
             ))}
           </div>
           <div style={boardStyle}>
@@ -155,40 +139,17 @@ const LudoGame: React.FC = () => {
           </div>
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.rightRail.map((idx, i) => (
-              <PlayerHalfRow
-                key={`r-${i}`}
-                slots={[idx]}
-                onRoll={rollDice}
-                isRolling={isRolling}
-                diceValue={diceValue}
-                activeIndex={currentPlayerIndex}
-                gamePhase={gamePhase}
-                compact
-              />
+              <PlayerHalfRow key={`r-${i}`} slots={[idx]} compact />
             ))}
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
-          <PlayerHalfRow
-            slots={slots.top}
-            onRoll={rollDice}
-            isRolling={isRolling}
-            diceValue={diceValue}
-            activeIndex={currentPlayerIndex}
-            gamePhase={gamePhase}
-          />
+          <PlayerHalfRow slots={slots.top} />
           <div style={boardStyle}>
             <LudoBoard />
           </div>
-          <PlayerHalfRow
-            slots={slots.bottom}
-            onRoll={rollDice}
-            isRolling={isRolling}
-            diceValue={diceValue}
-            activeIndex={currentPlayerIndex}
-            gamePhase={gamePhase}
-          />
+          <PlayerHalfRow slots={slots.bottom} />
         </div>
       )}
 

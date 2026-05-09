@@ -2,7 +2,8 @@ import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BOARD_SIZE, rowColToCell, cellToRowCol } from '../constants';
 import { useSNLStore } from '../store';
-import Coin from '../../../components/ui/Coin';
+import Coin, { stackPlacement } from '../../../components/ui/Coin';
+import StackCountBadge from '../../../components/ui/StackCountBadge';
 
 const cellCenterPct = (cellNum: number) => {
   const { row, col } = cellToRowCol(cellNum);
@@ -292,61 +293,26 @@ const SNLBoard: React.FC = () => {
               )}
               <div style={{ position: 'absolute', inset: 0, zIndex: 4 }}>
                 {players.map((p, idx) => {
-                  const stackSize = players.length;
-                  const sizePercent = stackSize > 2 ? 42 : stackSize > 1 ? 50 : 70;
-                  const offsets =
-                    stackSize <= 1
-                      ? [{ x: 0, y: 0 }]
-                      : stackSize === 2
-                      ? [{ x: -14, y: -14 }, { x: 14, y: 14 }]
-                      : stackSize === 3
-                      ? [{ x: -14, y: -14 }, { x: 14, y: -14 }, { x: 0, y: 14 }]
-                      : [{ x: -14, y: -14 }, { x: 14, y: -14 }, { x: -14, y: 14 }, { x: 14, y: 14 }];
-                  const offset = offsets[idx] || { x: 0, y: 0 };
+                  const { sizePercent, leftPercent, topPercent } = stackPlacement(players.length, idx);
                   return (
                     <motion.div
                       key={p.id}
                       layoutId={`snl-token-${p.id}`}
                       style={{
                         position: 'absolute',
-                        left: '50%',
-                        top: '50%',
+                        left: `${leftPercent}%`,
+                        top: `${topPercent}%`,
                         width: `${sizePercent}%`,
                         height: `${sizePercent}%`,
-                        transform: `translate(calc(-50% + ${offset.x}%), calc(-50% + ${offset.y}%))`,
                         zIndex: 10 + idx,
                       }}
-                      transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                      transition={{ type: 'spring', stiffness: 350, damping: 32, mass: 0.6 }}
                     >
                       <Coin color={p.color} />
                     </motion.div>
                   );
                 })}
-                {players.length >= 2 && (
-                  <span
-                    aria-hidden
-                    style={{
-                      position: 'absolute',
-                      top: 1,
-                      right: 1,
-                      minWidth: 12,
-                      height: 12,
-                      padding: '0 3px',
-                      borderRadius: 6,
-                      background: 'rgba(0,0,0,0.78)',
-                      color: '#fff',
-                      fontSize: 8,
-                      fontWeight: 700,
-                      lineHeight: '12px',
-                      textAlign: 'center',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                      zIndex: 30,
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                  >
-                    {players.length}
-                  </span>
-                )}
+                {players.length >= 2 && <StackCountBadge n={players.length} />}
               </div>
             </div>
           );

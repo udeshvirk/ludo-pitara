@@ -8,7 +8,7 @@ import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
 import WinnerModal from '../components/WinnerModal';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
-import { recordGame } from '../lib/stats';
+import { useRecordOnFinish } from '../lib/useRecordOnFinish';
 
 // Map the player-colour key chosen on PlayerSetup ('red' | 'green' |
 // 'yellow' | 'blue') to the hex used by the SNL board. Falls back to
@@ -24,7 +24,6 @@ const toSnlHex = (c: string) => SNL_HEX_BY_NAME[c] ?? c;
 const SnakesAndLaddersGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
-  const recordedRef = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const { players, currentPlayerIndex, gamePhase, winner, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
 
@@ -42,18 +41,12 @@ const SnakesAndLaddersGame: React.FC = () => {
     initGame(flowPlayers.length, names, cpuFlags, colors);
   }, [flowPlayers, navigate, initGame, gamePhase, players.length]);
 
-  // Record the result the first time the game flips to 'finished'.
-  // Resets on Play Again because resetGame() restores gamePhase to
-  // 'setup', which clears the ref via the early return below.
-  useEffect(() => {
-    if (gamePhase !== 'finished') {
-      recordedRef.current = false;
-      return;
-    }
-    if (recordedRef.current || !winner) return;
-    recordedRef.current = true;
-    recordGame('snl', players.map(p => p.name), winner.name);
-  }, [gamePhase, winner, players]);
+  useRecordOnFinish(
+    'snl',
+    gamePhase === 'finished',
+    React.useMemo(() => players.map(p => p.name), [players]),
+    winner?.name,
+  );
 
   // CPU autoplay — auto-roll for CPU players' turns.
   const currentPlayer = players[currentPlayerIndex];
@@ -120,7 +113,7 @@ const SnakesAndLaddersGame: React.FC = () => {
         >
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
+              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} compact />
             ))}
           </div>
           <div style={boardStyle}>
@@ -128,25 +121,17 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
+              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} compact />
             ))}
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
-          <SNLPlayerHalfRow
-            slots={topSlotsForCount(playerCount)}
-            top
-            onRoll={rollDice}
-          />
+          <SNLPlayerHalfRow slots={topSlotsForCount(playerCount)} top />
           <div style={boardStyle}>
             <SNLBoard />
           </div>
-          <SNLPlayerHalfRow
-            slots={bottomSlotsForCount(playerCount)}
-            top={false}
-            onRoll={rollDice}
-          />
+          <SNLPlayerHalfRow slots={bottomSlotsForCount(playerCount)} top={false} />
         </div>
       )}
 

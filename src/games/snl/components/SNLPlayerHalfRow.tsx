@@ -1,30 +1,23 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useSNLStore } from '../store';
-import Avatar from '../../../components/ui/Avatar';
-import Die from '../../../components/ui/Die';
+import Pod from '../../../components/ui/Pod';
 
 interface SNLPlayerHalfRowProps {
   slots: Array<number | null>; // index into players[] or null for an empty slot
   // `top` = the row sits at the top of the screen, so the name caption
   // is rendered ABOVE the pod (and the pod hugs the board edge).
   top: boolean;
-  onRoll: () => void;
   compact?: boolean;
 }
 
-const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll, compact = false }) => {
+const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact = false }) => {
   const players = useSNLStore(s => s.players);
   const currentPlayerIndex = useSNLStore(s => s.currentPlayerIndex);
   const diceValue = useSNLStore(s => s.diceValue);
   const isRolling = useSNLStore(s => s.isRolling);
   const gamePhase = useSNLStore(s => s.gamePhase);
+  const rollDice = useSNLStore(s => s.rollDice);
 
-  const avatarSize = compact ? 28 : 36;
-  const dieSize = compact ? 30 : 40;
-  const podGap = compact ? 6 : 8;
-  const podPadding = compact ? '5px 7px' : '6px 9px';
-  const radius = compact ? 12 : 14;
   const nameSize = compact ? 11 : 12;
 
   // Single-slot rows (side rails) center the pod; two-slot rows pin the
@@ -47,17 +40,13 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
         const player = players[idx];
         const isActive = idx === currentPlayerIndex && gamePhase !== 'finished';
         // Wrapper is content-sized within the grid cell so the visible
-        // card region matches the pod itself — a width: 100% wrapper
-        // made each player's footprint stretch to the full half-screen
-        // even when only the pod is rendered. justifySelf positions the
-        // (compact) wrapper at the cell's outer edge instead.
+        // card region matches the pod itself. justifySelf positions the
+        // (compact) wrapper at the cell's outer edge.
         const justify: React.CSSProperties['justifySelf'] =
           isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
         return (
-          <motion.div
+          <div
             key={slot}
-            animate={{ scale: isActive ? 1.04 : 1 }}
-            transition={{ type: 'spring', stiffness: 220, damping: 22 }}
             style={{
               maxWidth: '100%',
               minWidth: 0,
@@ -68,31 +57,16 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
               justifySelf: justify,
             }}
           >
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: podGap,
-                padding: podPadding,
-                borderRadius: radius,
-                background: isActive
-                  ? `linear-gradient(135deg, ${player.color}26, transparent 70%)`
-                  : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${isActive ? player.color : 'rgba(255,255,255,0.10)'}`,
-                boxShadow: isActive ? `0 0 16px ${player.color}66` : 'none',
-                flexShrink: 0,
-              }}
-            >
-              <Avatar color={player.color} label={player.name[0]} size={avatarSize} ring active={isActive} />
-              <Die
-                value={isActive && diceValue ? diceValue : 1}
-                size={dieSize}
-                active={isActive}
-                rolling={isActive && isRolling}
-                onClick={isActive && gamePhase === 'rolling' ? onRoll : undefined}
-                disabled={!isActive || gamePhase !== 'rolling'}
-              />
-            </div>
+            <Pod
+              color={player.color}
+              label={player.name[0]}
+              isActive={isActive}
+              isRolling={isRolling}
+              diceValue={diceValue}
+              onRoll={rollDice}
+              canRoll={gamePhase === 'rolling'}
+              compact={compact}
+            />
             <div
               style={{
                 maxWidth: '100%',
@@ -109,7 +83,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
             >
               {player.name}
             </div>
-          </motion.div>
+          </div>
         );
       })}
     </div>

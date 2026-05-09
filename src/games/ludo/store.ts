@@ -153,7 +153,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
           selectableTokenIds: [],
         });
-      }, 1500);
+      }, 700);
       return;
     }
 
@@ -179,7 +179,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
           selectableTokenIds: [],
         });
-      }, 1500);
+      }, 700);
       return;
     }
 
@@ -219,163 +219,142 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     const token = currentPlayer.tokens[tokenIndex];
     const diceValue = state.diceValue;
+    const fromYard = token.state === 'yard';
+    const startIndex = token.pathIndex;
+    const finalIndex = fromYard ? 0 : Math.min(startIndex + diceValue, 56);
+    const finalTokenState: Token['state'] = !fromYard && finalIndex >= 56 ? 'home' : 'active';
+    // Yard exits are a single jump (yard → start cell). Path moves walk
+    // one cell at a time so framer-motion's layoutId doesn't tween in a
+    // straight diagonal across path corners.
+    const stepsCount = fromYard ? 1 : finalIndex - startIndex;
 
-    let newPathIndex: number;
-    let newState: Token['state'];
-    let capturedMessage = '';
+    // Block roll/select while the token walks.
+    set({ gamePhase: 'moving', selectableTokenIds: [] });
+    playMove();
 
-    if (token.state === 'yard') {
-      // Move out of yard to starting position
-      newPathIndex = 0;
-      newState = 'active';
-    } else {
-      newPathIndex = token.pathIndex + diceValue;
-      newState = newPathIndex >= 56 ? 'home' : 'active';
-      if (newPathIndex > 56) newPathIndex = 56;
-    }
+    let step = 0;
+    const advance = () => {
+      step++;
+      const intermediateIndex = fromYard ? 0 : startIndex + step;
+      set(s => {
+        const ps = [...s.players];
+        const me = { ...ps[state.currentPlayerIndex], tokens: [...ps[state.currentPlayerIndex].tokens] };
+        me.tokens[tokenIndex] = { ...me.tokens[tokenIndex], pathIndex: intermediateIndex, state: 'active' };
+        ps[state.currentPlayerIndex] = me;
+        return { players: ps };
+      });
+      if (step < stepsCount) {
+        setTimeout(advance, 90);
+      } else {
+        // Brief settle pause so the last cell visibly registers before
+        // capture/turn-end side effects fire.
+        setTimeout(completeMove, 120);
+      }
+    };
+    advance();
 
-    if (newState === 'home') playHomeArrival();
-    else playMove();
+    function completeMove() {
+      const s = get();
+      const players = s.players.map(p => ({ ...p, tokens: [...p.tokens] }));
+      const me = players[state.currentPlayerIndex];
 
-    // Check for capture (only on main path, not home stretch, not safe squares)
-    let gotCapture = false;
-    if (newState === 'active' && newPathIndex < 51 && !isSafePosition(currentPlayer.color, newPathIndex)) {
-      const newBoardPos = getBoardPosition(currentPlayer.color, newPathIndex);
+      // Promote the token to its final state (home if applicable).
+      me.tokens[tokenIndex] = {
+        ...me.tokens[tokenIndex],
+        pathIndex: finalIndex,
+        state: finalTokenState,
+      };
+      if (finalTokenState === 'home') playHomeArrival();
 
-      // Check all other players' tokens
-      const updatedPlayers = [...state.players];
-      for (let pi = 0; pi < updatedPlayers.length; pi++) {
-        if (updatedPlayers[pi].color === currentPlayer.color) continue;
-
-        const otherPlayer = { ...updatedPlayers[pi], tokens: [...updatedPlayers[pi].tokens] };
-        for (let ti = 0; ti < otherPlayer.tokens.length; ti++) {
-          const otherToken = otherPlayer.tokens[ti];
-          if (otherToken.state !== 'active') continue;
-
-          const otherPos = getBoardPosition(otherToken.color, otherToken.pathIndex);
-          if (otherPos.row === newBoardPos.row && otherPos.col === newBoardPos.col) {
-            // Capture!
-            otherPlayer.tokens[ti] = {
-              ...otherToken,
-              state: 'yard',
-              pathIndex: -1,
-            };
-            gotCapture = true;
-            capturedMessage = ` — Captured ${otherPlayer.name}'s token!`;
+      // Capture detection — only on main path, not home stretch, not safe squares.
+      let gotCapture = false;
+      let capturedMessage = '';
+      if (finalTokenState === 'active' && finalIndex < 51 && !isSafePosition(currentPlayer.color, finalIndex)) {
+        const newBoardPos = getBoardPosition(currentPlayer.color, finalIndex);
+        for (let pi = 0; pi < players.length; pi++) {
+          if (players[pi].color === currentPlayer.color) continue;
+          for (let ti = 0; ti < players[pi].tokens.length; ti++) {
+            const otherToken = players[pi].tokens[ti];
+            if (otherToken.state !== 'active') continue;
+            const otherPos = getBoardPosition(otherToken.color, otherToken.pathIndex);
+            if (otherPos.row === newBoardPos.row && otherPos.col === newBoardPos.col) {
+              players[pi].tokens[ti] = { ...otherToken, state: 'yard', pathIndex: -1 };
+              gotCapture = true;
+              capturedMessage = ` — Captured ${players[pi].name}'s token!`;
+            }
           }
         }
-        updatedPlayers[pi] = otherPlayer;
+        if (gotCapture) {
+          playCapture();
+          haptics.capture();
+        }
       }
 
-      if (gotCapture) {
-        playCapture();
-        haptics.capture();
-        // Update players with capture applied, then continue
-        const myPlayer = { ...updatedPlayers[state.currentPlayerIndex], tokens: [...updatedPlayers[state.currentPlayerIndex].tokens] };
-        myPlayer.tokens[tokenIndex] = { ...token, pathIndex: newPathIndex, state: newState };
+      // Finish check
+      if (me.tokens.every(t => t.state === 'home')) {
+        const finishCount = players.filter(p => p.finishOrder > 0).length;
+        me.finishOrder = finishCount + 1;
+      }
 
-        // Check if player finished
-        if (myPlayer.tokens.every(t => t.state === 'home')) {
-          const finishCount = updatedPlayers.filter(p => p.finishOrder > 0).length;
-          myPlayer.finishOrder = finishCount + 1;
-        }
-        updatedPlayers[state.currentPlayerIndex] = myPlayer;
+      const gotSix = diceValue === 6;
+      const reachedHome = finalTokenState === 'home';
+      const bonusTurn = gotSix || reachedHome || gotCapture;
 
-        // Bonus turn for capture
+      // Game over
+      if (me.finishOrder && players.filter(p => p.finishOrder === 0).length <= 1) {
+        playWin();
+        haptics.win();
         set({
-          players: updatedPlayers,
+          players,
+          gamePhase: 'finished',
+          winner: me,
+          message: `🏆 ${me.name} wins!`,
+          selectableTokenIds: [],
+        });
+        return;
+      }
+
+      if (me.finishOrder) {
+        const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, players);
+        set({
+          players,
+          currentPlayerIndex: nextPlayerIndex,
           gamePhase: 'rolling',
           diceValue: null,
           hasRolled: false,
-          message: `${currentPlayer.name} captured!${myPlayer.finishOrder ? ' 🏆 Finished!' : ' Bonus turn!'}`,
+          consecutiveSixes: 0,
+          message: `${me.name} finished! 🏆 ${players[nextPlayerIndex].name}'s turn!`,
           selectableTokenIds: [],
         });
-
-        if (myPlayer.finishOrder && updatedPlayers.filter(p => p.finishOrder === 0).length <= 1) {
-          set({ gamePhase: 'finished', winner: myPlayer });
-        }
         return;
       }
-    }
 
-    // Apply the move
-    const updatedPlayers = [...state.players];
-    const myPlayer = { ...updatedPlayers[state.currentPlayerIndex], tokens: [...updatedPlayers[state.currentPlayerIndex].tokens] };
-    myPlayer.tokens[tokenIndex] = { ...token, pathIndex: newPathIndex, state: newState };
-
-    // Check if player finished all tokens
-    if (myPlayer.tokens.every(t => t.state === 'home')) {
-      const finishCount = updatedPlayers.filter(p => p.finishOrder > 0).length;
-      myPlayer.finishOrder = finishCount + 1;
-    }
-    updatedPlayers[state.currentPlayerIndex] = myPlayer;
-
-    // Determine next turn
-    const gotSix = diceValue === 6;
-    const reachedHome = newState === 'home';
-    const bonusTurn = gotSix || reachedHome || gotCapture;
-
-    if (myPlayer.finishOrder && updatedPlayers.filter(p => p.finishOrder === 0).length <= 1) {
-      // Game over
-      playWin();
-      haptics.win();
-      set({
-        players: updatedPlayers,
-        gamePhase: 'finished',
-        winner: myPlayer,
-        message: `🏆 ${myPlayer.name} wins!`,
-        selectableTokenIds: [],
-      });
-      return;
-    }
-
-    if (myPlayer.finishOrder) {
-      // This player finished but game continues
-      const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, updatedPlayers);
-      set({
-        players: updatedPlayers,
-        currentPlayerIndex: nextPlayerIndex,
-        gamePhase: 'rolling',
-        diceValue: null,
-        hasRolled: false,
-        consecutiveSixes: 0,
-        message: `${myPlayer.name} finished! 🏆 ${updatedPlayers[nextPlayerIndex].name}'s turn!`,
-        selectableTokenIds: [],
-      });
-      return;
-    }
-
-    if (bonusTurn) {
-      set({
-        players: updatedPlayers,
-        gamePhase: 'rolling',
-        diceValue: null,
-        hasRolled: false,
-        // Only count six-streak if it WAS a six. Captures and reach-home
-        // grant a bonus turn but should reset the six-streak counter.
-        consecutiveSixes: gotSix ? state.consecutiveSixes : 0,
-        message: `${currentPlayer.name}${capturedMessage || (reachedHome ? ' reached home!' : ' rolled 6!')} Bonus turn!`,
-        selectableTokenIds: [],
-      });
-    } else {
-      const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, updatedPlayers);
-      const nextPlayer = updatedPlayers[nextPlayerIndex];
-
-      set({
-        players: updatedPlayers,
-        gamePhase: 'rolling',
-        selectableTokenIds: [],
-      });
-
-      setTimeout(() => {
+      if (bonusTurn) {
         set({
-          currentPlayerIndex: nextPlayerIndex,
+          players,
+          gamePhase: 'rolling',
           diceValue: null,
           hasRolled: false,
-          consecutiveSixes: 0,
-          message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
+          // Only count six-streak if it WAS a six. Captures and reach-home
+          // grant a bonus turn but should reset the six-streak counter.
+          consecutiveSixes: gotSix ? state.consecutiveSixes : 0,
+          message: `${currentPlayer.name}${capturedMessage || (reachedHome ? ' reached home!' : ' rolled 6!')} Bonus turn!`,
+          selectableTokenIds: [],
         });
-      }, 600);
+      } else {
+        const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, players);
+        const nextPlayer = players[nextPlayerIndex];
+        set({ players, gamePhase: 'rolling', selectableTokenIds: [] });
+        setTimeout(() => {
+          set({
+            currentPlayerIndex: nextPlayerIndex,
+            diceValue: null,
+            hasRolled: false,
+            consecutiveSixes: 0,
+            message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
+          });
+        }, 600);
+      }
     }
   },
 

@@ -95,56 +95,93 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       let newPos = currentPos === 0 ? 1 : currentPos + diceValue;
       let actionMessage = '';
 
-      // Overshoot 100 — stay put (need exact roll).
+      // Overshoot 100 — stay put (need exact roll). Skip the walk and
+      // pass the turn.
       if (newPos > 100) {
         newPos = currentPos;
         actionMessage = `Need exact roll · stayed at ${currentPos}`;
-      }
-
-      // Reached exactly 100 — win.
-      if (newPos === 100) {
-        const updatedPlayers = [...state.players];
-        updatedPlayers[state.currentPlayerIndex] = { ...currentPlayer, position: 100 };
-        playWin();
-        haptics.win();
-        setTimeout(() => {
-          set({
-            players: updatedPlayers,
-            gamePhase: 'finished',
-            winner: updatedPlayers[state.currentPlayerIndex],
-            message: `🏆 ${currentPlayer.name} wins!`,
-            lastAction: `${currentPlayer.name} reached 100!`,
-          });
-        }, 600);
+        set({ lastAction: actionMessage, message: `${currentPlayer.name}: ${actionMessage}` });
+        setTimeout(advanceTurn, 600);
         return;
       }
 
-      // Snake or ladder at the landing cell? Look up against the per-game
-      // layout instead of any module-level constant.
+      // Snake/ladder lookup at the landing cell. Resolved AFTER the walk.
       const lookup = buildLayoutLookup(state.layout);
       const specialTarget = lookup[newPos];
       let finalPos = newPos;
+      let entityType: 'snake' | 'ladder' | null = null;
       if (specialTarget !== undefined) {
         const entity = state.layout.find(s => s.from === newPos);
         if (entity) {
-          actionMessage = entity.type === 'ladder'
-            ? `🪜 Climbed ${newPos} → ${specialTarget}`
-            : `🐍 Snake! ${newPos} → ${specialTarget}`;
           finalPos = specialTarget;
+          entityType = entity.type;
         }
       }
 
       playMove();
-      if (!actionMessage) {
-        actionMessage = currentPos === 0 ? 'Entered the board' : `Moved to ${newPos}`;
+
+      // Walk one cell at a time so the token follows the board's S-curve
+      // instead of cutting diagonally from currentPos to newPos. The
+      // snake/ladder hop after the landing is left as a single jump on
+      // purpose — that's a teleport, not a walk.
+      const stepCount = newPos - currentPos;
+      let step = 0;
+      const walk = () => {
+        step++;
+        const intermediatePos = currentPos + step;
+        const ps = [...get().players];
+        ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: intermediatePos };
+        set({ players: ps });
+        if (step < stepCount) {
+          setTimeout(walk, 90);
+        } else {
+          setTimeout(afterWalk, 180);
+        }
+      };
+
+      function afterWalk() {
+        // Reached newPos — win check first.
+        if (newPos === 100) {
+          playWin();
+          haptics.win();
+          const ps = [...get().players];
+          ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: 100 };
+          set({
+            players: ps,
+            gamePhase: 'finished',
+            winner: ps[state.currentPlayerIndex],
+            message: `🏆 ${currentPlayer.name} wins!`,
+            lastAction: `${currentPlayer.name} reached 100!`,
+          });
+          return;
+        }
+
+        if (!actionMessage) {
+          actionMessage = currentPos === 0 ? 'Entered the board' : `Moved to ${newPos}`;
+        }
+        if (entityType) {
+          actionMessage = entityType === 'ladder'
+            ? `🪜 Climbed ${newPos} → ${finalPos}`
+            : `🐍 Snake! ${newPos} → ${finalPos}`;
+        }
+        set({ lastAction: actionMessage, message: `${currentPlayer.name}: ${actionMessage}` });
+
+        if (entityType) {
+          if (entityType === 'ladder') playLadder(); else { playSnake(); haptics.capture(); }
+          setTimeout(() => {
+            const ps = [...get().players];
+            ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: finalPos };
+            set({ players: ps });
+            setTimeout(advanceTurn, 500);
+          }, 500);
+        } else {
+          setTimeout(advanceTurn, 600);
+        }
       }
 
-      const updatedPlayers = [...state.players];
-      updatedPlayers[state.currentPlayerIndex] = { ...currentPlayer, position: newPos };
-
-      // Pass turn to the next player. Per house rule there is NO bonus turn
-      // on a 6 in Snakes & Ladders.
-      const advanceTurn = () => {
+      // Pass turn to the next player. Per house rule there is NO bonus
+      // turn on a 6 in Snakes & Ladders.
+      function advanceTurn() {
         const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
         set({
           currentPlayerIndex: nextIdx,
@@ -153,28 +190,9 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
           gamePhase: 'rolling',
           message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
         });
-      };
+      }
 
-      setTimeout(() => {
-        set({
-          players: [...updatedPlayers],
-          lastAction: actionMessage,
-          message: `${currentPlayer.name}: ${actionMessage}`,
-        });
-
-        if (finalPos !== newPos) {
-          const isLadder = finalPos > newPos;
-          if (isLadder) playLadder(); else { playSnake(); haptics.capture(); }
-          setTimeout(() => {
-            const players2 = [...get().players];
-            players2[state.currentPlayerIndex] = { ...players2[state.currentPlayerIndex], position: finalPos };
-            set({ players: players2 });
-            setTimeout(advanceTurn, 400);
-          }, 600);
-        } else {
-          setTimeout(advanceTurn, 800);
-        }
-      }, 500);
+      walk();
     }, 800);
   },
 

@@ -75,22 +75,25 @@ const SnakesAndLaddersGame: React.FC = () => {
   // active pod's glow isn't clipped, 13 bottom), two pods ≈ 70 each,
   // two gaps of 18 → ~268 vertical chrome on phone/tablet.
   const isPhone = layoutMode === 'phone';
+  // `--vw100` / `--vh100` are aliases for `100vw` / `100vh` that swap
+  // when the app is force-rotated to portrait on a touch device — see
+  // LudoGame for the same pattern and `index.css` for the wiring.
   const boardStyle: React.CSSProperties = isWide
     ? {
         // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
-        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
+        width: 'min(calc(var(--vw100) - 414px), calc(var(--vh100) - 90px))',
         aspectRatio: '1',
         position: 'relative',
       }
     : isPhone
       ? {
-          width: 'min(calc(100vw - 26px), calc((100vh - 268px) * 5 / 6))',
+          width: 'min(calc(var(--vw100) - 26px), calc((var(--vh100) - 268px) * 5 / 6))',
           aspectRatio: '5 / 6',
           alignSelf: 'center',
           position: 'relative',
         }
       : {
-          width: 'min(calc(100vw - 26px), calc(100vh - 268px))',
+          width: 'min(calc(var(--vw100) - 26px), calc(var(--vh100) - 268px))',
           aspectRatio: '1',
           alignSelf: 'center',
           position: 'relative',

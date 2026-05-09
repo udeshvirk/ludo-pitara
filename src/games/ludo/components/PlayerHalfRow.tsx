@@ -61,6 +61,7 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               onRoll={rollDice}
               canRoll={gamePhase === 'rolling'}
               compact={compact}
+              isBot={!!player.isCPU}
               arrowSide={podArrowSide}
             />
           </div>

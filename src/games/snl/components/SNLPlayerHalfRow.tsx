@@ -72,6 +72,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
               onRoll={rollDice}
               canRoll={gamePhase === 'rolling'}
               compact={compact}
+              isBot={!!player.isCPU}
               arrowSide={podArrowSide}
             />
             <div

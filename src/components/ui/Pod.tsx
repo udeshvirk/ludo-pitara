@@ -12,6 +12,7 @@ interface PodProps {
   onRoll?: () => void; // dice tap handler when canRoll
   canRoll: boolean;    // whether the dice should be tappable
   compact?: boolean;   // smaller variant for side rails
+  isBot?: boolean;     // CPU slots show a robot glyph instead of the initial
   // Which side of the card the turn-arrow sits on. The chevron always
   // points back at the card, so this also flips its direction. Cards
   // pinned to the right edge of the screen want their arrow on the
@@ -91,6 +92,7 @@ const Pod: React.FC<PodProps> = ({
   onRoll,
   canRoll,
   compact = false,
+  isBot = false,
   arrowSide = 'right',
 }) => {
   const s = compact ? SIZES.compact : SIZES.full;
@@ -112,7 +114,7 @@ const Pod: React.FC<PodProps> = ({
         flexShrink: 0,
       }}
     >
-      <Avatar color={color} label={label} size={s.avatar} ring active={isActive} />
+      <Avatar color={color} label={label} size={s.avatar} ring active={isActive} isBot={isBot} />
       <Die
         value={isActive && diceValue ? diceValue : 1}
         size={s.die}

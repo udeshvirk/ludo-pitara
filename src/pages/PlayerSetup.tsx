@@ -241,7 +241,7 @@ const PlayerSetup: React.FC = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring />
+                  <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring isBot={cpu} />
                   <input
                     type="text"
                     value={customNames[i] || ''}
@@ -282,7 +282,7 @@ const PlayerSetup: React.FC = () => {
                       flexShrink: 0,
                     }}
                   >
-                    {cpu ? 'Bot' : 'You'}
+                    {cpu ? 'Bot' : 'Human'}
                   </button>
                 </div>
 

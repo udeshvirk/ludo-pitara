@@ -13,6 +13,12 @@ interface SNLStore extends SNLGameState {
   resetGame: () => void;
 }
 
+// See LudoStore for rationale — every roll/walk/reset bumps this so any
+// in-flight setTimeout chain can short-circuit if it's been superseded.
+let actionGen = 0;
+const startAction = () => ++actionGen;
+const stillCurrent = (myGen: number) => myGen === actionGen;
+
 const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
 const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0 && persistedSNL.layout?.length
   ? { ...persistedSNL, isRolling: false }
@@ -60,6 +66,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     const state = get();
     if (state.hasRolled || state.gamePhase !== 'rolling') return;
 
+    const myGen = startAction();
     const diceValue = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = state.players[state.currentPlayerIndex];
     const currentPos = currentPlayer.position;
@@ -74,11 +81,13 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     const needsEntry = currentPos === 0 && diceValue !== 1;
 
     setTimeout(() => {
+      if (!stillCurrent(myGen)) return;
       set({ isRolling: false, gamePhase: 'moving' });
 
       if (needsEntry) {
         const nextIdx = (state.currentPlayerIndex + 1) % state.players.length;
         setTimeout(() => {
+          if (!stillCurrent(myGen)) return;
           set({
             currentPlayerIndex: nextIdx,
             diceValue: null,
@@ -101,7 +110,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         newPos = currentPos;
         actionMessage = `Need exact roll · stayed at ${currentPos}`;
         set({ lastAction: actionMessage, message: `${currentPlayer.name}: ${actionMessage}` });
-        setTimeout(advanceTurn, 600);
+        setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 600);
         return;
       }
 
@@ -127,6 +136,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       const stepCount = newPos - currentPos;
       let step = 0;
       const walk = () => {
+        if (!stillCurrent(myGen)) return;
         step++;
         const intermediatePos = currentPos + step;
         const ps = [...get().players];
@@ -135,7 +145,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         if (step < stepCount) {
           setTimeout(walk, 90);
         } else {
-          setTimeout(afterWalk, 180);
+          setTimeout(() => { if (stillCurrent(myGen)) afterWalk(); }, 180);
         }
       };
 
@@ -169,13 +179,14 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         if (entityType) {
           if (entityType === 'ladder') playLadder(); else { playSnake(); haptics.capture(); }
           setTimeout(() => {
+            if (!stillCurrent(myGen)) return;
             const ps = [...get().players];
             ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: finalPos };
             set({ players: ps });
-            setTimeout(advanceTurn, 500);
+            setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 500);
           }, 500);
         } else {
-          setTimeout(advanceTurn, 600);
+          setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 600);
         }
       }
 
@@ -197,6 +208,9 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
   },
 
   resetGame: () => {
+    // Invalidate any in-flight roll/walk timeouts so they can't write
+    // stale state on top of the fresh setup.
+    startAction();
     clear(STORAGE_KEYS.SNL);
     set({
       players: [],

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
+import SoundToggle from '../components/ui/SoundToggle';
 import { useLudoStore } from '../games/ludo/store';
 import { PLAYER_COLORS } from '../games/ludo/constants';
 import LudoBoard from '../games/ludo/components/LudoBoard';
@@ -112,6 +113,7 @@ const LudoGame: React.FC = () => {
       <Header
         title="Ludo"
         onBack={() => { resetGame(); navigate('/select'); }}
+        action={<SoundToggle />}
       />
 
       {isWide ? (

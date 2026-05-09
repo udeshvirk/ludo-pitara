@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
+import SoundToggle from '../components/ui/SoundToggle';
 import { useSNLStore } from '../games/snl/store';
 import SNLBoard from '../games/snl/components/SNLBoard';
 import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
@@ -94,7 +95,7 @@ const SnakesAndLaddersGame: React.FC = () => {
 
   return (
     <PhoneShell decorative={false} fluid>
-      <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} />
+      <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} action={<SoundToggle />} />
 
       {isWide ? (
         <div

@@ -69,6 +69,15 @@ function findNextActivePlayer(currentIndex: number, players: Player[]): number {
   return next;
 }
 
+// Generation counter — every rollDice / selectToken / resetGame bumps
+// it. Any in-flight setTimeout chain captures the gen at start and
+// bails if a reset (or a fresh action) supersedes it. Without this,
+// a Reset mid-walk would race with the pending timeouts and clobber
+// the freshly-cleared state.
+let actionGen = 0;
+const startAction = () => ++actionGen;
+const stillCurrent = (myGen: number) => myGen === actionGen;
+
 // Pull a saved game (or fall back to a fresh setup state) on store creation.
 const persisted = load<LudoGameState | null>(STORAGE_KEYS.LUDO, null);
 const initialState: LudoGameState = persisted && persisted.players.length > 0
@@ -119,6 +128,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     const state = get();
     if (state.hasRolled || state.gamePhase !== 'rolling') return;
 
+    const myGen = startAction();
     const diceValue = Math.floor(Math.random() * 6) + 1;
     const currentPlayer = state.players[state.currentPlayerIndex];
 
@@ -130,6 +140,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
     setTimeout(() => {
+      if (!stillCurrent(myGen)) return;
       // Re-fetch state in case it changed
       const currentState = get();
       
@@ -145,6 +156,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         });
 
       setTimeout(() => {
+        if (!stillCurrent(myGen)) return;
         set({
           currentPlayerIndex: nextPlayerIndex,
           diceValue: null,
@@ -171,6 +183,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         });
 
       setTimeout(() => {
+        if (!stillCurrent(myGen)) return;
         set({
           currentPlayerIndex: nextPlayerIndex,
           diceValue: null,
@@ -194,6 +207,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
       // Auto-move after a brief delay
       setTimeout(() => {
+        if (!stillCurrent(myGen)) return;
         get().selectToken(selectableTokens[0]);
       }, 400);
       return;
@@ -228,12 +242,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     // straight diagonal across path corners.
     const stepsCount = fromYard ? 1 : finalIndex - startIndex;
 
+    const myGen = startAction();
+
     // Block roll/select while the token walks.
     set({ gamePhase: 'moving', selectableTokenIds: [] });
     playMove();
 
     let step = 0;
     const advance = () => {
+      if (!stillCurrent(myGen)) return;
       step++;
       const intermediateIndex = fromYard ? 0 : startIndex + step;
       set(s => {
@@ -248,7 +265,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       } else {
         // Brief settle pause so the last cell visibly registers before
         // capture/turn-end side effects fire.
-        setTimeout(completeMove, 120);
+        setTimeout(() => { if (stillCurrent(myGen)) completeMove(); }, 120);
       }
     };
     advance();
@@ -346,6 +363,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         const nextPlayer = players[nextPlayerIndex];
         set({ players, gamePhase: 'rolling', selectableTokenIds: [] });
         setTimeout(() => {
+          if (!stillCurrent(myGen)) return;
           set({
             currentPlayerIndex: nextPlayerIndex,
             diceValue: null,
@@ -359,6 +377,9 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   },
 
   resetGame: () => {
+    // Invalidate any in-flight walk/dice timeouts so they can't write
+    // stale state on top of the fresh setup we're about to install.
+    startAction();
     clear(STORAGE_KEYS.LUDO);
     set({
       players: [],

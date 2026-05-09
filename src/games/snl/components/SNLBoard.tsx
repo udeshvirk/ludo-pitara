@@ -241,6 +241,7 @@ const SNLBoard: React.FC = () => {
   const players = useSNLStore(s => s.players);
   const layout = useSNLStore(s => s.layout);
   const sliding = useSNLStore(s => s.sliding);
+  const walkingPlayerId = useSNLStore(s => s.walkingPlayerId);
   const cellPct = 100 / BOARD_SIZE;
 
   const snakes = useMemo(() => layout.filter(s => s.type === 'snake'), [layout]);
@@ -252,16 +253,20 @@ const SNLBoard: React.FC = () => {
 
   const slidingPlayer = sliding ? players.find(p => p.id === sliding.playerId) ?? null : null;
 
+  // Each occupant carries an `isMoving` flag so the cell render can
+  // split the walker (renders solo on top) from the residents (lay out
+  // off their own count, never re-flow as a walker passes over).
+  type CellOccupant = { player: typeof players[number]; isMoving: boolean };
   const playerPositions = useMemo(() => {
-    const map = new Map<number, typeof players>();
+    const map = new Map<number, CellOccupant[]>();
     for (const p of players) {
       if (sliding && p.id === sliding.playerId) continue;
       if (p.position === 0) continue;
       if (!map.has(p.position)) map.set(p.position, []);
-      map.get(p.position)!.push(p);
+      map.get(p.position)!.push({ player: p, isMoving: p.id === walkingPlayerId });
     }
     return map;
-  }, [players, sliding]);
+  }, [players, sliding, walkingPlayerId]);
 
   return (
     <motion.div
@@ -297,7 +302,9 @@ const SNLBoard: React.FC = () => {
           const isSnakeHead = snakeHeads.has(cellNum);
           const isSnakeTail = snakeTails.has(cellNum);
           const baseBg = isDark ? 'var(--bg-board)' : 'var(--bg-board-cream)';
-          const players = playerPositions.get(cellNum) || [];
+          const occupants = playerPositions.get(cellNum) || [];
+          const residents = occupants.filter(o => !o.isMoving);
+          const walkers = occupants.filter(o => o.isMoving);
 
           // Number-badge styling per the user's spec — the cell number
           // itself sits inside a coloured circle when the cell is a
@@ -371,8 +378,10 @@ const SNLBoard: React.FC = () => {
                 </span>
               )}
               <div style={{ position: 'absolute', inset: 0, zIndex: 4 }}>
-                {players.map((p, idx) => {
-                  const { sizePercent, leftPercent, topPercent } = stackPlacement(players.length, idx, SNL_TOKEN_SCALE);
+                {/* Residents: stack-layout off their own count so a
+                    pass-through walker never resizes them. */}
+                {residents.map(({ player: p }, idx) => {
+                  const { sizePercent, leftPercent, topPercent } = stackPlacement(residents.length, idx, SNL_TOKEN_SCALE);
                   return (
                     <motion.div
                       key={p.id}
@@ -385,16 +394,39 @@ const SNLBoard: React.FC = () => {
                         height: `${sizePercent}%`,
                         zIndex: 10 + idx,
                       }}
-                      // Linear tween, deliberately longer than the
-                      // 90 ms per-cell step — see Token.tsx in Ludo
-                      // for the stop-and-go reasoning.
-                      transition={{ type: 'tween', ease: 'linear', duration: 0.16 }}
+                      // Linear tween matching the 90 ms per-cell step —
+                      // see Token.tsx in Ludo for why a longer tween
+                      // visually skipped corner cells.
+                      transition={{ type: 'tween', ease: 'linear', duration: 0.09 }}
                     >
                       <Coin color={p.color} />
                     </motion.div>
                   );
                 })}
-                {players.length >= 2 && <StackCountBadge n={players.length} />}
+                {/* Walker (if any) renders solo on top — keeps the
+                    full coin size and lets the layoutId animate it
+                    smoothly between cells without re-flowing residents. */}
+                {walkers.map(({ player: p }) => {
+                  const { sizePercent, leftPercent, topPercent } = stackPlacement(1, 0, SNL_TOKEN_SCALE);
+                  return (
+                    <motion.div
+                      key={p.id}
+                      layoutId={`snl-token-${p.id}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${leftPercent}%`,
+                        top: `${topPercent}%`,
+                        width: `${sizePercent}%`,
+                        height: `${sizePercent}%`,
+                        zIndex: 30,
+                      }}
+                      transition={{ type: 'tween', ease: 'linear', duration: 0.09 }}
+                    >
+                      <Coin color={p.color} />
+                    </motion.div>
+                  );
+                })}
+                {residents.length >= 2 && <StackCountBadge n={residents.length} />}
               </div>
             </div>
           );

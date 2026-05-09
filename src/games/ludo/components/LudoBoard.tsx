@@ -108,6 +108,7 @@ const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
 const LudoBoard: React.FC = () => {
   const { players, selectableTokenIds } = useLudoStore();
   const flyingCaptures = useLudoStore(s => s.flyingCaptures);
+  const movingTokenId = useLudoStore(s => s.movingTokenId);
   const flyingIds = useMemo(() => new Set(flyingCaptures.map(f => f.tokenId)), [flyingCaptures]);
 
   const coloredCells = useMemo(() => getColoredCells(), []);
@@ -128,20 +129,27 @@ const LudoBoard: React.FC = () => {
   }, []);
 
   // Path tokens — yard and home tokens are rendered separately so the
-  // path map stays focused on actual on-track positions.
+  // path map stays focused on actual on-track positions. The walking
+  // token (if any) carries `isMoving: true` so the cell render can
+  // exclude it from the stack count and render it solo on top.
   const tokenPositions = useMemo(() => {
-    const map = new Map<string, { tokenId: string; color: PlayerColor; yardIndex: number }[]>();
+    const map = new Map<string, { tokenId: string; color: PlayerColor; yardIndex: number; isMoving: boolean }[]>();
     for (const player of players) {
       player.tokens.forEach((token, idx) => {
         if (token.state !== 'active') return;
         const pos = getBoardPosition(token.color, token.pathIndex);
         const key = `${pos.row},${pos.col}`;
         if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push({ tokenId: token.id, color: token.color, yardIndex: idx });
+        map.get(key)!.push({
+          tokenId: token.id,
+          color: token.color,
+          yardIndex: idx,
+          isMoving: token.id === movingTokenId,
+        });
       });
     }
     return map;
-  }, [players]);
+  }, [players, movingTokenId]);
 
   // Yard tokens, indexed by ORIGINAL token slot (0..3). Pinning to the
   // original index means a token leaving the yard doesn't cause the
@@ -282,17 +290,34 @@ const LudoBoard: React.FC = () => {
               </span>
             )}
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-              {tokens.map((t, ti) => (
+              {/* Static residents lay out via stackPlacement off their
+                  own count — the walking token never re-flows them. */}
+              {tokens.filter(t => !t.isMoving).map((t, ti, arr) => (
                 <LudoToken
                   key={t.tokenId}
                   tokenId={t.tokenId}
                   color={t.color}
                   isSelectable={selectableTokenIds.includes(t.tokenId)}
                   stackIndex={ti}
-                  stackSize={tokens.length}
+                  stackSize={arr.length}
                 />
               ))}
-              {tokens.length >= 2 && <StackCountBadge n={tokens.length} />}
+              {/* Walking token (if any) renders solo on top of the
+                  cell so a pass-through doesn't briefly resize the
+                  resident tokens or flash the count badge. */}
+              {tokens.filter(t => t.isMoving).map(t => (
+                <LudoToken
+                  key={t.tokenId}
+                  tokenId={t.tokenId}
+                  color={t.color}
+                  isSelectable={selectableTokenIds.includes(t.tokenId)}
+                  stackIndex={0}
+                  stackSize={1}
+                />
+              ))}
+              {tokens.filter(t => !t.isMoving).length >= 2 && (
+                <StackCountBadge n={tokens.filter(t => !t.isMoving).length} />
+              )}
             </div>
           </div>
         );

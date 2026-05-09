@@ -33,6 +33,8 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       ...persistedSNL,
       isRolling: false,
       sliding: null,
+      // Walk state is purely transient — never resume mid-walk.
+      walkingPlayerId: null,
       // Older saves predate options — fill so reads are always safe.
       options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
     }
@@ -48,6 +50,7 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       lastAction: '',
       layout: [],
       sliding: null,
+      walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
     };
 
@@ -75,6 +78,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       lastAction: '',
       // Fresh randomized board every game.
       layout: generateSNLLayout(),
+      walkingPlayerId: null,
       options: options ?? DEFAULT_SNL_OPTIONS,
     });
   },
@@ -151,6 +155,11 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
 
       playMove();
 
+      // Tag the walking player so the board can render it solo on
+      // intermediate cells — pass-throughs don't re-stack residents
+      // or flash the count badge.
+      set({ walkingPlayerId: currentPlayer.id });
+
       // Walk one cell at a time so the token follows the board's S-curve
       // instead of cutting diagonally from currentPos to newPos. The
       // snake/ladder hop after the landing is left as a single jump on
@@ -172,6 +181,11 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       };
 
       function afterWalk() {
+        // Walk has settled — clear the walking flag so the player rejoins
+        // the cell-stack rendering. Subsequent set() calls preserve this
+        // (Zustand merges).
+        set({ walkingPlayerId: null });
+
         // Reached newPos — win check first.
         if (newPos === 100) {
           playWin();
@@ -253,6 +267,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       lastAction: '',
       layout: [],
       sliding: null,
+      walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
     });
   },
@@ -275,8 +290,9 @@ useSNLStore.subscribe((state) => {
     message: state.message,
     lastAction: state.lastAction,
     layout: state.layout,
-    // Sliding is purely transient — never persist a half-finished slide.
+    // Sliding / walking are purely transient — never persist mid-flight.
     sliding: null,
+    walkingPlayerId: null,
     options: state.options,
   };
   save(STORAGE_KEYS.SNL, snapshot);

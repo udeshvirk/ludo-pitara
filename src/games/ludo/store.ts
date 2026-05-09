@@ -98,6 +98,8 @@ const initialState: LudoGameState = persisted && persisted.players.length > 0
       ...persisted,
       isRolling: false,
       flyingCaptures: [],
+      // Walk state is purely transient — never resume mid-walk.
+      movingTokenId: null,
       // Older saves predate options — fill so reads are always safe.
       options: persisted.options ?? DEFAULT_LUDO_OPTIONS,
     }
@@ -113,6 +115,7 @@ const initialState: LudoGameState = persisted && persisted.players.length > 0
       message: 'Set up your game!',
       selectableTokenIds: [],
       flyingCaptures: [],
+      movingTokenId: null,
       options: DEFAULT_LUDO_OPTIONS,
     };
 
@@ -143,6 +146,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       winner: null,
       message: `${players[0].name}'s turn — Tap the dice to roll!`,
       selectableTokenIds: [],
+      movingTokenId: null,
       options: opts,
     });
   },
@@ -267,8 +271,10 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     const myGen = startAction();
 
-    // Block roll/select while the token walks.
-    set({ gamePhase: 'moving', selectableTokenIds: [] });
+    // Block roll/select while the token walks. Tag the walking token so
+    // the board can render it solo on intermediate cells (no re-stack
+    // of resident tokens, no count-badge flash).
+    set({ gamePhase: 'moving', selectableTokenIds: [], movingTokenId: tokenId });
     playMove();
 
     let step = 0;
@@ -305,6 +311,12 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         state: finalTokenState,
       };
       if (finalTokenState === 'home') playHomeArrival();
+
+      // The walk has settled — clear the "moving" flag so the next
+      // render treats this token as part of its cell's stack again.
+      // Subsequent set() calls in this completeMove preserve this
+      // (Zustand merges).
+      set({ movingTokenId: null });
 
       // Capture detection — only on main path, not home stretch, not safe squares.
       let gotCapture = false;
@@ -454,6 +466,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       message: 'Set up your game!',
       selectableTokenIds: [],
       flyingCaptures: [],
+      movingTokenId: null,
       options: DEFAULT_LUDO_OPTIONS,
     });
   },
@@ -477,8 +490,9 @@ useLudoStore.subscribe((state) => {
     winner: state.winner,
     message: state.message,
     selectableTokenIds: state.selectableTokenIds,
-    // Transient — never persist a half-finished arc.
+    // Transient — never persist a half-finished arc / mid-walk token.
     flyingCaptures: [],
+    movingTokenId: null,
     options: state.options,
   };
   save(STORAGE_KEYS.LUDO, snapshot);

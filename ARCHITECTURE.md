@@ -264,16 +264,13 @@ inline coin in SNLBoard) has a `layoutId` like `${tokenId}` or
 `snl-token-${id}`. framer-motion sees the layoutId at a new position
 on each render and tweens between them.
 
-Step interval: **90 ms**. Token transition: linear tween, **160 ms** —
-intentionally longer than the step. At duration === step the tween
-landed at each cell before the next setState rendered, and the small
-re-render gap read as a per-cell "stop-and-go." With duration > step
-the previous tween is always still in-flight when the next step fires,
-so framer-motion just re-aims the running animation at the new target,
-producing continuous motion with no per-cell pause. The settle after
-the final step is absorbed by the store's 120 ms post-walk delay.
-Defined on the `<motion.button>` (Ludo) and `<motion.div>` (SNL) as the
-`transition` prop.
+Step interval: **90 ms**. Token transition: linear tween, **90 ms** —
+matched to the step. A longer tween was tried (160 ms) and felt
+smoother in isolation, but the running tween was re-aimed before
+reaching its target, so the path's corner cells were visually skipped
+on a multi-cell walk. Matching duration to the step interval keeps
+every cell visible. Defined on the `<motion.button>` (Ludo) and
+`<motion.div>` (SNL) as the `transition` prop.
 
 ### 2. Snake/ladder slide (SNL)
 

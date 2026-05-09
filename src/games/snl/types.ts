@@ -35,6 +35,10 @@ export interface SNLGameState {
   // Per-game randomized snakes & ladders. Empty before the first initGame.
   layout: SnakeOrLadder[];
   sliding: Slide | null;
+  // Player whose token is currently walking cell-by-cell. Pass-through
+  // cells exclude them from their stack count (no re-stack flash on
+  // resident tokens, no count-badge flicker as the walker passes over).
+  walkingPlayerId: string | null;
   options: SNLGameOptions;
 }
 

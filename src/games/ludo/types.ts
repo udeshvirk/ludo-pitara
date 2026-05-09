@@ -47,6 +47,10 @@ export interface LudoGameState {
   message: string;
   selectableTokenIds: string[];
   flyingCaptures: CaptureFly[];
+  // Token currently walking cell-by-cell. Pass-through cells exclude
+  // it from their stack count so a 1-token cell doesn't briefly resize
+  // to fit two and flash the count badge as the walker passes over.
+  movingTokenId: string | null;
   options: LudoGameOptions;
 }
 

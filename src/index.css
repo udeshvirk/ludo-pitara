@@ -63,14 +63,6 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
-
-  /* Visual viewport vars — layout code uses these instead of raw 100vw
-     / 100vh so we can transparently swap them when the app is force-
-     rotated to portrait on a touch device in landscape (see the
-     `:root.force-portrait` block in this file). In the default case
-     these are just aliases. */
-  --vw100: 100vw;
-  --vh100: 100vh;
 }
 
 /* ===== Base ===== */
@@ -107,30 +99,6 @@ body {
   align-items: stretch;
   justify-content: center;
   background: var(--bg-deep);
-}
-
-/* Force-portrait: applied by <OrientationLock> when the device is
-   coarse-pointer + landscape. We rotate #root 90° so the user sees a
-   portrait-oriented layout regardless of physical orientation, and
-   swap --vw100 / --vh100 so the board's `min(calc(--vw100 - X), …)`
-   math resolves against the *visible* width (which is the device's
-   100vh after the rotation) instead of the device's 100vw.
-
-   Layout-relevant viewport units inside the app should ALWAYS use
-   var(--vw100) / var(--vh100) — direct 100vw / 100vh would break
-   here. (Tiny constants like `2vmin` are fine — vmin is symmetric.) */
-:root.force-portrait {
-  --vw100: 100vh;
-  --vh100: 100vw;
-}
-:root.force-portrait #root {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 100vh;
-  height: 100vw;
-  transform: translate(-50%, -50%) rotate(90deg);
-  transform-origin: center center;
 }
 
 /* Frame.

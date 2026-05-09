@@ -98,18 +98,14 @@ const LudoGame: React.FC = () => {
   // glow isn't clipped, 13 bottom), two pods ~52 each (Ludo pods carry
   // no name caption), two gaps of 18 → ~236 vertical.
   // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
-  // `--vw100` / `--vh100` are aliases for `100vw` / `100vh`, except in
-  // force-portrait mode where they swap (see index.css). Using the
-  // vars keeps the board sized against the *visible* viewport even
-  // when the app is CSS-rotated to portrait on a touch device.
   const boardStyle: React.CSSProperties = isWide
     ? {
-        width: 'min(calc(var(--vw100) - 414px), calc(var(--vh100) - 90px))',
+        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
         aspectRatio: '1',
         position: 'relative',
       }
     : {
-        width: 'min(calc(var(--vw100) - 26px), calc(var(--vh100) - 236px))',
+        width: 'min(calc(100vw - 26px), calc(100vh - 236px))',
         aspectRatio: '1',
         alignSelf: 'center',
         position: 'relative',

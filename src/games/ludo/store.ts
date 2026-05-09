@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   LudoGameState,
+  LudoGameOptions,
   Player,
   Token,
   PlayerColor,
@@ -17,13 +18,23 @@ import { save, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface LudoStore extends LudoGameState {
-  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[]) => void;
+  initGame: (
+    playerCount: number,
+    playerNames?: string[],
+    customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[],
+    options?: LudoGameOptions,
+  ) => void;
   rollDice: () => void;
   selectToken: (tokenId: string) => void;
   resetGame: () => void;
 }
 
-function createPlayer(name: string, color: PlayerColor, isCPU = false): Player {
+const DEFAULT_LUDO_OPTIONS: LudoGameOptions = {
+  oneTokenOut: false,
+  firstHomeWins: false,
+};
+
+function createPlayer(name: string, color: PlayerColor, isCPU = false, oneTokenOut = false): Player {
   return {
     id: color,
     name,
@@ -31,8 +42,9 @@ function createPlayer(name: string, color: PlayerColor, isCPU = false): Player {
     tokens: Array.from({ length: 4 }, (_, i) => ({
       id: `${color}-${i}`,
       color,
-      state: 'yard' as const,
-      pathIndex: -1,
+      // With "one token out" the first slot starts already on the path.
+      state: (oneTokenOut && i === 0 ? 'active' : 'yard') as Token['state'],
+      pathIndex: oneTokenOut && i === 0 ? 0 : -1,
     })),
     finishOrder: 0,
     isCPU,
@@ -82,7 +94,13 @@ const stillCurrent = (myGen: number) => myGen === actionGen;
 // Pull a saved game (or fall back to a fresh setup state) on store creation.
 const persisted = load<LudoGameState | null>(STORAGE_KEYS.LUDO, null);
 const initialState: LudoGameState = persisted && persisted.players.length > 0
-  ? { ...persisted, isRolling: false, flyingCaptures: [] }
+  ? {
+      ...persisted,
+      isRolling: false,
+      flyingCaptures: [],
+      // Older saves predate options — fill so reads are always safe.
+      options: persisted.options ?? DEFAULT_LUDO_OPTIONS,
+    }
   : {
       players: [],
       currentPlayerIndex: 0,
@@ -95,20 +113,22 @@ const initialState: LudoGameState = persisted && persisted.players.length > 0
       message: 'Set up your game!',
       selectableTokenIds: [],
       flyingCaptures: [],
+      options: DEFAULT_LUDO_OPTIONS,
     };
 
 export const useLudoStore = create<LudoStore>((set, get) => ({
   ...initialState,
 
-  initGame: (playerCount: number, playerNames?: string[], customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[]) => {
+  initGame: (playerCount, playerNames, customPlayers, options) => {
+    const opts = options ?? DEFAULT_LUDO_OPTIONS;
     let players: Player[] = [];
     if (customPlayers) {
-      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.isCPU));
+      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.isCPU, opts.oneTokenOut));
     } else {
       const colors = PLAYER_ORDER[playerCount];
       players = colors.map((color, i) => {
         const name = playerNames?.[i] || `Player ${i + 1}`;
-        return createPlayer(name, color);
+        return createPlayer(name, color, false, opts.oneTokenOut);
       });
     }
 
@@ -123,6 +143,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       winner: null,
       message: `${players[0].name}'s turn — Tap the dice to roll!`,
       selectableTokenIds: [],
+      options: opts,
     });
   },
 
@@ -330,6 +351,23 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         }
       }
 
+      // "First home wins" short-circuit — the moment a player lands a
+      // single token in home, they win. Skip the all-four-tokens check
+      // and the next-active-player rotation entirely.
+      if (s.options.firstHomeWins && finalTokenState === 'home') {
+        me.finishOrder = 1;
+        playWin();
+        haptics.win();
+        set({
+          players,
+          gamePhase: 'finished',
+          winner: me,
+          message: `🏆 ${me.name} wins!`,
+          selectableTokenIds: [],
+        });
+        return;
+      }
+
       // Finish check
       if (me.tokens.every(t => t.state === 'home')) {
         const finishCount = players.filter(p => p.finishOrder > 0).length;
@@ -416,6 +454,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       message: 'Set up your game!',
       selectableTokenIds: [],
       flyingCaptures: [],
+      options: DEFAULT_LUDO_OPTIONS,
     });
   },
 }));
@@ -440,6 +479,7 @@ useLudoStore.subscribe((state) => {
     selectableTokenIds: state.selectableTokenIds,
     // Transient — never persist a half-finished arc.
     flyingCaptures: [],
+    options: state.options,
   };
   save(STORAGE_KEYS.LUDO, snapshot);
 });

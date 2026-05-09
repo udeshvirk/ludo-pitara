@@ -20,12 +20,17 @@ const STACK_OFFSETS: Record<number, ReadonlyArray<{ x: number; y: number }>> = {
   4: [{ x: -10, y: -10 }, { x: 10, y: -10 }, { x: -10, y: 10 }, { x: 10, y: 10 }],
 };
 
-export function stackPlacement(stackSize: number, stackIndex: number): {
+// `scale` shrinks (or grows) the token relative to the cell while
+// keeping the same fan-out offsets — SNL passes 0.85 so its denser
+// board doesn't get crowded by full-size coins. Defaults to 1 so Ludo
+// callers see no change.
+export function stackPlacement(stackSize: number, stackIndex: number, scale = 1): {
   sizePercent: number;
   leftPercent: number;
   topPercent: number;
 } {
-  const sizePercent = stackSize > 2 ? 42 : stackSize > 1 ? 50 : 70;
+  const baseSize = stackSize > 2 ? 42 : stackSize > 1 ? 50 : 70;
+  const sizePercent = baseSize * scale;
   const clamped = Math.min(Math.max(stackSize, 1), 4) as 1 | 2 | 3 | 4;
   const offset = STACK_OFFSETS[clamped][stackIndex] ?? { x: 0, y: 0 };
   // Place the token's top-left so that its CENTER lands at (50% + offset).

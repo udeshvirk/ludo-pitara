@@ -3,7 +3,6 @@ import { Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Splash from './pages/Splash';
 import GameSelect from './pages/GameSelect';
-import Mode from './pages/Mode';
 import PlayerSetup from './pages/PlayerSetup';
 import HowToPlay from './pages/HowToPlay';
 import SettingsPage from './pages/Settings';
@@ -17,7 +16,6 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Splash />} />
         <Route path="/select" element={<GameSelect />} />
-        <Route path="/mode" element={<Mode />} />
         <Route path="/players" element={<PlayerSetup />} />
         <Route path="/how-to-play" element={<HowToPlay />} />
         <Route path="/settings" element={<SettingsPage />} />

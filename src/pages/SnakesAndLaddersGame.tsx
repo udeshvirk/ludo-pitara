@@ -26,6 +26,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   const navigate = useNavigate();
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
+  const flowOptions = useFlow(s => s.options);
   const { players, currentPlayerIndex, gamePhase, winner, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
 
   useEffect(() => {
@@ -39,8 +40,8 @@ const SnakesAndLaddersGame: React.FC = () => {
     const names = flowPlayers.map(p => p.name);
     const cpuFlags = flowPlayers.map(p => p.isCPU);
     const colors = flowPlayers.map(p => toSnlHex(p.color));
-    initGame(flowPlayers.length, names, cpuFlags, colors);
-  }, [flowPlayers, navigate, initGame, gamePhase, players.length]);
+    initGame(flowPlayers.length, names, cpuFlags, colors, flowOptions.snl);
+  }, [flowPlayers, flowOptions, navigate, initGame, gamePhase, players.length]);
 
   useRecordOnFinish(
     'snl',
@@ -76,7 +77,8 @@ const SnakesAndLaddersGame: React.FC = () => {
   const isPhone = layoutMode === 'phone';
   const boardStyle: React.CSSProperties = isWide
     ? {
-        width: 'min(calc(100vw - 354px), calc(100vh - 90px))',
+        // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
+        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
         aspectRatio: '1',
         position: 'relative',
       }
@@ -113,7 +115,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} compact arrowSide="right" />
             ))}
@@ -121,7 +123,7 @@ const SnakesAndLaddersGame: React.FC = () => {
           <div style={boardStyle}>
             <SNLBoard />
           </div>
-          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} compact arrowSide="left" />
             ))}
@@ -146,8 +148,10 @@ const SnakesAndLaddersGame: React.FC = () => {
           const snapshotNames = players.map(p => p.name);
           const snapshotCpu = players.map(p => p.isCPU ?? false);
           const snapshotColors = players.map(p => p.color);
+          // See LudoGame for why options are captured before reset.
+          const opts = useSNLStore.getState().options;
           resetGame();
-          initGame(count, snapshotNames, snapshotCpu, snapshotColors);
+          initGame(count, snapshotNames, snapshotCpu, snapshotColors, opts);
         }}
         onGoHome={() => { resetGame(); navigate('/'); }}
       />

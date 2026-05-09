@@ -18,6 +18,10 @@ export interface Slide {
   type: 'snake' | 'ladder';
 }
 
+export interface SNLGameOptions {
+  autoStart: boolean;
+}
+
 export interface SNLGameState {
   players: SNLPlayer[];
   currentPlayerIndex: number;
@@ -31,6 +35,7 @@ export interface SNLGameState {
   // Per-game randomized snakes & ladders. Empty before the first initGame.
   layout: SnakeOrLadder[];
   sliding: Slide | null;
+  options: SNLGameOptions;
 }
 
 export interface SnakeOrLadder {

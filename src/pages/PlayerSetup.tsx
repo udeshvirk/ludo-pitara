@@ -5,13 +5,13 @@ import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
 import Avatar from '../components/ui/Avatar';
-import { useFlow, type FlowPlayer } from '../games/flow/store';
+import { useFlow, type FlowPlayer, type GameOptions } from '../games/flow/store';
 import { useLudoStore } from '../games/ludo/store';
 import { useSNLStore } from '../games/snl/store';
 import { playTap } from '../lib/sound';
 import { haptics } from '../lib/haptics';
 import { getRecentNames, rememberNames } from '../lib/recentNames';
-import { getLastSetup, saveLastSetup } from '../lib/lastSetup';
+import { getLastSetup, loadOptionsOrDefault, saveLastSetup } from '../lib/lastSetup';
 
 type LudoColor = 'red' | 'green' | 'yellow' | 'blue';
 const LUDO_COLORS: LudoColor[] = ['red', 'green', 'yellow', 'blue'];
@@ -38,13 +38,12 @@ function autoDefaultName(slot: number, isCPU: boolean[]): string {
 const PlayerSetup: React.FC = () => {
   const navigate = useNavigate();
   const game = useFlow(s => s.game);
-  const mode = useFlow(s => s.mode);
   const setPlayers = useFlow(s => s.setPlayers);
+  const setFlowOptions = useFlow(s => s.setOptions);
 
   useEffect(() => {
     if (!game) navigate('/select');
-    else if (!mode) navigate('/mode');
-  }, [game, mode, navigate]);
+  }, [game, navigate]);
 
   // PWA quality-of-life: pre-fill from the user's most recent setup so
   // they don't have to retype the same players every session. Captured
@@ -78,24 +77,26 @@ const PlayerSetup: React.FC = () => {
     const padding = defaultColors.filter(c => !used.has(c));
     return [...last.colors, ...padding].slice(0, 4) as LudoColor[];
   });
-  // Default isCPU mirrors the mode chosen on the previous screen but is
-  // fully editable here (so a Solo player can have 2 humans + 2 AI, etc).
+  // Bots are toggled per-slot via the Human/Bot switch below. Default to
+  // all-human; the user opts each slot into a bot as desired.
   const [isCPU, setIsCPU] = useState<boolean[]>(() => {
     if (last) return [...last.isCPU, false, false, false, false].slice(0, 4);
-    return mode === 'cpu' ? [false, true, true, true] : [false, false, false, false];
+    return [false, false, false, false];
   });
   const [activeNameIndex, setActiveNameIndex] = useState<number | null>(null);
   const [recents, setRecents] = useState<string[]>(() => getRecentNames());
 
-  // Re-seed defaults if the player flips the Mode page selection after
-  // the first time we landed here. Skip the first effect-run so we don't
-  // clobber the restored isCPU snapshot from lastSetup.
-  const initialModeRef = useRef(mode);
-  useEffect(() => {
-    if (mode === initialModeRef.current) return;
-    initialModeRef.current = mode;
-    setIsCPU(mode === 'cpu' ? [false, true, true, true] : [false, false, false, false]);
-  }, [mode]);
+  // Game-rules toggles. Pre-fill from the last saved setup so users
+  // don't have to flip the same options every session. The "Game
+  // options" section starts collapsed when nothing's enabled, expanded
+  // otherwise — anyone running with non-default rules sees them at a
+  // glance instead of having to remember to open the panel.
+  const [options, setOptions] = useState<GameOptions>(() => loadOptionsOrDefault());
+  const anyOptionEnabled =
+    options.ludo.oneTokenOut ||
+    options.ludo.firstHomeWins ||
+    options.snl.autoStart;
+  const [optionsOpen, setOptionsOpen] = useState<boolean>(anyOptionEnabled);
 
   const palette = useMemo<string[]>(() => colors.slice(0, count).map(c => COLOR_VAR[c]), [colors, count]);
 
@@ -155,12 +156,13 @@ const PlayerSetup: React.FC = () => {
     }
 
     // Persist the whole setup so the next session pre-fills with these
-    // exact players (count, names, colours, human/CPU per slot).
+    // exact players (count, names, colours, human/CPU per slot, options).
     saveLastSetup({
       count,
       names: finalNames,
       colors: colors.slice(0, count),
       isCPU: isCPU.slice(0, count),
+      options,
     });
 
     const built: FlowPlayer[] = finalNames.map((name, i) => ({
@@ -178,6 +180,7 @@ const PlayerSetup: React.FC = () => {
     } else {
       useSNLStore.getState().resetGame();
     }
+    setFlowOptions(options);
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };
@@ -192,7 +195,7 @@ const PlayerSetup: React.FC = () => {
 
   return (
     <PhoneShell contentMaxWidth={520}>
-      <Header title="Set up players" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/mode')} />
+      <Header title="Set up players" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/select')} />
 
       <div style={{ flex: 1, padding: '8px 22px 12px', overflow: 'auto' }}>
         <div style={{ display: 'flex', gap: 8, padding: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', marginBottom: 22 }}>
@@ -352,6 +355,14 @@ const PlayerSetup: React.FC = () => {
             );
           })}
         </div>
+
+        <GameOptionsSection
+          game={game}
+          options={options}
+          setOptions={setOptions}
+          isOpen={optionsOpen}
+          setOpen={setOptionsOpen}
+        />
       </div>
 
       <div style={{ padding: '12px 22px 28px' }}>
@@ -360,5 +371,174 @@ const PlayerSetup: React.FC = () => {
     </PhoneShell>
   );
 };
+
+interface GameOptionsSectionProps {
+  game: 'ludo' | 'snl' | null;
+  options: GameOptions;
+  setOptions: (o: GameOptions) => void;
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
+  game,
+  options,
+  setOptions,
+  isOpen,
+  setOpen,
+}) => {
+  if (!game) return null;
+  const items = game === 'ludo'
+    ? [
+        {
+          key: 'oneTokenOut' as const,
+          label: '1 token starts out',
+          desc: 'One token per player starts already on its start cell. The other three still need a 6.',
+          checked: options.ludo.oneTokenOut,
+          set: (v: boolean) =>
+            setOptions({ ...options, ludo: { ...options.ludo, oneTokenOut: v } }),
+        },
+        {
+          key: 'firstHomeWins' as const,
+          label: 'First token home wins',
+          desc: 'The first player to bring any token home wins — instead of having to bring all four.',
+          checked: options.ludo.firstHomeWins,
+          set: (v: boolean) =>
+            setOptions({ ...options, ludo: { ...options.ludo, firstHomeWins: v } }),
+        },
+      ]
+    : [
+        {
+          key: 'autoStart' as const,
+          label: 'Skip 1-to-start',
+          desc: 'Players enter the board on any roll instead of needing to roll a 1.',
+          checked: options.snl.autoStart,
+          set: (v: boolean) =>
+            setOptions({ ...options, snl: { ...options.snl, autoStart: v } }),
+        },
+      ];
+
+  const enabledCount = items.filter(i => i.checked).length;
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <button
+        onClick={() => { setOpen(!isOpen); playTap(); haptics.tap(); }}
+        aria-expanded={isOpen}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 14px',
+          borderRadius: 14,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: 'var(--ink)',
+          fontFamily: 'var(--font-ui)',
+          fontWeight: 700,
+          fontSize: 12,
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+        }}
+      >
+        <span>
+          Game options
+          {enabledCount > 0 && (
+            <span style={{ marginLeft: 8, color: 'var(--saffron)', fontSize: 11 }}>
+              · {enabledCount} on
+            </span>
+          )}
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 160ms ease' }}
+        >
+          <path d="M3 5l4 4 4-4" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}
+          style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}
+        >
+          {items.map(item => (
+            <label
+              key={item.key}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 12,
+                borderRadius: 14,
+                background: item.checked ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${item.checked ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
+                cursor: 'pointer',
+              }}
+            >
+              <Toggle
+                checked={item.checked}
+                onChange={v => { item.set(v); playTap(); haptics.tap(); }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                  {item.label}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
+                  {item.desc}
+                </div>
+              </div>
+            </label>
+          ))}
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={e => { e.preventDefault(); onChange(!checked); }}
+    style={{
+      flexShrink: 0,
+      width: 36,
+      height: 22,
+      borderRadius: 999,
+      padding: 2,
+      background: checked ? 'var(--saffron)' : 'rgba(255,255,255,0.12)',
+      border: '1px solid ' + (checked ? 'var(--saffron)' : 'rgba(255,255,255,0.18)'),
+      position: 'relative',
+      cursor: 'pointer',
+      transition: 'background 160ms ease, border-color 160ms ease',
+    }}
+  >
+    <span
+      style={{
+        display: 'block',
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        background: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+        transform: checked ? 'translateX(14px)' : 'translateX(0)',
+        transition: 'transform 160ms ease',
+      }}
+    />
+  </button>
+);
 
 export default PlayerSetup;

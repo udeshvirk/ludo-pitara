@@ -5,6 +5,11 @@ import { useSNLStore } from '../store';
 import Coin, { stackPlacement } from '../../../components/ui/Coin';
 import StackCountBadge from '../../../components/ui/StackCountBadge';
 
+// SNL cells carry a number badge, snake/ladder anchor styling and the
+// snakes themselves on top, so full-size coins crowded the cell. Shrink
+// every coin (single + stacked + sliding) by this factor.
+const SNL_TOKEN_SCALE = 0.85;
+
 const cellCenterPct = (cellNum: number) => {
   const { row, col } = cellToRowCol(cellNum);
   const size = 100 / BOARD_SIZE; // each cell is 10% wide on a 0-100 viewbox
@@ -205,9 +210,9 @@ const SlidingToken: React.FC<{
     return pts;
   }, [fromCell, toCell, type, cellPct]);
 
-  // Token size matches a single-player-in-cell coin (~70% of cellPct in
-  // viewbox-percent terms = 7% of board for cellPct=10).
-  const tokenSize = cellPct * 0.7;
+  // Token size matches a single-player-in-cell coin (70% × SNL_TOKEN_SCALE
+  // of cellPct in viewbox-percent terms).
+  const tokenSize = cellPct * 0.7 * SNL_TOKEN_SCALE;
   const halfSize = tokenSize / 2;
   const lefts = waypoints.map(p => `${p.x - halfSize}%`);
   const tops = waypoints.map(p => `${p.y - halfSize}%`);
@@ -367,7 +372,7 @@ const SNLBoard: React.FC = () => {
               )}
               <div style={{ position: 'absolute', inset: 0, zIndex: 4 }}>
                 {players.map((p, idx) => {
-                  const { sizePercent, leftPercent, topPercent } = stackPlacement(players.length, idx);
+                  const { sizePercent, leftPercent, topPercent } = stackPlacement(players.length, idx, SNL_TOKEN_SCALE);
                   return (
                     <motion.div
                       key={p.id}
@@ -380,7 +385,10 @@ const SNLBoard: React.FC = () => {
                         height: `${sizePercent}%`,
                         zIndex: 10 + idx,
                       }}
-                      transition={{ type: 'spring', stiffness: 350, damping: 32, mass: 0.6 }}
+                      // Linear tween, deliberately longer than the
+                      // 90 ms per-cell step — see Token.tsx in Ludo
+                      // for the stop-and-go reasoning.
+                      transition={{ type: 'tween', ease: 'linear', duration: 0.16 }}
                     >
                       <Coin color={p.color} />
                     </motion.div>

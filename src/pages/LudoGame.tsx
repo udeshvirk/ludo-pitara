@@ -19,6 +19,7 @@ const LudoGame: React.FC = () => {
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowGame = useFlow(s => s.game);
+  const flowOptions = useFlow(s => s.options);
 
   const {
     players,
@@ -52,8 +53,8 @@ const LudoGame: React.FC = () => {
       isCPU: p.isCPU,
     }));
     const names = playersToInit.map(p => p.name);
-    initGame(playersToInit.length, names, playersToInit);
-  }, [flowPlayers, flowGame, navigate, initGame, gamePhase, players.length]);
+    initGame(playersToInit.length, names, playersToInit, flowOptions.ludo);
+  }, [flowPlayers, flowGame, flowOptions, navigate, initGame, gamePhase, players.length]);
 
   useRecordOnFinish(
     'ludo',
@@ -96,9 +97,10 @@ const LudoGame: React.FC = () => {
   // Chrome budget: header ~64, padding 27 (14 top so the active pod's
   // glow isn't clipped, 13 bottom), two pods ~52 each (Ludo pods carry
   // no name caption), two gaps of 18 → ~236 vertical.
+  // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
   const boardStyle: React.CSSProperties = isWide
     ? {
-        width: 'min(calc(100vw - 354px), calc(100vh - 90px))',
+        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
         aspectRatio: '1',
         position: 'relative',
       }
@@ -132,7 +134,7 @@ const LudoGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.leftRail.map((idx, i) => (
               <PlayerHalfRow key={`l-${i}`} slots={[idx]} compact arrowSide="right" />
             ))}
@@ -140,7 +142,7 @@ const LudoGame: React.FC = () => {
           <div style={boardStyle}>
             <LudoBoard />
           </div>
-          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.rightRail.map((idx, i) => (
               <PlayerHalfRow key={`r-${i}`} slots={[idx]} compact arrowSide="left" />
             ))}
@@ -164,8 +166,11 @@ const LudoGame: React.FC = () => {
         onPlayAgain={() => {
           const count = players.length;
           const snapshot = players.map(p => ({ name: p.name, color: p.color, isCPU: p.isCPU }));
+          // Preserve the live options across rematch — resetGame() wipes
+          // them, so capture before resetting and pass back into initGame.
+          const opts = useLudoStore.getState().options;
           resetGame();
-          initGame(count, snapshot.map(s => s.name), snapshot);
+          initGame(count, snapshot.map(s => s.name), snapshot, opts);
         }}
         onGoHome={() => {
           resetGame();

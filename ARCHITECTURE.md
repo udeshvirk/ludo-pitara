@@ -41,7 +41,6 @@ src/
 |---|---|---|
 | `/` | `Splash` | Brand splash; navigates to `/select` |
 | `/select` | `GameSelect` | Pick Ludo or SNL, or resume saved game |
-| `/mode` | `Mode` | Pick pass-and-play vs vs-CPU |
 | `/players` | `PlayerSetup` | Count, names, colours, human/CPU per slot |
 | `/ludo` | `LudoGame` | Ludo board + pods + winner modal |
 | `/snakes-and-ladders` | `SnakesAndLaddersGame` | SNL board + pods |
@@ -49,11 +48,12 @@ src/
 | `/settings` | `Settings` | Sound, haptics, theme |
 | `/stats` | `Stats` | Leaderboard + recent games |
 
-The setup pipeline is GameSelect → Mode → PlayerSetup → game page. State
-that needs to survive across these screens (chosen game, mode, player
-list) lives in `useFlow` (`src/games/flow/store.ts`). The game pages
-read from `useFlow` once on mount and call the per-game store's
-`initGame()` to start.
+The setup pipeline is GameSelect → PlayerSetup → game page. State that
+needs to survive across these screens (chosen game, player list) lives
+in `useFlow` (`src/games/flow/store.ts`). The game pages read from
+`useFlow` once on mount and call the per-game store's `initGame()` to
+start. Bots are assigned per-slot inside PlayerSetup via the Human/Bot
+toggle on each row — there's no separate "pass-and-play vs CPU" screen.
 
 ## State stores
 
@@ -62,11 +62,13 @@ hooks (`useStoreName(s => s.field)`).
 
 ### `useFlow` — cross-screen setup
 - `game: 'ludo' | 'snl' | null`
-- `mode: 'pass' | 'cpu' | null`
 - `players: FlowPlayer[]` (name, colour, isCPU)
+- `options: GameOptions` — `{ ludo: { oneTokenOut, firstHomeWins }, snl: { autoStart } }`
 
-Read on the game page's mount effect to bootstrap `initGame`. Cleared
-when navigating back to `/select`.
+Read on the game page's mount effect to bootstrap `initGame` (which
+forwards `options.ludo` or `options.snl` into the per-game store).
+Cleared when navigating back to `/select`. Options are also persisted
+to `lastSetup` so they pre-fill on the next session.
 
 ### `useLudoStore` — `src/games/ludo/store.ts`
 Holds the entire Ludo game state. Key fields:
@@ -79,8 +81,13 @@ Holds the entire Ludo game state. Key fields:
 - `flyingCaptures: CaptureFly[]` — transient, drives the capture-arc
   animation
 - `winner: Player | null`
+- `options: LudoGameOptions` — `{ oneTokenOut, firstHomeWins }` for the
+  current game. `oneTokenOut` flips the slot-0 token to `state: 'active',
+  pathIndex: 0` at `initGame` time. `firstHomeWins` short-circuits
+  `completeMove` the first time any token reaches home.
 
-Actions: `initGame`, `rollDice`, `selectToken`, `resetGame`.
+Actions: `initGame(playerCount, names, customPlayers, options?)`,
+`rollDice`, `selectToken`, `resetGame`.
 
 ### `useSNLStore` — `src/games/snl/store.ts`
 Same shape, simpler:
@@ -91,6 +98,9 @@ Same shape, simpler:
   animation
 - `diceValue`, `isRolling`, `hasRolled`, `winner`, `message`,
   `lastAction`
+- `options: SNLGameOptions` — `{ autoStart }`. When `autoStart` is on,
+  `rollDice` skips the "needs a 1 to enter" guard and a position-0
+  player lands on cell `diceValue` instead of cell 1.
 
 Actions: `initGame`, `rollDice`, `resetGame`.
 
@@ -254,11 +264,16 @@ inline coin in SNLBoard) has a `layoutId` like `${tokenId}` or
 `snl-token-${id}`. framer-motion sees the layoutId at a new position
 on each render and tweens between them.
 
-Step interval: **90 ms**. Tween duration: spring(stiffness 350,
-damping 32, mass 0.6) — settles in ~150 ms, so adjacent steps blend
-into a continuous glide along the cell path. Defined on the
-`<motion.button>` (Ludo) and `<motion.div>` (SNL) as the `transition`
-prop.
+Step interval: **90 ms**. Token transition: linear tween, **160 ms** —
+intentionally longer than the step. At duration === step the tween
+landed at each cell before the next setState rendered, and the small
+re-render gap read as a per-cell "stop-and-go." With duration > step
+the previous tween is always still in-flight when the next step fires,
+so framer-motion just re-aims the running animation at the new target,
+producing continuous motion with no per-cell pause. The settle after
+the final step is absorbed by the store's 120 ms post-walk delay.
+Defined on the `<motion.button>` (Ludo) and `<motion.div>` (SNL) as the
+`transition` prop.
 
 ### 2. Snake/ladder slide (SNL)
 

@@ -37,7 +37,17 @@ const LudoToken: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIn
         alignItems: 'center',
         justifyContent: 'center',
       }}
-      transition={{ type: 'spring', stiffness: 350, damping: 32, mass: 0.6 }}
+      // Linear tween that's intentionally LONGER than the store's 90 ms
+      // step interval (see store's `setTimeout(advance, 90)`). At
+      // duration === step the tween lands exactly at each cell before
+      // the next step re-renders — the small re-render gap reads as
+      // "stop-and-go" at every cell. With duration > step the previous
+      // tween is always still in-flight when the next setState fires,
+      // so framer-motion just re-aims the in-progress animation at the
+      // new target — continuous motion, no per-cell pause. The single
+      // remaining settle (after the final step) is bounded by the
+      // store's 120 ms post-walk delay.
+      transition={{ type: 'tween', ease: 'linear', duration: 0.16 }}
     >
       <Coin color={PLAYER_COLORS[color].bg} active={isSelectable} />
     </motion.button>

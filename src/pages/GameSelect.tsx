@@ -34,7 +34,7 @@ const GameSelect: React.FC = () => {
 
   const choose = (g: GameId) => {
     setGame(g);
-    navigate('/mode');
+    navigate('/players');
   };
 
   return (

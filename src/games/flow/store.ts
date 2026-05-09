@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 
 export type GameId = 'ludo' | 'snl';
-export type Mode = 'pass' | 'cpu';
 
 export interface FlowPlayer {
   name: string;
@@ -9,22 +8,48 @@ export interface FlowPlayer {
   isCPU: boolean;
 }
 
+// Per-game rules toggles surfaced on PlayerSetup. Defaults preserve the
+// original behaviour, so a player who never opens "Game options" sees
+// no change vs. the pre-options build.
+export interface LudoOptions {
+  // 1 token per player starts already on its start cell. The other 3
+  // still need a 6 to leave the yard.
+  oneTokenOut: boolean;
+  // First player to land any single token in home wins (instead of
+  // having to bring all four home).
+  firstHomeWins: boolean;
+}
+export interface SNLOptions {
+  // Skip the "must roll a 1 to enter" rule — players can enter the
+  // board on any roll.
+  autoStart: boolean;
+}
+export interface GameOptions {
+  ludo: LudoOptions;
+  snl: SNLOptions;
+}
+
+export const DEFAULT_OPTIONS: GameOptions = {
+  ludo: { oneTokenOut: false, firstHomeWins: false },
+  snl: { autoStart: false },
+};
+
 interface FlowStore {
   game: GameId | null;
-  mode: Mode | null;
   players: FlowPlayer[];
+  options: GameOptions;
   setGame: (g: GameId) => void;
-  setMode: (m: Mode) => void;
   setPlayers: (players: FlowPlayer[]) => void;
+  setOptions: (options: GameOptions) => void;
   reset: () => void;
 }
 
 export const useFlow = create<FlowStore>((set) => ({
   game: null,
-  mode: null,
   players: [],
+  options: DEFAULT_OPTIONS,
   setGame: (g) => set({ game: g }),
-  setMode: (m) => set({ mode: m }),
   setPlayers: (players) => set({ players }),
-  reset: () => set({ game: null, mode: null, players: [] }),
+  setOptions: (options) => set({ options }),
+  reset: () => set({ game: null, players: [], options: DEFAULT_OPTIONS }),
 }));

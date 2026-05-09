@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SNLGameState, SNLPlayer } from './types';
+import type { SNLGameState, SNLGameOptions, SNLPlayer } from './types';
 import { SNL_PLAYER_COLORS } from './constants';
 import { generateSNLLayout, buildLayoutLookup } from './generator';
 import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
@@ -8,10 +8,18 @@ import { save, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface SNLStore extends SNLGameState {
-  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[], playerColors?: string[]) => void;
+  initGame: (
+    playerCount: number,
+    playerNames?: string[],
+    isCPUFlags?: boolean[],
+    playerColors?: string[],
+    options?: SNLGameOptions,
+  ) => void;
   rollDice: () => void;
   resetGame: () => void;
 }
+
+const DEFAULT_SNL_OPTIONS: SNLGameOptions = { autoStart: false };
 
 // See LudoStore for rationale — every roll/walk/reset bumps this so any
 // in-flight setTimeout chain can short-circuit if it's been superseded.
@@ -21,7 +29,13 @@ const stillCurrent = (myGen: number) => myGen === actionGen;
 
 const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
 const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0 && persistedSNL.layout?.length
-  ? { ...persistedSNL, isRolling: false, sliding: null }
+  ? {
+      ...persistedSNL,
+      isRolling: false,
+      sliding: null,
+      // Older saves predate options — fill so reads are always safe.
+      options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
+    }
   : {
       players: [],
       currentPlayerIndex: 0,
@@ -34,12 +48,13 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       lastAction: '',
       layout: [],
       sliding: null,
+      options: DEFAULT_SNL_OPTIONS,
     };
 
 export const useSNLStore = create<SNLStore>((set, get) => ({
   ...initialSNL,
 
-  initGame: (playerCount: number, playerNames?: string[], isCPUFlags?: boolean[], playerColors?: string[]) => {
+  initGame: (playerCount, playerNames, isCPUFlags, playerColors, options) => {
     const players: SNLPlayer[] = Array.from({ length: playerCount }, (_, i) => ({
       id: `player-${i}`,
       name: playerNames?.[i] || `Player ${i + 1}`,
@@ -60,6 +75,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       lastAction: '',
       // Fresh randomized board every game.
       layout: generateSNLLayout(),
+      options: options ?? DEFAULT_SNL_OPTIONS,
     });
   },
 
@@ -78,8 +94,10 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
 
     // House rule: a player at position 0 has to roll a 1 to enter the
-    // board. Every other roll just passes the turn.
-    const needsEntry = currentPos === 0 && diceValue !== 1;
+    // board. Every other roll just passes the turn. The "autoStart"
+    // option drops this guard — any roll moves the player onto the
+    // board (cell == diceValue).
+    const needsEntry = !state.options.autoStart && currentPos === 0 && diceValue !== 1;
 
     setTimeout(() => {
       if (!stillCurrent(myGen)) return;
@@ -101,8 +119,11 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         return;
       }
 
-      // Position-0 player rolling a 1 lands on cell 1.
-      let newPos = currentPos === 0 ? 1 : currentPos + diceValue;
+      // Position-0 entry: in classic rules they rolled a 1 → land on
+      // cell 1. With autoStart any roll enters → land on cell `diceValue`.
+      let newPos = currentPos === 0
+        ? (state.options.autoStart ? diceValue : 1)
+        : currentPos + diceValue;
       let actionMessage = '';
 
       // Overshoot 100 — stay put (need exact roll). Skip the walk and
@@ -232,6 +253,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       lastAction: '',
       layout: [],
       sliding: null,
+      options: DEFAULT_SNL_OPTIONS,
     });
   },
 }));
@@ -255,6 +277,7 @@ useSNLStore.subscribe((state) => {
     layout: state.layout,
     // Sliding is purely transient — never persist a half-finished slide.
     sliding: null,
+    options: state.options,
   };
   save(STORAGE_KEYS.SNL, snapshot);
 });

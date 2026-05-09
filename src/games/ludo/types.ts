@@ -30,6 +30,11 @@ export interface CaptureFly {
   to: BoardPosition;
 }
 
+export interface LudoGameOptions {
+  oneTokenOut: boolean;
+  firstHomeWins: boolean;
+}
+
 export interface LudoGameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -42,6 +47,7 @@ export interface LudoGameState {
   message: string;
   selectableTokenIds: string[];
   flyingCaptures: CaptureFly[];
+  options: LudoGameOptions;
 }
 
 export interface BoardPosition {

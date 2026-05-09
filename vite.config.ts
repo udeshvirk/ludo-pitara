@@ -18,7 +18,9 @@ export default defineConfig({
         start_url: '/ludo-pitara/',
         scope: '/ludo-pitara/',
         display: 'standalone',
-        orientation: 'any',
+        // Lock installed PWAs to portrait on phones/tablets. Has no
+        // effect on desktop installs (windowed apps are free-form).
+        orientation: 'portrait',
         background_color: '#190a2e',
         theme_color: '#190a2e',
         icons: [

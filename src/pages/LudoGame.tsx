@@ -95,11 +95,18 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // Status pill is gone, so the board can claim the freed vertical
-  // space. Header ≈ 64px + two pod rows ≈ 160px + padding ≈ 24px.
-  const boardSizeStyle = isWide
-    ? { width: 'min(calc(100vh - 100px), 1000px)' }
-    : { width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' };
+  // Board sizing — pure flex layout (see SnakesAndLaddersGame for the
+  // detailed rationale). Pods get their natural height; the board
+  // section flex-grows; the board itself uses width: 100% +
+  // aspectRatio: 1/1 + maxHeight: 100%, which lets the browser shrink
+  // both dimensions proportionally when the section's height is the
+  // binding constraint.
+  const boardStyle: React.CSSProperties = {
+    width: '100%',
+    aspectRatio: '1',
+    maxHeight: '100%',
+    position: 'relative',
+  };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -112,18 +119,17 @@ const LudoGame: React.FC = () => {
         <div
           style={{
             flex: 1,
-            display: 'grid',
-            gridTemplateColumns: 'minmax(140px, 1fr) auto minmax(140px, 1fr)',
-            alignItems: 'center',
+            display: 'flex',
+            alignItems: 'stretch',
             gap: 14,
-            padding: '0 10px 10px',
+            padding: '0 13px 13px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',
             overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {slots.leftRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`l-${i}`}
@@ -137,12 +143,12 @@ const LudoGame: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={boardStyle}>
               <LudoBoard />
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {slots.rightRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`r-${i}`}
@@ -158,8 +164,8 @@ const LudoGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 18 }}>
-          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
+          <div style={{ flexShrink: 0 }}>
             <PlayerHalfRow
               slots={slots.top}
               onRoll={rollDice}
@@ -170,11 +176,13 @@ const LudoGame: React.FC = () => {
             />
           </div>
 
-          <div style={{ ...boardSizeStyle, aspectRatio: '1', position: 'relative' }}>
-            <LudoBoard />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={boardStyle}>
+              <LudoBoard />
+            </div>
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'min(calc(100vw - 26px), calc(100vh - 320px))' }}>
+          <div style={{ flexShrink: 0 }}>
             <PlayerHalfRow
               slots={slots.bottom}
               onRoll={rollDice}

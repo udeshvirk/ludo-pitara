@@ -69,25 +69,26 @@ const SnakesAndLaddersGame: React.FC = () => {
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
 
-  // Board sizing
-  //   Wide / iPad landscape: hold the 5:6 aspect; sized off the
-  //     vertical budget or width-after-rails, capped at 1000 px tall.
-  //   Phone / iPad portrait: prefer to FILL the viewport width and
-  //     let the board be slightly less tall (rather than shrinking
-  //     the width to keep 5:6). On phones, width-from-aspect is
-  //     usually the binding constraint so the board stays 5:6 by
-  //     coincidence; on iPad portrait, the vertical budget is
-  //     binding, so the board becomes nearly square and uses the
-  //     full screen width.
-  const boardWrapperStyle = isWide
-    ? {
-        aspectRatio: '5 / 6',
-        height: 'min(calc(100vh - 100px), calc((100vw - 360px) * 6 / 5), 1000px)',
-      }
-    : {
-        width: 'calc(100vw - 26px)',
-        height: 'min(calc(100vh - 320px), calc((100vw - 26px) * 6 / 5))',
-      };
+  // Board sizing — pure flex layout, no hand-tuned chrome heights.
+  //
+  // Pod rows are flex-shrink: 0 (always show their natural height).
+  // The middle section has `flex: 1, minHeight/minWidth: 0` so it
+  // takes whatever vertical (or horizontal, in wide mode) space is
+  // left over after the pods + header.
+  //
+  // The board itself is `width: 100% + aspectRatio: 5/6 + maxHeight:
+  // 100%`. Modern browsers honor aspect-ratio with max-height: when
+  // the derived height exceeds maxHeight, both height and width are
+  // shrunk together to keep the 5:6 ratio. On long/narrow phones the
+  // board is width-bound (5:6 portrait); on iPad-style viewports it's
+  // height-bound (still 5:6, just smaller). Either way the cap is
+  // built in — no risk of a stretched board on tall phones.
+  const boardStyle: React.CSSProperties = {
+    width: '100%',
+    aspectRatio: '5 / 6',
+    maxHeight: '100%',
+    position: 'relative',
+  };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -97,36 +98,35 @@ const SnakesAndLaddersGame: React.FC = () => {
         <div
           style={{
             flex: 1,
-            display: 'grid',
-            gridTemplateColumns: 'minmax(140px, 1fr) auto minmax(140px, 1fr)',
-            alignItems: 'center',
+            display: 'flex',
+            alignItems: 'stretch',
             gap: 14,
-            padding: '0 10px 10px',
+            padding: '0 13px 13px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',
             overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ ...boardWrapperStyle, position: 'relative' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={boardStyle}>
               <SNLBoard />
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 10px 10px', overflow: 'hidden', gap: 18 }}>
-          <div style={{ width: '100%', maxWidth: 'calc(100vw - 26px)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
+          <div style={{ flexShrink: 0 }}>
             <SNLPlayerHalfRow
               slots={topSlotsForCount(playerCount)}
               top
@@ -134,11 +134,13 @@ const SnakesAndLaddersGame: React.FC = () => {
             />
           </div>
 
-          <div style={{ ...boardWrapperStyle, alignSelf: 'center' }}>
-            <SNLBoard />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={boardStyle}>
+              <SNLBoard />
+            </div>
           </div>
 
-          <div style={{ width: '100%', maxWidth: 'calc(100vw - 26px)' }}>
+          <div style={{ flexShrink: 0 }}>
             <SNLPlayerHalfRow
               slots={bottomSlotsForCount(playerCount)}
               top={false}

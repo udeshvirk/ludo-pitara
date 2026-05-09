@@ -76,17 +76,23 @@ const SnakesAndLaddersGame: React.FC = () => {
   // takes whatever vertical (or horizontal, in wide mode) space is
   // left over after the pods + header.
   //
-  // The board itself is `width: 100% + aspectRatio: 5/6 + maxHeight:
-  // 100%`. Modern browsers honor aspect-ratio with max-height: when
-  // the derived height exceeds maxHeight, both height and width are
-  // shrunk together to keep the 5:6 ratio. On long/narrow phones the
-  // board is width-bound (5:6 portrait); on iPad-style viewports it's
-  // height-bound (still 5:6, just smaller). Either way the cap is
-  // built in — no risk of a stretched board on tall phones.
+  // The board uses `height: 100% + aspectRatio: 5/6 + maxWidth: 100%`.
+  // Height as the primary dimension (instead of width) is what makes
+  // browsers reliably re-derive the OTHER dimension when a max
+  // constraint kicks in:
+  //   - iPad-portrait section is wider than 5:6 → derived width
+  //     (height * 5/6) fits inside maxWidth, board is 5:6 with
+  //     side gutters.
+  //   - phone section is more portrait than 5:6 → derived width
+  //     exceeds maxWidth, browser clamps width AND re-derives
+  //     height, board is 5:6 width-bound, vertical gutters.
+  // The earlier width-primary version let the board overflow the
+  // section vertically on iPad-portrait — the top edge was clipping
+  // behind the pod row.
   const boardStyle: React.CSSProperties = {
-    width: '100%',
+    height: '100%',
     aspectRatio: '5 / 6',
-    maxHeight: '100%',
+    maxWidth: '100%',
     position: 'relative',
   };
 

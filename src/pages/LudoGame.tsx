@@ -95,16 +95,13 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // Board sizing — pure flex layout (see SnakesAndLaddersGame for the
-  // detailed rationale). Pods get their natural height; the board
-  // section flex-grows; the board itself uses width: 100% +
-  // aspectRatio: 1/1 + maxHeight: 100%, which lets the browser shrink
-  // both dimensions proportionally when the section's height is the
-  // binding constraint.
+  // Height-primary aspect-ratio sizing — see SnakesAndLaddersGame for
+  // the rationale. Width-primary version let the board overflow the
+  // section on iPad-portrait, hiding the top row behind the pod.
   const boardStyle: React.CSSProperties = {
-    width: '100%',
+    height: '100%',
     aspectRatio: '1',
-    maxHeight: '100%',
+    maxWidth: '100%',
     position: 'relative',
   };
 

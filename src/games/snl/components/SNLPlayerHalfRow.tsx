@@ -46,19 +46,25 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
         }
         const player = players[idx];
         const isActive = idx === currentPlayerIndex && gamePhase !== 'finished';
-        const justify = isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
+        // Pod stays compact and hugs the column edge; the name spans
+        // the full column width so it can ellipsise long names instead
+        // of overflowing the grid cell.
+        const cellAlign: React.CSSProperties['alignItems'] =
+          isSingle ? 'center' : (slot === 0 ? 'flex-start' : 'flex-end');
+        const nameAlign: React.CSSProperties['textAlign'] =
+          isSingle ? 'center' : (slot === 0 ? 'left' : 'right');
         return (
           <motion.div
             key={slot}
             animate={{ scale: isActive ? 1.04 : 1 }}
             transition={{ type: 'spring', stiffness: 220, damping: 22 }}
             style={{
+              width: '100%',
               minWidth: 0,
               display: 'flex',
               flexDirection: top ? 'column-reverse' : 'column',
-              alignItems: 'center',
+              alignItems: cellAlign,
               gap: 4,
-              justifySelf: justify,
             }}
           >
             <div
@@ -73,6 +79,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
                   : 'rgba(255,255,255,0.04)',
                 border: `1px solid ${isActive ? player.color : 'rgba(255,255,255,0.10)'}`,
                 boxShadow: isActive ? `0 0 16px ${player.color}66` : 'none',
+                flexShrink: 0,
               }}
             >
               <Avatar color={player.color} label={player.name[0]} size={avatarSize} ring active={isActive} />
@@ -87,6 +94,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
             </div>
             <div
               style={{
+                width: '100%',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 600,
                 fontSize: nameSize,
@@ -95,8 +103,9 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, onRoll,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '90%',
-                textAlign: 'center',
+                textAlign: nameAlign,
+                paddingLeft: !isSingle && slot === 0 ? 4 : 0,
+                paddingRight: !isSingle && slot === 1 ? 4 : 0,
               }}
             >
               {player.name}

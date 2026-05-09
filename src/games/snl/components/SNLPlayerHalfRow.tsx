@@ -8,9 +8,12 @@ interface SNLPlayerHalfRowProps {
   // is rendered ABOVE the pod (and the pod hugs the board edge).
   top: boolean;
   compact?: boolean;
+  // Single-slot rows (side rails) need the caller to specify which
+  // side the arrow lives on. Two-slot rows derive it from slot index.
+  arrowSide?: 'left' | 'right';
 }
 
-const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact = false }) => {
+const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact = false, arrowSide }) => {
   const players = useSNLStore(s => s.players);
   const currentPlayerIndex = useSNLStore(s => s.currentPlayerIndex);
   const diceValue = useSNLStore(s => s.diceValue);
@@ -44,6 +47,9 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
         // (compact) wrapper at the cell's outer edge.
         const justify: React.CSSProperties['justifySelf'] =
           isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
+        const podArrowSide: 'left' | 'right' = isSingle
+          ? (arrowSide ?? 'right')
+          : (slot === 0 ? 'right' : 'left');
         return (
           <div
             key={slot}
@@ -66,6 +72,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
               onRoll={rollDice}
               canRoll={gamePhase === 'rolling'}
               compact={compact}
+              arrowSide={podArrowSide}
             />
             <div
               style={{

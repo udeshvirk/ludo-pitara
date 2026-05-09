@@ -93,8 +93,9 @@ const LudoGame: React.FC = () => {
   // Pods sit immediately above/below at gap 18 — the board is sized
   // explicitly via calc and centered horizontally. No flex-1 wrapper
   // around it, so no gutters between the board and the pods.
-  // Chrome budget: header ~64, padding 19, two pods ~52 each (Ludo
-  // pods carry no name caption), two gaps of 18 → ~220 vertical.
+  // Chrome budget: header ~64, padding 27 (14 top so the active pod's
+  // glow isn't clipped, 13 bottom), two pods ~52 each (Ludo pods carry
+  // no name caption), two gaps of 18 → ~236 vertical.
   const boardStyle: React.CSSProperties = isWide
     ? {
         width: 'min(calc(100vw - 354px), calc(100vh - 90px))',
@@ -102,7 +103,7 @@ const LudoGame: React.FC = () => {
         position: 'relative',
       }
     : {
-        width: 'min(calc(100vw - 26px), calc(100vh - 220px))',
+        width: 'min(calc(100vw - 26px), calc(100vh - 236px))',
         aspectRatio: '1',
         alignSelf: 'center',
         position: 'relative',
@@ -133,7 +134,7 @@ const LudoGame: React.FC = () => {
         >
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.leftRail.map((idx, i) => (
-              <PlayerHalfRow key={`l-${i}`} slots={[idx]} compact />
+              <PlayerHalfRow key={`l-${i}`} slots={[idx]} compact arrowSide="right" />
             ))}
           </div>
           <div style={boardStyle}>
@@ -141,12 +142,12 @@ const LudoGame: React.FC = () => {
           </div>
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.rightRail.map((idx, i) => (
-              <PlayerHalfRow key={`r-${i}`} slots={[idx]} compact />
+              <PlayerHalfRow key={`r-${i}`} slots={[idx]} compact arrowSide="left" />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
           <PlayerHalfRow slots={slots.top} />
           <div style={boardStyle}>
             <LudoBoard />

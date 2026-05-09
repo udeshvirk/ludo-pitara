@@ -70,8 +70,9 @@ const SnakesAndLaddersGame: React.FC = () => {
   //   phone  → 5:6 (slightly tall cells, Ludo King reference)
   //   tablet → 1:1 (square fills iPad-portrait width)
   //   wide   → 1:1 (square between the two side rails)
-  // Chrome budget: header ≈ 64, top+bottom padding ≈ 19, two pods ≈ 70
-  // each, two gaps of 18 → ~260 vertical chrome on phone/tablet.
+  // Chrome budget: header ≈ 64, top+bottom padding ≈ 27 (14 top so the
+  // active pod's glow isn't clipped, 13 bottom), two pods ≈ 70 each,
+  // two gaps of 18 → ~268 vertical chrome on phone/tablet.
   const isPhone = layoutMode === 'phone';
   const boardStyle: React.CSSProperties = isWide
     ? {
@@ -81,13 +82,13 @@ const SnakesAndLaddersGame: React.FC = () => {
       }
     : isPhone
       ? {
-          width: 'min(calc(100vw - 26px), calc((100vh - 260px) * 5 / 6))',
+          width: 'min(calc(100vw - 26px), calc((100vh - 268px) * 5 / 6))',
           aspectRatio: '5 / 6',
           alignSelf: 'center',
           position: 'relative',
         }
       : {
-          width: 'min(calc(100vw - 26px), calc(100vh - 260px))',
+          width: 'min(calc(100vw - 26px), calc(100vh - 268px))',
           aspectRatio: '1',
           alignSelf: 'center',
           position: 'relative',
@@ -114,7 +115,7 @@ const SnakesAndLaddersGame: React.FC = () => {
         >
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} compact />
+              <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} compact arrowSide="right" />
             ))}
           </div>
           <div style={boardStyle}>
@@ -122,12 +123,12 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
           <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
-              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} compact />
+              <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} compact arrowSide="left" />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
           <SNLPlayerHalfRow slots={topSlotsForCount(playerCount)} top />
           <div style={boardStyle}>
             <SNLBoard />

@@ -95,15 +95,24 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // Height-primary aspect-ratio sizing — see SnakesAndLaddersGame for
-  // the rationale. Width-primary version let the board overflow the
-  // section on iPad-portrait, hiding the top row behind the pod.
-  const boardStyle: React.CSSProperties = {
-    height: '100%',
-    aspectRatio: '1',
-    maxWidth: '100%',
-    position: 'relative',
-  };
+  // Board width = min(viewport-width budget, viewport-height budget).
+  // Pods sit immediately above/below at gap 18 — the board is sized
+  // explicitly via calc and centered horizontally. No flex-1 wrapper
+  // around it, so no gutters between the board and the pods.
+  // Chrome budget: header ~64, padding 19, two pods ~52 each (Ludo
+  // pods carry no name caption), two gaps of 18 → ~220 vertical.
+  const boardStyle: React.CSSProperties = isWide
+    ? {
+        width: 'min(calc(100vw - 354px), calc(100vh - 90px))',
+        aspectRatio: '1',
+        position: 'relative',
+      }
+    : {
+        width: 'min(calc(100vw - 26px), calc(100vh - 220px))',
+        aspectRatio: '1',
+        alignSelf: 'center',
+        position: 'relative',
+      };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -117,7 +126,8 @@ const LudoGame: React.FC = () => {
           style={{
             flex: 1,
             display: 'flex',
-            alignItems: 'stretch',
+            alignItems: 'center',
+            justifyContent: 'center',
             gap: 14,
             padding: '0 13px 13px',
             maxWidth: 1600,
@@ -126,7 +136,7 @@ const LudoGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.leftRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`l-${i}`}
@@ -140,12 +150,10 @@ const LudoGame: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={boardStyle}>
-              <LudoBoard />
-            </div>
+          <div style={boardStyle}>
+            <LudoBoard />
           </div>
-          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {slots.rightRail.map((idx, i) => (
               <PlayerHalfRow
                 key={`r-${i}`}
@@ -162,33 +170,25 @@ const LudoGame: React.FC = () => {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
-          <div style={{ flexShrink: 0 }}>
-            <PlayerHalfRow
-              slots={slots.top}
-              onRoll={rollDice}
-              isRolling={isRolling}
-              diceValue={diceValue}
-              activeIndex={currentPlayerIndex}
-              gamePhase={gamePhase}
-            />
+          <PlayerHalfRow
+            slots={slots.top}
+            onRoll={rollDice}
+            isRolling={isRolling}
+            diceValue={diceValue}
+            activeIndex={currentPlayerIndex}
+            gamePhase={gamePhase}
+          />
+          <div style={boardStyle}>
+            <LudoBoard />
           </div>
-
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={boardStyle}>
-              <LudoBoard />
-            </div>
-          </div>
-
-          <div style={{ flexShrink: 0 }}>
-            <PlayerHalfRow
-              slots={slots.bottom}
-              onRoll={rollDice}
-              isRolling={isRolling}
-              diceValue={diceValue}
-              activeIndex={currentPlayerIndex}
-              gamePhase={gamePhase}
-            />
-          </div>
+          <PlayerHalfRow
+            slots={slots.bottom}
+            onRoll={rollDice}
+            isRolling={isRolling}
+            diceValue={diceValue}
+            activeIndex={currentPlayerIndex}
+            gamePhase={gamePhase}
+          />
         </div>
       )}
 

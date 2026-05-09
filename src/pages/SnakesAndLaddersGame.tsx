@@ -69,32 +69,35 @@ const SnakesAndLaddersGame: React.FC = () => {
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
 
-  // Board sizing — pure flex layout, no hand-tuned chrome heights.
-  //
-  // Pod rows are flex-shrink: 0 (always show their natural height).
-  // The middle section has `flex: 1, minHeight/minWidth: 0` so it
-  // takes whatever vertical (or horizontal, in wide mode) space is
-  // left over after the pods + header.
-  //
-  // The board uses `height: 100% + aspectRatio: 5/6 + maxWidth: 100%`.
-  // Height as the primary dimension (instead of width) is what makes
-  // browsers reliably re-derive the OTHER dimension when a max
-  // constraint kicks in:
-  //   - iPad-portrait section is wider than 5:6 → derived width
-  //     (height * 5/6) fits inside maxWidth, board is 5:6 with
-  //     side gutters.
-  //   - phone section is more portrait than 5:6 → derived width
-  //     exceeds maxWidth, browser clamps width AND re-derives
-  //     height, board is 5:6 width-bound, vertical gutters.
-  // The earlier width-primary version let the board overflow the
-  // section vertically on iPad-portrait — the top edge was clipping
-  // behind the pod row.
-  const boardStyle: React.CSSProperties = {
-    height: '100%',
-    aspectRatio: '5 / 6',
-    maxWidth: '100%',
-    position: 'relative',
-  };
+  // Board width = min(viewport-width budget, viewport-height budget).
+  // The pods sit immediately above/below at gap 18, so the board is
+  // explicitly sized via calc and centered horizontally — no flex-1
+  // wrapper that would pad gutters between the board and the pods.
+  //   phone  → 5:6 (slightly tall cells, Ludo King reference)
+  //   tablet → 1:1 (square fills iPad-portrait width)
+  //   wide   → 1:1 (square between the two side rails)
+  // Chrome budget: header ≈ 64, top+bottom padding ≈ 19, two pods ≈ 70
+  // each, two gaps of 18 → ~260 vertical chrome on phone/tablet.
+  const isPhone = layoutMode === 'phone';
+  const boardStyle: React.CSSProperties = isWide
+    ? {
+        width: 'min(calc(100vw - 354px), calc(100vh - 90px))',
+        aspectRatio: '1',
+        position: 'relative',
+      }
+    : isPhone
+      ? {
+          width: 'min(calc(100vw - 26px), calc((100vh - 260px) * 5 / 6))',
+          aspectRatio: '5 / 6',
+          alignSelf: 'center',
+          position: 'relative',
+        }
+      : {
+          width: 'min(calc(100vw - 26px), calc(100vh - 260px))',
+          aspectRatio: '1',
+          alignSelf: 'center',
+          position: 'relative',
+        };
 
   return (
     <PhoneShell decorative={false} fluid>
@@ -105,7 +108,8 @@ const SnakesAndLaddersGame: React.FC = () => {
           style={{
             flex: 1,
             display: 'flex',
-            alignItems: 'stretch',
+            alignItems: 'center',
+            justifyContent: 'center',
             gap: 14,
             padding: '0 13px 13px',
             maxWidth: 1600,
@@ -114,17 +118,15 @@ const SnakesAndLaddersGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
           </div>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={boardStyle}>
-              <SNLBoard />
-            </div>
+          <div style={boardStyle}>
+            <SNLBoard />
           </div>
-          <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} onRoll={rollDice} compact />
             ))}
@@ -132,27 +134,19 @@ const SnakesAndLaddersGame: React.FC = () => {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '6px 13px 13px', overflow: 'hidden', gap: 18 }}>
-          <div style={{ flexShrink: 0 }}>
-            <SNLPlayerHalfRow
-              slots={topSlotsForCount(playerCount)}
-              top
-              onRoll={rollDice}
-            />
+          <SNLPlayerHalfRow
+            slots={topSlotsForCount(playerCount)}
+            top
+            onRoll={rollDice}
+          />
+          <div style={boardStyle}>
+            <SNLBoard />
           </div>
-
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={boardStyle}>
-              <SNLBoard />
-            </div>
-          </div>
-
-          <div style={{ flexShrink: 0 }}>
-            <SNLPlayerHalfRow
-              slots={bottomSlotsForCount(playerCount)}
-              top={false}
-              onRoll={rollDice}
-            />
-          </div>
+          <SNLPlayerHalfRow
+            slots={bottomSlotsForCount(playerCount)}
+            top={false}
+            onRoll={rollDice}
+          />
         </div>
       )}
 

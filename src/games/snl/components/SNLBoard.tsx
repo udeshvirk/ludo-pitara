@@ -2,6 +2,7 @@ import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BOARD_SIZE, rowColToCell, cellToRowCol } from '../constants';
 import { useSNLStore } from '../store';
+import Coin from '../../../components/ui/Coin';
 
 const cellCenterPct = (cellNum: number) => {
   const { row, col } = cellToRowCol(cellNum);
@@ -289,23 +290,63 @@ const SNLBoard: React.FC = () => {
                   {labelText}
                 </span>
               )}
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 1, padding: 2, zIndex: 4 }}>
-                {players.map((p, idx) => (
-                  <motion.div
-                    key={p.id}
-                    layoutId={`snl-token-${p.id}`}
+              <div style={{ position: 'absolute', inset: 0, zIndex: 4 }}>
+                {players.map((p, idx) => {
+                  const stackSize = players.length;
+                  const sizePercent = stackSize > 2 ? 42 : stackSize > 1 ? 50 : 70;
+                  const offsets =
+                    stackSize <= 1
+                      ? [{ x: 0, y: 0 }]
+                      : stackSize === 2
+                      ? [{ x: -14, y: -14 }, { x: 14, y: 14 }]
+                      : stackSize === 3
+                      ? [{ x: -14, y: -14 }, { x: 14, y: -14 }, { x: 0, y: 14 }]
+                      : [{ x: -14, y: -14 }, { x: 14, y: -14 }, { x: -14, y: 14 }, { x: 14, y: 14 }];
+                  const offset = offsets[idx] || { x: 0, y: 0 };
+                  return (
+                    <motion.div
+                      key={p.id}
+                      layoutId={`snl-token-${p.id}`}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        width: `${sizePercent}%`,
+                        height: `${sizePercent}%`,
+                        transform: `translate(calc(-50% + ${offset.x}%), calc(-50% + ${offset.y}%))`,
+                        zIndex: 10 + idx,
+                      }}
+                      transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                    >
+                      <Coin color={p.color} />
+                    </motion.div>
+                  );
+                })}
+                {players.length >= 2 && (
+                  <span
+                    aria-hidden
                     style={{
-                      width: players.length > 2 ? '32%' : players.length > 1 ? '42%' : '60%',
-                      aspectRatio: '1',
-                      borderRadius: '50%',
-                      background: `radial-gradient(circle at 35% 30%, #fff, ${p.color}cc 35%, ${p.color})`,
-                      border: '2px solid rgba(255,255,255,0.85)',
-                      boxShadow: `0 2px 6px rgba(0,0,0,0.4), 0 0 8px ${p.color}66`,
-                      zIndex: 10 + idx,
+                      position: 'absolute',
+                      top: 1,
+                      right: 1,
+                      minWidth: 12,
+                      height: 12,
+                      padding: '0 3px',
+                      borderRadius: 6,
+                      background: 'rgba(0,0,0,0.78)',
+                      color: '#fff',
+                      fontSize: 8,
+                      fontWeight: 700,
+                      lineHeight: '12px',
+                      textAlign: 'center',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                      zIndex: 30,
+                      fontFamily: 'var(--font-ui)',
                     }}
-                    transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-                  />
-                ))}
+                  >
+                    {players.length}
+                  </span>
+                )}
               </div>
             </div>
           );

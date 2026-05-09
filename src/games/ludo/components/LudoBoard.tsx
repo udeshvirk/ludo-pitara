@@ -60,6 +60,36 @@ const NAMEPLATE_LAYOUT: Record<PlayerColor, {
   yellow: { position: { right: 0, top: 0, bottom: 0, width: '14%' },           rotation: 'rotate(-90deg)' },
 };
 
+// Small numeric pill rendered in the top-right of a cell when ≥2 tokens
+// share it. Even with diagonal stack-offsets, two same-colour tokens can
+// look like one — the badge makes the count unambiguous.
+const StackCountBadge: React.FC<{ n: number }> = ({ n }) => (
+  <span
+    aria-hidden
+    style={{
+      position: 'absolute',
+      top: 1,
+      right: 1,
+      minWidth: 12,
+      height: 12,
+      padding: '0 3px',
+      borderRadius: 6,
+      background: 'rgba(0,0,0,0.78)',
+      color: '#fff',
+      fontSize: 8,
+      fontWeight: 700,
+      lineHeight: '12px',
+      textAlign: 'center',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+      zIndex: 30,
+      fontFamily: 'var(--font-ui)',
+      pointerEvents: 'none',
+    }}
+  >
+    {n}
+  </span>
+);
+
 const LudoBoard: React.FC = () => {
   const { players, selectableTokenIds } = useLudoStore();
 
@@ -193,6 +223,12 @@ const LudoBoard: React.FC = () => {
         // toward the centre; safe squares that aren't start cells get
         // the gold star.
         const showStar = isSafe && !isStartCell;
+        // Star-only safe cells get a faint gold tint so the cell stays
+        // identifiable as "safe" even when a token sits on it and covers
+        // the star glyph.
+        if (showStar) {
+          bg = 'rgba(245, 184, 0, 0.16)';
+        }
         const arrow = isStartCell || isHomeStretch ? PATH_ARROW[cellColor!] : null;
 
         return (
@@ -239,6 +275,7 @@ const LudoBoard: React.FC = () => {
                   stackSize={tokens.length}
                 />
               ))}
+              {tokens.length >= 2 && <StackCountBadge n={tokens.length} />}
             </div>
           </div>
         );
@@ -314,6 +351,7 @@ const LudoBoard: React.FC = () => {
                   stackSize={ids.length}
                 />
               ))}
+              {ids.length >= 2 && <StackCountBadge n={ids.length} />}
             </div>
           );
         })}

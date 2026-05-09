@@ -65,41 +65,64 @@ export function isSoundEnabled() {
   return enabled;
 }
 
-// Dice tumble: short burst of band-passed noise with a tumbling gain envelope.
+// Dice clatter: a small cluster of bandpass-noise "tocks" pitched at
+// different frequencies, scattered across ~0.5s. Each tock has a slight
+// pitch drop (the dice losing energy as it tumbles) and the louder hits
+// also fire a short low-end sine "thump" so they feel like physical
+// dice landing on the board, not just dry clicks. No chime — the last
+// tock is the settle.
 export function playDice() {
   if (!enabled) return;
   const ac = getCtx();
   if (!ac) return;
+  const start = ac.currentTime;
+  const ticks: Array<{ t: number; freq: number; gain: number; dur: number; body: boolean }> = [
+    { t: 0.00, freq: 1300, gain: 0.34, dur: 0.07, body: true  },
+    { t: 0.10, freq: 950,  gain: 0.30, dur: 0.07, body: true  },
+    { t: 0.22, freq: 1500, gain: 0.28, dur: 0.06, body: false },
+    { t: 0.38, freq: 850,  gain: 0.24, dur: 0.07, body: true  },
+    { t: 0.54, freq: 1100, gain: 0.18, dur: 0.06, body: false },
+  ];
+  ticks.forEach(({ t, freq, gain: g, dur, body }) => {
+    const at = start + t;
+    // Wooden tock: bandpass-filtered noise burst.
+    const buf = ac.createBuffer(1, Math.max(1, Math.floor(ac.sampleRate * dur)), ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ac.createBufferSource();
+    noise.buffer = buf;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(freq, at);
+    bp.frequency.exponentialRampToValueAtTime(freq * 0.7, at + dur);
+    bp.Q.value = 4.5;
+    const noiseGain = ac.createGain();
+    noiseGain.gain.setValueAtTime(0, at);
+    noiseGain.gain.linearRampToValueAtTime(g, at + 0.004);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, at + dur);
+    noise.connect(bp);
+    bp.connect(noiseGain);
+    noiseGain.connect(ac.destination);
+    noise.start(at);
+    noise.stop(at + dur);
 
-  const duration = 0.6;
-  const buffer = ac.createBuffer(1, ac.sampleRate * duration, ac.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-
-  const noise = ac.createBufferSource();
-  noise.buffer = buffer;
-
-  const bp = ac.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = 1800;
-  bp.Q.value = 1.2;
-
-  const gain = ac.createGain();
-  const now = ac.currentTime;
-  // Tumble envelope — choppy bumps then decay
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
-  gain.gain.exponentialRampToValueAtTime(0.15, now + 0.15);
-  gain.gain.linearRampToValueAtTime(0.35, now + 0.25);
-  gain.gain.exponentialRampToValueAtTime(0.08, now + 0.4);
-  gain.gain.linearRampToValueAtTime(0.25, now + 0.5);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-  noise.connect(bp);
-  bp.connect(gain);
-  gain.connect(ac.destination);
-  noise.start(now);
-  noise.stop(now + duration);
+    if (body) {
+      // Low-frequency thump under the louder tocks — gives the dice
+      // physical weight without adding a tonal note.
+      const osc = ac.createOscillator();
+      const oscGain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180, at);
+      osc.frequency.exponentialRampToValueAtTime(80, at + 0.04);
+      oscGain.gain.setValueAtTime(0, at);
+      oscGain.gain.linearRampToValueAtTime(0.12, at + 0.003);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
+      osc.connect(oscGain);
+      oscGain.connect(ac.destination);
+      osc.start(at);
+      osc.stop(at + 0.06);
+    }
+  });
 }
 
 // Pawn move: soft tic — sine ping with quick decay.
@@ -192,6 +215,30 @@ export function playLadder() {
     gain.connect(ac.destination);
     osc.start(start + i * step);
     osc.stop(start + i * step + step + 0.02);
+  });
+}
+
+// Home arrival: short bell-like ascending triad (C5–E5–G5) — celebratory
+// but lighter than playWin so it doesn't sound like the game is over.
+export function playHomeArrival() {
+  if (!enabled) return;
+  const ac = getCtx();
+  if (!ac) return;
+  const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+  const start = ac.currentTime;
+  const step = 0.07;
+  notes.forEach((freq, i) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, start + i * step);
+    gain.gain.setValueAtTime(0, start + i * step);
+    gain.gain.linearRampToValueAtTime(0.22, start + i * step + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + i * step + 0.32);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(start + i * step);
+    osc.stop(start + i * step + 0.36);
   });
 }
 

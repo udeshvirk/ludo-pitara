@@ -10,7 +10,7 @@ import {
   isSafePosition,
   getBoardPosition,
 } from './constants';
-import { playDice, playMove, playCapture, playWin } from '../../lib/sound';
+import { playDice, playMove, playCapture, playHomeArrival, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { save, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
@@ -234,7 +234,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       if (newPathIndex > 56) newPathIndex = 56;
     }
 
-    playMove();
+    if (newState === 'home') playHomeArrival();
+    else playMove();
 
     // Check for capture (only on main path, not home stretch, not safe squares)
     let gotCapture = false;

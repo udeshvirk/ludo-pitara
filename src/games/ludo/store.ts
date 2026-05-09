@@ -7,6 +7,7 @@ import type {
 } from './types';
 import {
   PLAYER_ORDER,
+  YARD_POSITIONS,
   isSafePosition,
   getBoardPosition,
 } from './constants';
@@ -81,7 +82,7 @@ const stillCurrent = (myGen: number) => myGen === actionGen;
 // Pull a saved game (or fall back to a fresh setup state) on store creation.
 const persisted = load<LudoGameState | null>(STORAGE_KEYS.LUDO, null);
 const initialState: LudoGameState = persisted && persisted.players.length > 0
-  ? { ...persisted, isRolling: false }
+  ? { ...persisted, isRolling: false, flyingCaptures: [] }
   : {
       players: [],
       currentPlayerIndex: 0,
@@ -93,6 +94,7 @@ const initialState: LudoGameState = persisted && persisted.players.length > 0
       winner: null,
       message: 'Set up your game!',
       selectableTokenIds: [],
+      flyingCaptures: [],
     };
 
 export const useLudoStore = create<LudoStore>((set, get) => ({
@@ -286,6 +288,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       // Capture detection — only on main path, not home stretch, not safe squares.
       let gotCapture = false;
       let capturedMessage = '';
+      const flyingCaptures: import('./types').CaptureFly[] = [];
       if (finalTokenState === 'active' && finalIndex < 51 && !isSafePosition(currentPlayer.color, finalIndex)) {
         const newBoardPos = getBoardPosition(currentPlayer.color, finalIndex);
         for (let pi = 0; pi < players.length; pi++) {
@@ -295,6 +298,16 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
             if (otherToken.state !== 'active') continue;
             const otherPos = getBoardPosition(otherToken.color, otherToken.pathIndex);
             if (otherPos.row === newBoardPos.row && otherPos.col === newBoardPos.col) {
+              // Capture: token goes back to yard. We also stash a fly
+              // entry so the board can render an arc from this cell to
+              // the yard socket while the yard render skips it.
+              const yardPos = YARD_POSITIONS[otherToken.color][ti];
+              flyingCaptures.push({
+                tokenId: otherToken.id,
+                color: otherToken.color,
+                from: otherPos,
+                to: yardPos,
+              });
               players[pi].tokens[ti] = { ...otherToken, state: 'yard', pathIndex: -1 };
               gotCapture = true;
               capturedMessage = ` — Captured ${players[pi].name}'s token!`;
@@ -304,6 +317,16 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         if (gotCapture) {
           playCapture();
           haptics.capture();
+          // Kick off the arc immediately. Subsequent set() calls in
+          // this completeMove preserve flyingCaptures (Zustand merges),
+          // so the floating tokens stay airborne while the rest of the
+          // turn-end state emits. A timeout clears the list once the
+          // arc has landed.
+          set({ flyingCaptures });
+          setTimeout(() => {
+            if (!stillCurrent(myGen)) return;
+            set({ flyingCaptures: [] });
+          }, 520);
         }
       }
 
@@ -392,6 +415,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       winner: null,
       message: 'Set up your game!',
       selectableTokenIds: [],
+      flyingCaptures: [],
     });
   },
 }));
@@ -414,6 +438,8 @@ useLudoStore.subscribe((state) => {
     winner: state.winner,
     message: state.message,
     selectableTokenIds: state.selectableTokenIds,
+    // Transient — never persist a half-finished arc.
+    flyingCaptures: [],
   };
   save(STORAGE_KEYS.LUDO, snapshot);
 });

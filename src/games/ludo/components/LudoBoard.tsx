@@ -14,6 +14,8 @@ import {
 import type { PlayerColor } from '../types';
 import LudoToken from './Token';
 import StackCountBadge from '../../../components/ui/StackCountBadge';
+import Coin from '../../../components/ui/Coin';
+import type { CaptureFly } from '../types';
 
 const COLOR_DEEP: Record<PlayerColor, string> = {
   red: '#9a1a18',
@@ -61,8 +63,52 @@ const NAMEPLATE_LAYOUT: Record<PlayerColor, {
   yellow: { position: { right: 0, top: 0, bottom: 0, width: '14%' },           rotation: 'rotate(-90deg)' },
 };
 
+// Floating token rendered while a captured token arcs back to its yard
+// socket. Not a layoutId-tracked element — just a one-shot motion.div
+// with keyframe-driven left/top + scale + rotate. The yardTokens render
+// skips the captured token until flyingCaptures clears, so visually
+// the arc lands and the yard render takes over.
+const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
+  const cellPct = 100 / 15;
+  const fromX = (fly.from.col + 0.5) * cellPct;
+  const fromY = (fly.from.row + 0.5) * cellPct;
+  const toX = (fly.to.col + 0.5) * cellPct;
+  const toY = (fly.to.row + 0.5) * cellPct;
+  // Arc peak — midpoint horizontally, lifted above the higher endpoint.
+  const midX = (fromX + toX) / 2;
+  const midY = Math.min(fromY, toY) - 12;
+  const tokenSize = 5; // % of board, similar to a single-cell token
+  const half = tokenSize / 2;
+  const dir = toX < fromX ? -1 : 1;
+
+  return (
+    <motion.div
+      style={{
+        position: 'absolute',
+        width: `${tokenSize}%`,
+        height: `${tokenSize}%`,
+        left: `${fromX - half}%`,
+        top: `${fromY - half}%`,
+        zIndex: 60,
+        pointerEvents: 'none',
+      }}
+      animate={{
+        left: [`${fromX - half}%`, `${midX - half}%`, `${toX - half}%`],
+        top: [`${fromY - half}%`, `${midY - half}%`, `${toY - half}%`],
+        scale: [1, 1.15, 0.85],
+        rotate: [0, dir * 180, dir * 360],
+      }}
+      transition={{ duration: 0.5, ease: 'easeInOut' }}
+    >
+      <Coin color={PLAYER_COLORS[fly.color].bg} />
+    </motion.div>
+  );
+};
+
 const LudoBoard: React.FC = () => {
   const { players, selectableTokenIds } = useLudoStore();
+  const flyingCaptures = useLudoStore(s => s.flyingCaptures);
+  const flyingIds = useMemo(() => new Set(flyingCaptures.map(f => f.tokenId)), [flyingCaptures]);
 
   const coloredCells = useMemo(() => getColoredCells(), []);
   const safeSquares = useMemo(() => getSafeSquares(), []);
@@ -110,13 +156,13 @@ const LudoBoard: React.FC = () => {
     };
     for (const player of players) {
       player.tokens.forEach((t, idx) => {
-        if (t.state === 'yard') {
+        if (t.state === 'yard' && !flyingIds.has(t.id)) {
           map[t.color][idx] = { tokenId: t.id, isSelectable: selectableTokenIds.includes(t.id) };
         }
       });
     }
     return map;
-  }, [players, selectableTokenIds]);
+  }, [players, selectableTokenIds, flyingIds]);
 
   // Home tokens grouped by color — placed at their wedge centroid inside
   // the centre 3×3 instead of all piling at (7,7).
@@ -435,6 +481,10 @@ const LudoBoard: React.FC = () => {
           </div>
         );
       })}
+
+      {flyingCaptures.map(fly => (
+        <FlyingCaptureToken key={fly.tokenId} fly={fly} />
+      ))}
     </motion.div>
   );
 };

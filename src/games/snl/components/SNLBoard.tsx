@@ -17,7 +17,9 @@ interface ShapeProps {
   cellPct: number; // size of one cell in viewbox-percent units
 }
 
-// Geometry shared by SnakeBody and SnakeHead.
+// Geometry shared by SnakeBody and SnakeHead. Returns the path string
+// for the SVG render plus the underlying sample points so the slide
+// animation can drive a floating token along the same curve.
 function snakeGeometry(from: number, to: number, cellPct: number) {
   const a = cellCenterPct(from);
   const b = cellCenterPct(to);
@@ -48,6 +50,7 @@ function snakeGeometry(from: number, to: number, cellPct: number) {
   const waves = Math.max(2, Math.round(len / (cellPct * 2.2)));
   const samples = Math.max(48, waves * 24);
 
+  const points: Array<{ x: number; y: number }> = [];
   let bodyPath = '';
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
@@ -55,9 +58,21 @@ function snakeGeometry(from: number, to: number, cellPct: number) {
     const offset = Math.sin(t * Math.PI * 2 * waves) * waveAmp * taper;
     const x = a.x + dx * t + perpX * offset;
     const y = a.y + dy * t + perpY * offset;
+    points.push({ x, y });
     bodyPath += (i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`);
   }
-  return { a, b, angDeg, bodyPath };
+  return { a, b, angDeg, bodyPath, points };
+}
+
+// Evenly subsample an array of points down to N waypoints — enough to
+// drive a smooth keyframe animation without thousands of intermediate
+// frames.
+function subsample<T>(arr: T[], target: number): T[] {
+  if (arr.length <= target) return arr;
+  const out: T[] = [];
+  const step = (arr.length - 1) / (target - 1);
+  for (let i = 0; i < target; i++) out.push(arr[Math.round(i * step)]);
+  return out;
 }
 
 const SnakeBody: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
@@ -162,9 +177,65 @@ const LadderShape: React.FC<ShapeProps> = ({ from, to, cellPct }) => {
   );
 };
 
+// Floating token rendered on top of the board while a player is sliding
+// down a snake or climbing a ladder. Animates left/top through ~16
+// waypoints sampled along the entity's path.
+const SlidingToken: React.FC<{
+  color: string;
+  fromCell: number;
+  toCell: number;
+  type: 'snake' | 'ladder';
+  cellPct: number;
+}> = ({ color, fromCell, toCell, type, cellPct }) => {
+  const waypoints = useMemo(() => {
+    if (type === 'snake') {
+      const { points } = snakeGeometry(fromCell, toCell, cellPct);
+      return subsample(points, 16);
+    }
+    // Ladder: linear from base to top. Two endpoints + the same in
+    // between is enough — the climb reads cleanly without wobble.
+    const a = cellCenterPct(fromCell);
+    const b = cellCenterPct(toCell);
+    const pts: Array<{ x: number; y: number }> = [];
+    const STEPS = 8;
+    for (let i = 0; i <= STEPS; i++) {
+      const t = i / STEPS;
+      pts.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
+    return pts;
+  }, [fromCell, toCell, type, cellPct]);
+
+  // Token size matches a single-player-in-cell coin (~70% of cellPct in
+  // viewbox-percent terms = 7% of board for cellPct=10).
+  const tokenSize = cellPct * 0.7;
+  const halfSize = tokenSize / 2;
+  const lefts = waypoints.map(p => `${p.x - halfSize}%`);
+  const tops = waypoints.map(p => `${p.y - halfSize}%`);
+  const duration = type === 'snake' ? 0.85 : 0.55;
+
+  return (
+    <motion.div
+      style={{
+        position: 'absolute',
+        width: `${tokenSize}%`,
+        height: `${tokenSize}%`,
+        left: lefts[0],
+        top: tops[0],
+        zIndex: 50,
+        pointerEvents: 'none',
+      }}
+      animate={{ left: lefts, top: tops }}
+      transition={{ duration, ease: 'easeInOut' }}
+    >
+      <Coin color={color} />
+    </motion.div>
+  );
+};
+
 const SNLBoard: React.FC = () => {
   const players = useSNLStore(s => s.players);
   const layout = useSNLStore(s => s.layout);
+  const sliding = useSNLStore(s => s.sliding);
   const cellPct = 100 / BOARD_SIZE;
 
   const snakes = useMemo(() => layout.filter(s => s.type === 'snake'), [layout]);
@@ -174,15 +245,18 @@ const SNLBoard: React.FC = () => {
   const snakeHeads = useMemo(() => new Set(snakes.map(s => s.from)), [snakes]);
   const snakeTails = useMemo(() => new Set(snakes.map(s => s.to)), [snakes]);
 
+  const slidingPlayer = sliding ? players.find(p => p.id === sliding.playerId) ?? null : null;
+
   const playerPositions = useMemo(() => {
     const map = new Map<number, typeof players>();
     for (const p of players) {
+      if (sliding && p.id === sliding.playerId) continue;
       if (p.position === 0) continue;
       if (!map.has(p.position)) map.set(p.position, []);
       map.get(p.position)!.push(p);
     }
     return map;
-  }, [players]);
+  }, [players, sliding]);
 
   return (
     <motion.div
@@ -336,6 +410,16 @@ const SNLBoard: React.FC = () => {
           <SnakeHead key={`sh-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
         ))}
       </svg>
+
+      {sliding && slidingPlayer && (
+        <SlidingToken
+          color={slidingPlayer.color}
+          fromCell={sliding.fromCell}
+          toCell={sliding.toCell}
+          type={sliding.type}
+          cellPct={cellPct}
+        />
+      )}
     </motion.div>
   );
 };

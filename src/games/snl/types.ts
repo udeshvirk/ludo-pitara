@@ -8,6 +8,16 @@ export interface SNLPlayer {
 
 export type SNLGamePhase = 'setup' | 'rolling' | 'moving' | 'finished';
 
+// Set while a token is sliding down a snake or climbing a ladder. The
+// affected player is excluded from cell-based rendering and a floating
+// token is animated along the entity's path instead.
+export interface Slide {
+  playerId: string;
+  fromCell: number;
+  toCell: number;
+  type: 'snake' | 'ladder';
+}
+
 export interface SNLGameState {
   players: SNLPlayer[];
   currentPlayerIndex: number;
@@ -20,6 +30,7 @@ export interface SNLGameState {
   lastAction: string;
   // Per-game randomized snakes & ladders. Empty before the first initGame.
   layout: SnakeOrLadder[];
+  sliding: Slide | null;
 }
 
 export interface SnakeOrLadder {

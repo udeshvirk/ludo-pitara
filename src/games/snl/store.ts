@@ -21,7 +21,7 @@ const stillCurrent = (myGen: number) => myGen === actionGen;
 
 const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
 const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0 && persistedSNL.layout?.length
-  ? { ...persistedSNL, isRolling: false }
+  ? { ...persistedSNL, isRolling: false, sliding: null }
   : {
       players: [],
       currentPlayerIndex: 0,
@@ -33,6 +33,7 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       message: 'Set up your game!',
       lastAction: '',
       layout: [],
+      sliding: null,
     };
 
 export const useSNLStore = create<SNLStore>((set, get) => ({
@@ -178,13 +179,20 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
 
         if (entityType) {
           if (entityType === 'ladder') playLadder(); else { playSnake(); haptics.capture(); }
+          // Slide the token along the snake body / up the ladder. The
+          // sliding flag pulls the player out of cell rendering so a
+          // floating motion.div can animate along the path. Once the
+          // slide finishes, drop the flag and snap position to finalPos.
+          const player = currentPlayer;
+          set({ sliding: { playerId: player.id, fromCell: newPos, toCell: finalPos, type: entityType } });
+          const slideMs = entityType === 'snake' ? 850 : 550;
           setTimeout(() => {
             if (!stillCurrent(myGen)) return;
             const ps = [...get().players];
             ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: finalPos };
-            set({ players: ps });
-            setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 500);
-          }, 500);
+            set({ players: ps, sliding: null });
+            setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 350);
+          }, slideMs);
         } else {
           setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 600);
         }
@@ -223,6 +231,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       message: 'Set up your game!',
       lastAction: '',
       layout: [],
+      sliding: null,
     });
   },
 }));
@@ -244,6 +253,8 @@ useSNLStore.subscribe((state) => {
     message: state.message,
     lastAction: state.lastAction,
     layout: state.layout,
+    // Sliding is purely transient — never persist a half-finished slide.
+    sliding: null,
   };
   save(STORAGE_KEYS.SNL, snapshot);
 });

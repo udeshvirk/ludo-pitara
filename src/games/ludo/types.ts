@@ -18,6 +18,18 @@ export interface Player {
   isCPU?: boolean;
 }
 
+// Set briefly after a capture so the captured token can animate in an
+// arc from its path cell back to its yard socket. Game state has
+// already moved the token to 'yard' — this list just tells the board
+// to render a floating token along the arc and skip the yard render
+// for that token until the flight settles.
+export interface CaptureFly {
+  tokenId: string;
+  color: PlayerColor;
+  from: BoardPosition;
+  to: BoardPosition;
+}
+
 export interface LudoGameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -29,6 +41,7 @@ export interface LudoGameState {
   winner: Player | null;
   message: string;
   selectableTokenIds: string[];
+  flyingCaptures: CaptureFly[];
 }
 
 export interface BoardPosition {

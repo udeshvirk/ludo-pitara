@@ -90,23 +90,25 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // Board width = min(viewport-width budget, viewport-height budget).
-  // Pods sit immediately above/below at gap 18 — the board is sized
-  // explicitly via calc and centered horizontally. No flex-1 wrapper
-  // around it, so no gutters between the board and the pods.
-  // Chrome budget: header ~64, padding 27 (14 top so the active pod's
-  // glow isn't clipped, 13 bottom), two pods ~52 each (Ludo pods carry
-  // no name caption), two gaps of 18 → ~236 vertical.
+  // Height-primary aspect-ratio sizing. The board fills the available
+  // height of its flex parent and `aspect-ratio: 1` derives the width;
+  // `maxWidth` clamps when the viewport is too narrow for a full
+  // square. This is more robust than width-primary calc-based chrome
+  // subtraction (which underestimated header + safe-area-top on
+  // iPad-landscape and let the board overflow top/bottom).
   // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
   const boardStyle: React.CSSProperties = isWide
     ? {
-        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
+        height: '100%',
         aspectRatio: '1',
+        maxWidth: 'calc(100vw - 414px)',
         position: 'relative',
       }
     : {
-        width: 'min(calc(100vw - 26px), calc(100vh - 236px))',
+        flex: 1,
+        minHeight: 0,
         aspectRatio: '1',
+        maxWidth: '100%',
         alignSelf: 'center',
         position: 'relative',
       };
@@ -123,8 +125,12 @@ const LudoGame: React.FC = () => {
         <div
           style={{
             flex: 1,
+            minHeight: 0,
             display: 'flex',
-            alignItems: 'center',
+            // `stretch` (not center) so the board child can resolve
+            // `height: 100%` against the row's actual height. Rails
+            // center their pods vertically via their own flex layout.
+            alignItems: 'stretch',
             justifyContent: 'center',
             gap: 14,
             padding: '0 13px 13px',
@@ -134,7 +140,7 @@ const LudoGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
             {slots.leftRail.map((idx, i) => (
               <PlayerHalfRow key={`l-${i}`} slots={[idx]} compact arrowSide="right" />
             ))}
@@ -142,14 +148,14 @@ const LudoGame: React.FC = () => {
           <div style={boardStyle}>
             <LudoBoard />
           </div>
-          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
             {slots.rightRail.map((idx, i) => (
               <PlayerHalfRow key={`r-${i}`} slots={[idx]} compact arrowSide="left" />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
           <PlayerHalfRow slots={slots.top} />
           <div style={boardStyle}>
             <LudoBoard />

@@ -75,23 +75,30 @@ const SnakesAndLaddersGame: React.FC = () => {
   // active pod's glow isn't clipped, 13 bottom), two pods ≈ 70 each,
   // two gaps of 18 → ~268 vertical chrome on phone/tablet.
   const isPhone = layoutMode === 'phone';
+  // Height-primary aspect-ratio sizing — see LudoGame for why this
+  // beats the previous calc(100vh - chrome) approach.
   const boardStyle: React.CSSProperties = isWide
     ? {
         // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
-        width: 'min(calc(100vw - 414px), calc(100vh - 90px))',
+        height: '100%',
         aspectRatio: '1',
+        maxWidth: 'calc(100vw - 414px)',
         position: 'relative',
       }
     : isPhone
       ? {
-          width: 'min(calc(100vw - 26px), calc((100vh - 268px) * 5 / 6))',
+          flex: 1,
+          minHeight: 0,
           aspectRatio: '5 / 6',
+          maxWidth: '100%',
           alignSelf: 'center',
           position: 'relative',
         }
       : {
-          width: 'min(calc(100vw - 26px), calc(100vh - 268px))',
+          flex: 1,
+          minHeight: 0,
           aspectRatio: '1',
+          maxWidth: '100%',
           alignSelf: 'center',
           position: 'relative',
         };
@@ -104,8 +111,12 @@ const SnakesAndLaddersGame: React.FC = () => {
         <div
           style={{
             flex: 1,
+            minHeight: 0,
             display: 'flex',
-            alignItems: 'center',
+            // `stretch` lets the board's `height: 100%` resolve against
+            // the row's actual height. Rails center their pods via
+            // their own flex layout.
+            alignItems: 'stretch',
             justifyContent: 'center',
             gap: 14,
             padding: '0 13px 13px',
@@ -115,7 +126,7 @@ const SnakesAndLaddersGame: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
             {leftRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`l-${i}`} slots={[idx]} top={false} compact arrowSide="right" />
             ))}
@@ -123,14 +134,14 @@ const SnakesAndLaddersGame: React.FC = () => {
           <div style={boardStyle}>
             <SNLBoard />
           </div>
-          <div style={{ width: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ width: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
             {rightRailSlots(playerCount).map((idx, i) => (
               <SNLPlayerHalfRow key={`r-${i}`} slots={[idx]} top={false} compact arrowSide="left" />
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
           <SNLPlayerHalfRow slots={topSlotsForCount(playerCount)} top />
           <div style={boardStyle}>
             <SNLBoard />

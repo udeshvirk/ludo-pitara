@@ -7,17 +7,31 @@ export type LayoutMode = 'phone' | 'tablet' | 'wide';
 // otherwise restructure the screen mid-session if a phone or tablet
 // user tilted the device into landscape. So `wide` is gated on
 // `pointer: fine` — i.e. mouse / trackpad — and a touch device in
-// landscape stays in `tablet` mode (same shape it had in portrait),
-// so a tilt doesn't reflow the game.
+// landscape stays in `tablet` mode (same shape as portrait), so a
+// tilt doesn't reflow the game.
 function isFinePointer(): boolean {
   if (typeof window === 'undefined') return true;
   return window.matchMedia('(pointer: fine)').matches;
 }
 
+// On touch devices in landscape, OrientationLock counter-rotates #root
+// so the user sees a portrait-shaped viewport regardless of physical
+// orientation. The browser still reports the device's actual
+// innerWidth/innerHeight, so we swap them here when the lock is on.
+function isLockedToPortrait(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(pointer: coarse)').matches &&
+    window.innerWidth > window.innerHeight
+  );
+}
+
 function detect(): LayoutMode {
   if (typeof window === 'undefined') return 'phone';
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const rawW = window.innerWidth;
+  const rawH = window.innerHeight;
+  const w = isLockedToPortrait() ? rawH : rawW;
+  const h = isLockedToPortrait() ? rawW : rawH;
   if (w >= 900 && w > h && isFinePointer()) return 'wide';
   if (w >= 600) return 'tablet';
   return 'phone';
@@ -32,7 +46,6 @@ export function useLayoutMode(): LayoutMode {
     const onChange = () => setMode(detect());
     window.addEventListener('resize', onChange);
     window.addEventListener('orientationchange', onChange);
-    // Pointer-type can change on detachable keyboards / hybrids.
     const finePtr = window.matchMedia('(pointer: fine)');
     finePtr.addEventListener('change', onChange);
     return () => {

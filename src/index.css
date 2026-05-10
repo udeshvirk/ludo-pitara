@@ -64,19 +64,6 @@
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
 
-  /* Layout viewport vars. On touch devices these are pinned to the
-     orientation-stable units (vmin == device's shorter side, vmax ==
-     longer side), so even if the OS rotates the viewport the calc
-     math produces identical numbers and nothing reflows. Desktops
-     get the natural 100vw / 100vh — the wide layout needs them. */
-  --vw100: 100vw;
-  --vh100: 100vh;
-}
-@media (pointer: coarse) {
-  :root {
-    --vw100: 100vmin;
-    --vh100: 100vmax;
-  }
 }
 
 /* ===== Base ===== */

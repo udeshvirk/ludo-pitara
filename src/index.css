@@ -64,14 +64,19 @@
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
 
-  /* Visible-viewport vars used by board sizing. Default to 100vw /
-     100vh; under `:root.lock-to-portrait` they swap so the calc math
-     resolves against the *visible* (post-rotate) dimensions. */
+  /* Layout viewport vars. On touch devices these are pinned to the
+     orientation-stable units (vmin == device's shorter side, vmax ==
+     longer side), so even if the OS rotates the viewport the calc
+     math produces identical numbers and nothing reflows. Desktops
+     get the natural 100vw / 100vh — the wide layout needs them. */
   --vw100: 100vw;
   --vh100: 100vh;
-  /* `screen.orientation.angle`, written by <OrientationLock>. Same
-     direction as the device's tilt — see that file's header. */
-  --device-angle: 0deg;
+}
+@media (pointer: coarse) {
+  :root {
+    --vw100: 100vmin;
+    --vh100: 100vmax;
+  }
 }
 
 /* ===== Base ===== */
@@ -108,31 +113,6 @@ body {
   align-items: stretch;
   justify-content: center;
   background: var(--bg-deep);
-}
-
-/* Rotation lock: applied by <OrientationLock> when the device is
-   touch-primary AND in a landscape orientation. We rotate `#root` by
-   `screen.orientation.angle` (SAME direction as the device tilted)
-   so the rendered content stays glued to the device's natural frame
-   — i.e. the same thing iOS does when system rotation lock is ON.
-   See OrientationLock.tsx for the sign rationale.
-
-   Layout viewport units inside the app should use `var(--vw100)` /
-   `var(--vh100)` (not raw 100vw / 100vh) so the calc math resolves
-   against the visible viewport instead of the device's physical
-   dimensions. `vmin` is symmetric and stays as-is. */
-:root.lock-to-portrait {
-  --vw100: 100vh;
-  --vh100: 100vw;
-}
-:root.lock-to-portrait #root {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 100vh;
-  height: 100vw;
-  transform: translate(-50%, -50%) rotate(var(--device-angle));
-  transform-origin: center center;
 }
 
 /* Frame.

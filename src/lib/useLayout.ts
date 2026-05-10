@@ -2,43 +2,43 @@ import { useEffect, useState } from 'react';
 
 export type LayoutMode = 'phone' | 'tablet' | 'wide';
 
-// Wide layout (board + side rails) is desktop-only territory: rails
-// carry compact pods that look fine next to a mouse cursor but would
-// otherwise restructure the screen mid-session if a phone or tablet
-// user tilted the device into landscape. So `wide` is gated on
-// `pointer: fine` — i.e. mouse / trackpad — and a touch device in
-// landscape stays in `tablet` mode (same shape as portrait), so a
-// tilt doesn't reflow the game.
+// Touch-primary devices are hard-locked to portrait — the manifest
+// declares it and OrientationLock calls `screen.orientation.lock` to
+// enforce it on installed PWAs. So `useLayout` reads the orientation-
+// stable dimensions (`min(w,h)` / `max(w,h)`) instead of `innerWidth`
+// / `innerHeight`. That way phone-vs-tablet decisions don't change if
+// some browser tab rotates anyway — same numbers in either physical
+// orientation, no reflow.
+//
+// `wide` (board + side rails) only triggers on `pointer: fine` devices
+// (mouse / trackpad). Touch devices never get the wide layout, so a
+// 1024-wide iPad held landscape stays in `tablet`, identical to its
+// portrait rendering.
 function isFinePointer(): boolean {
   if (typeof window === 'undefined') return true;
   return window.matchMedia('(pointer: fine)').matches;
 }
 
-// On touch devices in landscape, OrientationLock counter-rotates #root
-// so the user sees a portrait-shaped viewport regardless of physical
-// orientation. The browser still reports the device's actual
-// innerWidth/innerHeight, so we swap them here when the lock is on.
-function isLockedToPortrait(): boolean {
+function isCoarsePointer(): boolean {
   if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(pointer: coarse)').matches &&
-    window.innerWidth > window.innerHeight
-  );
+  return window.matchMedia('(pointer: coarse)').matches;
 }
 
 function detect(): LayoutMode {
   if (typeof window === 'undefined') return 'phone';
   const rawW = window.innerWidth;
   const rawH = window.innerHeight;
-  const w = isLockedToPortrait() ? rawH : rawW;
-  const h = isLockedToPortrait() ? rawW : rawH;
+  const coarse = isCoarsePointer();
+  // On touch, layout decisions ALWAYS use the portrait-shaped logical
+  // dimensions (short = width, long = height) so a rotated viewport
+  // can't trigger a tablet→wide or phone→tablet flip.
+  const w = coarse ? Math.min(rawW, rawH) : rawW;
+  const h = coarse ? Math.max(rawW, rawH) : rawH;
   if (w >= 900 && w > h && isFinePointer()) return 'wide';
   if (w >= 600) return 'tablet';
   return 'phone';
 }
 
-// Tracks viewport size so in-game layouts can switch between stacked
-// (portrait) and side-by-side (wide landscape) arrangements.
 export function useLayoutMode(): LayoutMode {
   const [mode, setMode] = useState<LayoutMode>(detect);
 

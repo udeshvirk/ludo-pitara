@@ -14,27 +14,10 @@ function isFinePointer(): boolean {
   return window.matchMedia('(pointer: fine)').matches;
 }
 
-// On touch devices in landscape, OrientationLock counter-rotates #root
-// so the user sees a portrait-shaped viewport regardless of physical
-// orientation. The browser still reports the device's actual
-// innerWidth/innerHeight, so we swap them here when the lock is on —
-// otherwise an iPad held landscape would compute a `tablet` decision
-// based on its 1024×768 viewport when the user's effective viewport
-// is 768×1024.
-function isLockedToPortrait(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(pointer: coarse)').matches &&
-    window.innerWidth > window.innerHeight
-  );
-}
-
 function detect(): LayoutMode {
   if (typeof window === 'undefined') return 'phone';
-  const rawW = window.innerWidth;
-  const rawH = window.innerHeight;
-  const w = isLockedToPortrait() ? rawH : rawW;
-  const h = isLockedToPortrait() ? rawW : rawH;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
   if (w >= 900 && w > h && isFinePointer()) return 'wide';
   if (w >= 600) return 'tablet';
   return 'phone';

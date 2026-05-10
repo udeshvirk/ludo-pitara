@@ -63,14 +63,6 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
-
-  /* Visible-viewport vars used by board sizing. Default to 100vw /
-     100vh; under `:root.lock-to-portrait` they swap so the calc math
-     resolves against the *visible* (post-rotate) dimensions. */
-  --vw100: 100vw;
-  --vh100: 100vh;
-  /* Inverse of `screen.orientation.angle`, written by OrientationLock. */
-  --device-angle: 0deg;
 }
 
 /* ===== Base ===== */
@@ -107,32 +99,6 @@ body {
   align-items: stretch;
   justify-content: center;
   background: var(--bg-deep);
-}
-
-/* Rotation lock: applied by <OrientationLock> when the device is
-   touch-primary AND currently held in a landscape orientation. We
-   counter-rotate `#root` by the inverse of `screen.orientation.angle`
-   (written into `--device-angle` by the same component), which glues
-   the rendered content to the device's natural frame — i.e. the same
-   thing iOS does when system rotation lock is ON. The user sees
-   portrait pixels on a tilted device until they tilt back to portrait.
-
-   Layout-relevant viewport units inside the app must use
-   `var(--vw100)` / `var(--vh100)` (not raw 100vw / 100vh) so the calc
-   math resolves against the visible viewport instead of the device's
-   physical dimensions. `vmin` is symmetric and stays as-is. */
-:root.lock-to-portrait {
-  --vw100: 100vh;
-  --vh100: 100vw;
-}
-:root.lock-to-portrait #root {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 100vh;
-  height: 100vw;
-  transform: translate(-50%, -50%) rotate(var(--device-angle));
-  transform-origin: center center;
 }
 
 /* Frame.

@@ -90,25 +90,27 @@ const LudoGame: React.FC = () => {
   // colours rather than array indices.
   const slots = React.useMemo(() => buildSlots(players), [players]);
 
-  // Height-primary aspect-ratio sizing. The board fills the available
-  // height of its flex parent and `aspect-ratio: 1` derives the width;
-  // `maxWidth` clamps when the viewport is too narrow for a full
-  // square. This is more robust than width-primary calc-based chrome
-  // subtraction (which underestimated header + safe-area-top on
-  // iPad-landscape and let the board overflow top/bottom).
-  // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
+  // Height-primary aspect-ratio sizing. The board fills its flex
+  // parent's height and `aspect-ratio: 1` keeps it square. Both
+  // `max-width` AND `max-height` are clamped to the same calc(...)
+  // value so a too-tall row doesn't stretch the board into a non-
+  // square box (the board MUST stay square — non-square Ludo cells
+  // distort the path geometry). Wide rails: 2 × 180 + 2×14 (board↔
+  // rail gaps) + 2×13 (page padding) = 414.
   const boardStyle: React.CSSProperties = isWide
     ? {
         height: '100%',
         aspectRatio: '1',
         maxWidth: 'calc(100vw - 414px)',
+        maxHeight: 'calc(100vw - 414px)',
         position: 'relative',
       }
     : {
         flex: 1,
         minHeight: 0,
         aspectRatio: '1',
-        maxWidth: '100%',
+        maxWidth: 'calc(100vw - 26px)',
+        maxHeight: 'calc(100vw - 26px)',
         alignSelf: 'center',
         position: 'relative',
       };

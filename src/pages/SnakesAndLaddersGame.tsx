@@ -75,22 +75,26 @@ const SnakesAndLaddersGame: React.FC = () => {
   // active pod's glow isn't clipped, 13 bottom), two pods ≈ 70 each,
   // two gaps of 18 → ~268 vertical chrome on phone/tablet.
   const isPhone = layoutMode === 'phone';
-  // Height-primary aspect-ratio sizing — see LudoGame for why this
-  // beats the previous calc(100vh - chrome) approach.
+  // Height-primary aspect-ratio sizing — see LudoGame for the
+  // matching `max-height = max-width` clamp pattern that keeps the
+  // board square even when the parent row is taller than wide.
   const boardStyle: React.CSSProperties = isWide
     ? {
         // Wide rails: 2 × 180 + 2×14 (board↔rail gaps) + 2×13 (page padding) = 414.
         height: '100%',
         aspectRatio: '1',
         maxWidth: 'calc(100vw - 414px)',
+        maxHeight: 'calc(100vw - 414px)',
         position: 'relative',
       }
     : isPhone
       ? {
+          // Phone uses 5:6 aspect — height is 6/5 × width budget.
           flex: 1,
           minHeight: 0,
           aspectRatio: '5 / 6',
-          maxWidth: '100%',
+          maxWidth: 'calc(100vw - 26px)',
+          maxHeight: 'calc((100vw - 26px) * 6 / 5)',
           alignSelf: 'center',
           position: 'relative',
         }
@@ -98,7 +102,8 @@ const SnakesAndLaddersGame: React.FC = () => {
           flex: 1,
           minHeight: 0,
           aspectRatio: '1',
-          maxWidth: '100%',
+          maxWidth: 'calc(100vw - 26px)',
+          maxHeight: 'calc(100vw - 26px)',
           alignSelf: 'center',
           position: 'relative',
         };

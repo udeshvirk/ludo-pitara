@@ -61,20 +61,26 @@ const PlayerSetup: React.FC = () => {
       ? [...last.names, '', '', '', ''].slice(0, 4)
       : ['', '', '', ''],
   );
-  // Default colour order so the slot-0 player (the human in cpu mode)
-  // lands on a bottom yard, and slot-1 lands diagonally on a top yard
-  // — so a 1-human + 1-bot Ludo game seats them across the board:
-  //   slot 0 → blue   (bottom-left yard)   [human in 1H+1B]
-  //   slot 1 → green  (top-right yard)     [bot   in 1H+1B]
-  //   slot 2 → yellow (bottom-right yard)
-  //   slot 3 → red    (top-left yard)
-  const defaultColors: LudoColor[] = ['blue', 'green', 'yellow', 'red'];
+  // Yard position is fixed by slot index AND player count (see
+  // LudoGame `SEATS_BY_COUNT`). The user-picked colour is purely
+  // cosmetic — it fills that slot's avatar/yard/tokens but does NOT
+  // move the player. Defaults match each slot's seat namesake so a
+  // fresh setup renders a canonical-looking board:
+  //   2 players → diagonal BL (blue) + TR (green)
+  //   3 players → BL (blue) + TL (red) + TR (green)
+  //   4 players → BL (blue) + TL (red) + TR (green) + BR (yellow)
+  const defaultColorsForCount = (n: number): LudoColor[] => {
+    if (n === 2) return ['blue', 'green', 'yellow', 'red'];
+    return ['blue', 'red', 'green', 'yellow'];
+  };
   const [colors, setColors] = useState<LudoColor[]>(() => {
-    if (!last) return defaultColors;
+    const initialCount = last?.count ?? 2;
+    const fallback = defaultColorsForCount(initialCount);
+    if (!last) return fallback;
     // Pad/truncate to 4. Any missing slots fall back to whatever default
     // colour wasn't already used by the restored setup.
     const used = new Set(last.colors);
-    const padding = defaultColors.filter(c => !used.has(c));
+    const padding = fallback.filter(c => !used.has(c));
     return [...last.colors, ...padding].slice(0, 4) as LudoColor[];
   });
   // Bots are toggled per-slot via the Human/Bot switch below. Default to
@@ -170,6 +176,11 @@ const PlayerSetup: React.FC = () => {
       color: colors[i],
       isCPU: isCPU[i],
     }));
+    // For Ludo, the YARD position is fixed by slot index (Player 1 = BL,
+    // 2 = TL, 3 = TR, 4 = BR); LudoGame derives the seat from the
+    // flowPlayers index. The colour the user picked is preserved
+    // verbatim as the visual `displayColor`. For SNL, slot order is
+    // turn order and colour is purely cosmetic — nothing to remap.
     // Reset the destination game store BEFORE navigating, otherwise
     // any persisted in-progress game would resume and the new player
     // setup would be ignored. The destination page's bootstrap
@@ -202,7 +213,18 @@ const PlayerSetup: React.FC = () => {
           {[2, 3, 4].map(n => (
             <button
               key={n}
-              onClick={() => { setCount(n); playTap(); haptics.tap(); }}
+              onClick={() => {
+                if (n !== count) {
+                  setCount(n);
+                  // Reset colour assignments to the CW-from-BL default
+                  // for this count — so 4-player picks don't inherit
+                  // the 2-player diagonal layout. User can recustomize
+                  // via the colour chips after.
+                  setColors(defaultColorsForCount(n));
+                }
+                playTap();
+                haptics.tap();
+              }}
               style={{
                 flex: 1,
                 padding: '10px 0',

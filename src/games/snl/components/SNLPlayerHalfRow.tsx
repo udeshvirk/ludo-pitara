@@ -4,8 +4,10 @@ import Pod from '../../../components/ui/Pod';
 
 interface SNLPlayerHalfRowProps {
   slots: Array<number | null>; // index into players[] or null for an empty slot
-  // `top` = the row sits at the top of the screen, so the name caption
-  // is rendered ABOVE the pod (and the pod hugs the board edge).
+  // `top` = the row sits at the top of the screen, so the pod and name
+  // are each rotated 180° (so a player sitting across the table sees
+  // them right-side-up). Layout always reads "pod above name" — for
+  // top rows this places the name close to the board edge.
   top: boolean;
   compact?: boolean;
   // Single-slot rows (side rails) need the caller to specify which
@@ -47,9 +49,16 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
         // (compact) wrapper at the cell's outer edge.
         const justify: React.CSSProperties['justifySelf'] =
           isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
-        const podArrowSide: 'left' | 'right' = isSingle
+        // Two-slot rows: slot 0 hugs the left edge → arrow on its right
+        // (points inward); slot 1 mirrors. For top-of-screen rows the
+        // pod wrapper is rotated 180°, which would visually flip the
+        // chevron's side — so we pre-swap the side here to cancel it.
+        const naturalSide: 'left' | 'right' = isSingle
           ? (arrowSide ?? 'right')
           : (slot === 0 ? 'right' : 'left');
+        const podArrowSide: 'left' | 'right' = top
+          ? (naturalSide === 'left' ? 'right' : 'left')
+          : naturalSide;
         return (
           <div
             key={slot}
@@ -57,24 +66,33 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
               maxWidth: '100%',
               minWidth: 0,
               display: 'flex',
+              // Top-of-screen rows: name sits at the top of the row in
+              // the DOM/device-holder view AND each child (pod + name)
+              // is rotated 180° individually. When the device is
+              // flipped for the across-table player, what was at the
+              // top of the row appears at the bottom of their view —
+              // so they see pod-on-top, name-on-bottom (matching the
+              // bottom-row player's reading order).
               flexDirection: top ? 'column-reverse' : 'column',
               alignItems: 'center',
               gap: 4,
               justifySelf: justify,
             }}
           >
-            <Pod
-              color={player.color}
-              label={player.name[0]}
-              isActive={isActive}
-              isRolling={isRolling}
-              diceValue={diceValue}
-              onRoll={rollDice}
-              canRoll={gamePhase === 'rolling'}
-              compact={compact}
-              isBot={!!player.isCPU}
-              arrowSide={podArrowSide}
-            />
+            <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
+              <Pod
+                color={player.color}
+                label={player.name[0]}
+                isActive={isActive}
+                isRolling={isRolling}
+                diceValue={diceValue}
+                onRoll={rollDice}
+                canRoll={gamePhase === 'rolling'}
+                compact={compact}
+                isBot={!!player.isCPU}
+                arrowSide={podArrowSide}
+              />
+            </div>
             <div
               style={{
                 maxWidth: '100%',
@@ -87,6 +105,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 textAlign: 'center',
+                transform: top ? 'rotate(180deg)' : undefined,
               }}
             >
               {player.name}

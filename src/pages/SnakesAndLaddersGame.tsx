@@ -175,26 +175,30 @@ const SnakesAndLaddersGame: React.FC = () => {
   );
 };
 
-// Slot layout — pods sit at the four corners of the board.
-//   2 players  → diagonal: P0 bottom-left, P1 top-right
-//   3 players  → P0 bottom-left, P1 top-left, P2 top-right
-//   4 players  → all four corners (P0 BL, P1 BR, P2 TL, P3 TR)
+// Slot layout — pods sit at the four corners of the board. Turn order
+// follows a clockwise spiral starting at bottom-left, matching Ludo:
+//   2 players → diagonal: P0 BL, P1 TR
+//   3 players → P0 BL, P1 TL, P2 TR
+//   4 players → P0 BL, P1 TL, P2 TR, P3 BR (CW around the board)
 function topSlotsForCount(count: number): Array<number | null> {
   if (count === 2) return [null, 1];
   if (count === 3) return [1, 2];
-  return [2, 3];
+  return [1, 2];
 }
 
 function bottomSlotsForCount(count: number): Array<number | null> {
   if (count === 2) return [0, null];
   if (count === 3) return [0, null];
-  return [0, 1];
+  return [0, 3];
 }
 
+// Wide-landscape rails mirror the CW order: left rail holds the two
+// left-side seats (P1 top = TL, P0 bottom = BL); right rail holds the
+// right-side seats (P2 top = TR, P3 bottom = BR).
 function leftRailSlots(count: number): number[] {
   if (count === 2) return [0];
-  if (count === 3) return [0, 1];
-  return [0, 1];
+  if (count === 3) return [1, 0];
+  return [1, 0];
 }
 
 function rightRailSlots(count: number): number[] {

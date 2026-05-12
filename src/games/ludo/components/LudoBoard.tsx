@@ -68,6 +68,13 @@ const NAMEPLATE_LAYOUT: Record<PlayerColor, {
 // with keyframe-driven left/top + scale + rotate. The yardTokens render
 // skips the captured token until flyingCaptures clears, so visually
 // the arc lands and the yard render takes over.
+// Identity fallback for seats with no player (2/3-player games leave
+// some yards empty). Lets `seatToDisplay[seat]` always return a key
+// that PLAYER_COLORS / COLOR_DEEP can be indexed with.
+const IDENTITY_SEAT_MAP: Record<PlayerColor, PlayerColor> = {
+  red: 'red', green: 'green', yellow: 'yellow', blue: 'blue',
+};
+
 const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
   const cellPct = 100 / 15;
   const fromX = (fly.from.col + 0.5) * cellPct;
@@ -100,7 +107,7 @@ const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
       }}
       transition={{ duration: 0.5, ease: 'easeInOut' }}
     >
-      <Coin color={PLAYER_COLORS[fly.color].bg} />
+      <Coin color={PLAYER_COLORS[fly.displayColor].bg} />
     </motion.div>
   );
 };
@@ -192,6 +199,16 @@ const LudoBoard: React.FC = () => {
     return map;
   }, [players]);
 
+  // Seat → user-picked visual colour. Each Ludo seat (BL/TL/TR/BR,
+  // historically named blue/red/green/yellow) renders with the
+  // displayColor of whoever sits there. Empty seats fall back to the
+  // seat's namesake colour so 2/3-player boards still look natural.
+  const seatToDisplay = useMemo(() => {
+    const map: Record<PlayerColor, PlayerColor> = { ...IDENTITY_SEAT_MAP };
+    for (const p of players) map[p.color] = p.displayColor;
+    return map;
+  }, [players]);
+
   return (
     <motion.div
       className="relative mx-auto"
@@ -235,8 +252,10 @@ const LudoBoard: React.FC = () => {
         let bg = 'var(--bg-board-cream)';
         if (coloredCells.has(key)) {
           const c = coloredCells.get(key)!;
-          // Home stretch lanes: solid color. Start cells: 25% tinted.
-          bg = startCells.has(key) ? `${PLAYER_COLORS[c].bg}40` : PLAYER_COLORS[c].bg;
+          // Home stretch lanes: solid colour. Start cells: 25% tinted.
+          // Resolve seat → player-picked display colour for fills.
+          const visual = PLAYER_COLORS[seatToDisplay[c]].bg;
+          bg = startCells.has(key) ? `${visual}40` : visual;
         }
 
         const isSafe = safeSquareSet.has(key) && onPath;
@@ -279,7 +298,7 @@ const LudoBoard: React.FC = () => {
                   fontSize: isStartCell ? 'clamp(11px, 2.4vmin, 18px)' : 'clamp(9px, 1.8vmin, 14px)',
                   fontWeight: 700,
                   lineHeight: 1,
-                  color: isStartCell ? COLOR_DEEP[cellColor!] : 'rgba(255,255,255,0.78)',
+                  color: isStartCell ? COLOR_DEEP[seatToDisplay[cellColor!]] : 'rgba(255,255,255,0.78)',
                   textShadow: isStartCell
                     ? '0 1px 0 rgba(255,255,255,0.65)'
                     : '0 1px 0 rgba(0,0,0,0.25)',
@@ -296,7 +315,7 @@ const LudoBoard: React.FC = () => {
                 <LudoToken
                   key={t.tokenId}
                   tokenId={t.tokenId}
-                  color={t.color}
+                  color={seatToDisplay[t.color]}
                   isSelectable={selectableTokenIds.includes(t.tokenId)}
                   stackIndex={ti}
                   stackSize={arr.length}
@@ -309,7 +328,7 @@ const LudoBoard: React.FC = () => {
                 <LudoToken
                   key={t.tokenId}
                   tokenId={t.tokenId}
-                  color={t.color}
+                  color={seatToDisplay[t.color]}
                   isSelectable={selectableTokenIds.includes(t.tokenId)}
                   stackIndex={0}
                   stackSize={1}
@@ -328,12 +347,15 @@ const LudoBoard: React.FC = () => {
       <div style={{ gridRow: '7 / span 3', gridColumn: '7 / span 3', position: 'relative', background: 'var(--bg-board-cream)', border: '1.5px solid rgba(120, 80, 20, 0.4)' }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
           <defs>
-            {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(c => (
-              <radialGradient key={c} id={`wedge-${c}`} cx="50%" cy="50%" r="65%">
-                <stop offset="0%" stopColor={PLAYER_COLORS[c].bgLight} />
-                <stop offset="100%" stopColor={PLAYER_COLORS[c].bg} />
-              </radialGradient>
-            ))}
+            {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(c => {
+              const visual = seatToDisplay[c];
+              return (
+                <radialGradient key={c} id={`wedge-${c}`} cx="50%" cy="50%" r="65%">
+                  <stop offset="0%" stopColor={PLAYER_COLORS[visual].bgLight} />
+                  <stop offset="100%" stopColor={PLAYER_COLORS[visual].bg} />
+                </radialGradient>
+              );
+            })}
             <radialGradient id="centerDisc" cx="40%" cy="35%" r="70%">
               <stop offset="0%" stopColor="#fff5c2" />
               <stop offset="55%" stopColor="var(--gold-hi)" />
@@ -387,7 +409,7 @@ const LudoBoard: React.FC = () => {
                 <LudoToken
                   key={tokenId}
                   tokenId={tokenId}
-                  color={color}
+                  color={seatToDisplay[color]}
                   isSelectable={false}
                   stackIndex={ti}
                   stackSize={ids.length}
@@ -402,7 +424,12 @@ const LudoBoard: React.FC = () => {
       {/* Four yard corner panels */}
       {(Object.keys(HOME_CORNERS) as PlayerColor[]).map(color => {
         const corner = HOME_CORNERS[color];
-        const colors = PLAYER_COLORS[color];
+        // Yard rendering uses the seated player's chosen display
+        // colour, so picking "red" for the BL slot makes the BL yard
+        // render red (despite the seat key historically being 'blue').
+        const visual = seatToDisplay[color];
+        const colors = PLAYER_COLORS[visual];
+        const deep = COLOR_DEEP[visual];
         const yard = yardTokens[color];
         const name = nameByColor[color];
         // Nameplate position + rotation per corner (Ludo-King style: each
@@ -416,8 +443,8 @@ const LudoBoard: React.FC = () => {
             style={{
               gridRow: `${corner.row + 1} / span 6`,
               gridColumn: `${corner.col + 1} / span 6`,
-              background: `linear-gradient(135deg, ${colors.bg}, ${COLOR_DEEP[color]})`,
-              border: `2px solid ${COLOR_DEEP[color]}`,
+              background: `linear-gradient(135deg, ${colors.bg}, ${deep})`,
+              border: `2px solid ${deep}`,
               padding: '14%',
               boxSizing: 'border-box',
               position: 'relative',
@@ -456,7 +483,7 @@ const LudoBoard: React.FC = () => {
             <div style={{
               width: '100%', height: '100%',
               background: 'var(--bg-board-cream)',
-              border: `1.5px solid ${COLOR_DEEP[color]}`,
+              border: `1.5px solid ${deep}`,
               borderRadius: 6,
               padding: '10%',
               boxSizing: 'border-box',
@@ -478,7 +505,7 @@ const LudoBoard: React.FC = () => {
                       // as sitting inside a hole rather than on top of
                       // a flat disc.
                       background: colors.bg,
-                      border: `2px solid ${COLOR_DEEP[color]}`,
+                      border: `2px solid ${deep}`,
                       borderRadius: '50%',
                       boxShadow:
                         'inset 0 5px 8px rgba(0,0,0,0.40), ' +
@@ -492,7 +519,7 @@ const LudoBoard: React.FC = () => {
                       {occupant && (
                         <LudoToken
                           tokenId={occupant.tokenId}
-                          color={color}
+                          color={visual}
                           isSelectable={occupant.isSelectable}
                           stackIndex={0}
                           stackSize={1}

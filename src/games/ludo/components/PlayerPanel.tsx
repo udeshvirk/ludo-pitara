@@ -10,7 +10,7 @@ const PlayerPanel: React.FC = () => {
     <div className="flex flex-wrap gap-2 justify-center w-full max-w-md mx-auto flex-shrink-0">
       {players.map((player, index) => {
         const isActive = index === currentPlayerIndex && gamePhase !== 'finished';
-        const colors = PLAYER_COLORS[player.color];
+        const colors = PLAYER_COLORS[player.displayColor];
         const tokensHome = player.tokens.filter(t => t.state === 'home').length;
         const tokensActive = player.tokens.filter(t => t.state === 'active').length;
         const tokensYard = player.tokens.filter(t => t.state === 'yard').length;

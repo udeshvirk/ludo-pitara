@@ -47,9 +47,24 @@ const LudoGame: React.FC = () => {
       navigate('/select');
       return;
     }
-    const playersToInit = flowPlayers.map(p => ({
+    // Seat (yard position) is FIXED by slot index AND player count.
+    //   2 players → diagonal (BL + TR) so a shared-device game sits the
+    //     two players across the board from each other.
+    //   3 players → BL + TL + TR (three corners, skip BR).
+    //   4 players → BL + TL + TR + BR (full CW spiral).
+    // The colour the user picked in setup becomes the visual
+    // `displayColor` only — it does NOT determine where the player
+    // sits on the board.
+    const SEATS_BY_COUNT: Record<number, PlayerColor[]> = {
+      2: ['blue', 'green'],
+      3: ['blue', 'red', 'green'],
+      4: ['blue', 'red', 'green', 'yellow'],
+    };
+    const seats = SEATS_BY_COUNT[flowPlayers.length] ?? SEATS_BY_COUNT[4];
+    const playersToInit = flowPlayers.map((p, i) => ({
       name: p.name,
-      color: p.color as PlayerColor,
+      color: seats[i],                       // seat — drives yard, path start, home stretch
+      displayColor: p.color as PlayerColor,  // visual — what the user picked
       isCPU: p.isCPU,
     }));
     const names = playersToInit.map(p => p.name);
@@ -158,7 +173,7 @@ const LudoGame: React.FC = () => {
         </div>
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
-          <PlayerHalfRow slots={slots.top} />
+          <PlayerHalfRow slots={slots.top} top />
           <div style={boardStyle}>
             <LudoBoard />
           </div>
@@ -169,11 +184,18 @@ const LudoGame: React.FC = () => {
       <WinnerModal
         isOpen={gamePhase === 'finished' && winner !== null}
         winnerName={winner?.name || ''}
-        winnerColor={winner ? PLAYER_COLORS[winner.color].bg : '#fff'}
+        winnerColor={winner ? PLAYER_COLORS[winner.displayColor].bg : '#fff'}
         stat={`Tokens home: ${winner?.tokens.filter(t => t.state === 'home').length || 0}/4`}
         onPlayAgain={() => {
           const count = players.length;
-          const snapshot = players.map(p => ({ name: p.name, color: p.color, isCPU: p.isCPU }));
+          // Re-seat in slot order (already in slot order; preserve it).
+          // displayColor flows from the existing players unchanged.
+          const snapshot = players.map(p => ({
+            name: p.name,
+            color: p.color,
+            displayColor: p.displayColor,
+            isCPU: p.isCPU,
+          }));
           // Preserve the live options across rematch — resetGame() wipes
           // them, so capture before resetting and pass back into initGame.
           const opts = useLudoStore.getState().options;

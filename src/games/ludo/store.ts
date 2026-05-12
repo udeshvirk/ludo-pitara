@@ -21,7 +21,7 @@ interface LudoStore extends LudoGameState {
   initGame: (
     playerCount: number,
     playerNames?: string[],
-    customPlayers?: {name: string, color: PlayerColor, isCPU?: boolean}[],
+    customPlayers?: {name: string, color: PlayerColor, displayColor: PlayerColor, isCPU?: boolean}[],
     options?: LudoGameOptions,
   ) => void;
   rollDice: () => void;
@@ -34,14 +34,16 @@ const DEFAULT_LUDO_OPTIONS: LudoGameOptions = {
   firstHomeWins: false,
 };
 
-function createPlayer(name: string, color: PlayerColor, isCPU = false, oneTokenOut = false): Player {
+function createPlayer(name: string, color: PlayerColor, displayColor: PlayerColor, isCPU = false, oneTokenOut = false): Player {
   return {
     id: color,
     name,
     color,
+    displayColor,
     tokens: Array.from({ length: 4 }, (_, i) => ({
       id: `${color}-${i}`,
       color,
+      displayColor,
       // With "one token out" the first slot starts already on the path.
       state: (oneTokenOut && i === 0 ? 'active' : 'yard') as Token['state'],
       pathIndex: oneTokenOut && i === 0 ? 0 : -1,
@@ -93,15 +95,31 @@ const stillCurrent = (myGen: number) => myGen === actionGen;
 
 // Pull a saved game (or fall back to a fresh setup state) on store creation.
 const persisted = load<LudoGameState | null>(STORAGE_KEYS.LUDO, null);
-const initialState: LudoGameState = persisted && persisted.players.length > 0
+// Backfill displayColor on players/tokens persisted before the
+// seat-vs-display split landed. For those saves, the player's pick
+// always matched the seat, so seat → displayColor is the right fallback.
+const migrated = persisted
   ? {
       ...persisted,
+      players: persisted.players.map(p => ({
+        ...p,
+        displayColor: p.displayColor ?? p.color,
+        tokens: p.tokens.map(t => ({
+          ...t,
+          displayColor: t.displayColor ?? t.color,
+        })),
+      })),
+    }
+  : null;
+const initialState: LudoGameState = migrated && migrated.players.length > 0
+  ? {
+      ...migrated,
       isRolling: false,
       flyingCaptures: [],
       // Walk state is purely transient — never resume mid-walk.
       movingTokenId: null,
       // Older saves predate options — fill so reads are always safe.
-      options: persisted.options ?? DEFAULT_LUDO_OPTIONS,
+      options: migrated.options ?? DEFAULT_LUDO_OPTIONS,
     }
   : {
       players: [],
@@ -126,12 +144,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     const opts = options ?? DEFAULT_LUDO_OPTIONS;
     let players: Player[] = [];
     if (customPlayers) {
-      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.isCPU, opts.oneTokenOut));
+      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.displayColor, cp.isCPU, opts.oneTokenOut));
     } else {
       const colors = PLAYER_ORDER[playerCount];
       players = colors.map((color, i) => {
         const name = playerNames?.[i] || `Player ${i + 1}`;
-        return createPlayer(name, color, false, opts.oneTokenOut);
+        // No explicit displayColor → seat doubles as visual (legacy
+        // path; the setup screen always supplies displayColor).
+        return createPlayer(name, color, color, false, opts.oneTokenOut);
       });
     }
 
@@ -338,6 +358,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
               flyingCaptures.push({
                 tokenId: otherToken.id,
                 color: otherToken.color,
+                displayColor: otherToken.displayColor,
                 from: otherPos,
                 to: yardPos,
               });

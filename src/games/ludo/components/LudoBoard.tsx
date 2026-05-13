@@ -118,7 +118,24 @@ const LudoBoard: React.FC = () => {
   const movingTokenId = useLudoStore(s => s.movingTokenId);
   const flyingIds = useMemo(() => new Set(flyingCaptures.map(f => f.tokenId)), [flyingCaptures]);
 
-  const coloredCells = useMemo(() => getColoredCells(), []);
+  // Seats that have a player assigned. Used to suppress yard panels,
+  // start cells, home stretches, and centre wedges for empty seats so
+  // a user-picked colour can't collide with an empty seat's namesake
+  // (e.g. P1 picks yellow → BL renders yellow; BR was identity-yellow
+  // and would have rendered yellow too — confusing).
+  const activeSeats = useMemo(
+    () => new Set(players.map(p => p.color)),
+    [players],
+  );
+
+  const coloredCells = useMemo(() => {
+    const all = getColoredCells();
+    const filtered = new Map<string, PlayerColor>();
+    for (const [key, seat] of all) {
+      if (activeSeats.has(seat)) filtered.set(key, seat);
+    }
+    return filtered;
+  }, [activeSeats]);
   const safeSquares = useMemo(() => getSafeSquares(), []);
   const safeSquareSet = useMemo(
     () => new Set(safeSquares.map(s => `${s.row},${s.col}`)),
@@ -129,11 +146,12 @@ const LudoBoard: React.FC = () => {
   const startCells = useMemo(() => {
     const map = new Map<string, PlayerColor>();
     (Object.keys(START_INDEX) as PlayerColor[]).forEach((color) => {
+      if (!activeSeats.has(color)) return;
       const pos = getBoardPosition(color, 0);
       map.set(`${pos.row},${pos.col}`, color);
     });
     return map;
-  }, []);
+  }, [activeSeats]);
 
   // Path tokens — yard and home tokens are rendered separately so the
   // path map stays focused on actual on-track positions. The walking
@@ -366,10 +384,21 @@ const LudoBoard: React.FC = () => {
               <stop offset="100%" stopColor="rgba(255, 217, 102, 0)" />
             </radialGradient>
           </defs>
-          <polygon points="50,50 0,0 100,0" fill="url(#wedge-green)" />
-          <polygon points="50,50 100,0 100,100" fill="url(#wedge-yellow)" />
-          <polygon points="50,50 100,100 0,100" fill="url(#wedge-blue)" />
-          <polygon points="50,50 0,100 0,0" fill="url(#wedge-red)" />
+          {/* Wedges only render for seats with an active player —
+              otherwise the unfilled wedge stays board-cream to avoid
+              an empty seat's namesake colour leaking into the centre. */}
+          {activeSeats.has('green') && (
+            <polygon points="50,50 0,0 100,0" fill="url(#wedge-green)" />
+          )}
+          {activeSeats.has('yellow') && (
+            <polygon points="50,50 100,0 100,100" fill="url(#wedge-yellow)" />
+          )}
+          {activeSeats.has('blue') && (
+            <polygon points="50,50 100,100 0,100" fill="url(#wedge-blue)" />
+          )}
+          {activeSeats.has('red') && (
+            <polygon points="50,50 0,100 0,0" fill="url(#wedge-red)" />
+          )}
           {/* Wedge separators */}
           <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(0,0,0,0.18)" strokeWidth="0.6" />
           <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(0,0,0,0.18)" strokeWidth="0.6" />
@@ -421,8 +450,11 @@ const LudoBoard: React.FC = () => {
         })}
       </div>
 
-      {/* Four yard corner panels */}
+      {/* Four yard corner panels — only rendered for seats with an
+          active player. An empty seat's corner stays board-cream so
+          its namesake colour can't collide with the user's pick. */}
       {(Object.keys(HOME_CORNERS) as PlayerColor[]).map(color => {
+        if (!activeSeats.has(color)) return null;
         const corner = HOME_CORNERS[color];
         // Yard rendering uses the seated player's chosen display
         // colour, so picking "red" for the BL slot makes the BL yard

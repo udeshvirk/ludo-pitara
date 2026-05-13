@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/ludo-pitara/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Pinch-zoom is intentionally allowed: blocking it (with
+         maximum-scale=1 / user-scalable=no) is a hard accessibility
+         failure for low-vision users. The CSS already pins the
+         playable layout and `touch-action: manipulation` on `*`
+         disables double-tap-to-zoom, so user zoom is a deliberate
+         gesture only. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Play Ludo & Snake and Ladders offline with friends! A beautiful PWA board game app." />
     <meta name="theme-color" content="#190a2e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

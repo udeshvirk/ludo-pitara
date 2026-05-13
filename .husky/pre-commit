@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# Local mirror of the CI gates so a busted commit never lands on main.
+#  - lint-staged: ESLint --fix on staged source files (fast; runs on
+#    each commit's diff, not the whole tree).
+#  - vitest: full suite is small (~300 ms) — runs every commit.
+# Skip with `--no-verify` if you have to; the CI workflow is still the
+# authoritative gate.
+npx lint-staged
+npm test

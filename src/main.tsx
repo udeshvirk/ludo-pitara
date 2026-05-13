@@ -4,14 +4,17 @@ import { HashRouter } from 'react-router-dom'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 
 if ('serviceWorker' in navigator) {
   registerSW({ immediate: true });
 }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
+    <ErrorBoundary>
+      <HashRouter>
+        <App />
+      </HashRouter>
+    </ErrorBoundary>
   </StrictMode>,
 )

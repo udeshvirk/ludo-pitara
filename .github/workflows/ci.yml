@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        # Advisory for now — the repo has pre-existing react-hooks
+        # rule violations that we surface here without blocking the
+        # build. Once the lint backlog is clean, drop `continue-on-error`.
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        # Mirrors the deploy gate exactly (tsc -b + vite build), so the
+        # PR check fails on the same things `npm run deploy` would.
+        run: npm run build

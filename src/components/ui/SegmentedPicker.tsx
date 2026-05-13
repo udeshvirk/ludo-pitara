@@ -1,4 +1,3 @@
-import React from 'react';
 import { playTap } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 

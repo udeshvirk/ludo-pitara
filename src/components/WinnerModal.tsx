@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Btn from './ui/Btn';
 
@@ -25,26 +25,79 @@ const CONFETTI_COLORS = ['#e53935', '#2e9d4f', '#f5b800', '#1e6fdb', '#ff8a3d', 
 
 const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerColor, stat, onPlayAgain, onGoHome }) => {
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
+  const playAgainRef = useRef<HTMLButtonElement | null>(null);
+  const goHomeRef = useRef<HTMLButtonElement | null>(null);
+  // Where focus lived before the modal opened. Restored on close so
+  // keyboard / screen-reader users land back where they were.
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const titleId = useId();
 
   useEffect(() => {
-    if (isOpen) {
-      const pieces: ConfettiPiece[] = Array.from({ length: 60 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        delay: Math.random() * 1.4,
-        duration: 2 + Math.random() * 2.5,
-        size: 6 + Math.random() * 8,
-        rotate: Math.random() * 360,
-      }));
-      setConfetti(pieces);
-    }
+    if (!isOpen) return;
+    // Confetti
+    const pieces: ConfettiPiece[] = Array.from({ length: 60 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      delay: Math.random() * 1.4,
+      duration: 2 + Math.random() * 2.5,
+      size: 6 + Math.random() * 8,
+      rotate: Math.random() * 360,
+    }));
+    setConfetti(pieces);
+
+    // Capture the focused element so we can restore it on close.
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    // Defer until the modal has mounted + entered.
+    const t = setTimeout(() => playAgainRef.current?.focus(), 50);
+    return () => clearTimeout(t);
   }, [isOpen]);
+
+  // Restore focus when the modal closes. Effect runs after the unmount
+  // of the modal body — at that point the previously-focused element
+  // is again the right place to land the user.
+  useEffect(() => {
+    if (isOpen) return;
+    const target = previouslyFocused.current;
+    if (target && typeof target.focus === 'function') target.focus();
+  }, [isOpen]);
+
+  // Keyboard: ESC = Main menu. Tab cycles between the two CTAs (a
+  // tiny focus trap — only two focusable elements live in this modal).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onGoHome();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const active = document.activeElement;
+        if (e.shiftKey) {
+          if (active === playAgainRef.current) {
+            e.preventDefault();
+            goHomeRef.current?.focus();
+          }
+        } else {
+          if (active === goHomeRef.current) {
+            e.preventDefault();
+            playAgainRef.current?.focus();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onGoHome]);
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
           className="fixed inset-0 z-50 flex items-center justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -117,14 +170,14 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
               }}
             >🏆</motion.div>
 
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 36, lineHeight: 1.05, color: winnerColor }}>{winnerName}</div>
+            <div id={titleId} style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 36, lineHeight: 1.05, color: winnerColor }}>{winnerName}</div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ink-dim)' }}>wins the round</div>
 
             {stat && <div style={{ marginTop: 14, fontSize: 13, color: 'var(--ink-dim)' }}>{stat}</div>}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
-              <Btn variant="primary" fullWidth onClick={onPlayAgain}>Rematch</Btn>
-              <Btn variant="ghost" fullWidth onClick={onGoHome}>Main menu</Btn>
+              <Btn variant="primary" fullWidth onClick={onPlayAgain} buttonRef={playAgainRef}>Rematch</Btn>
+              <Btn variant="ghost" fullWidth onClick={onGoHome} buttonRef={goHomeRef}>Main menu</Btn>
             </div>
           </motion.div>
         </motion.div>

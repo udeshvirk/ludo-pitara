@@ -9,6 +9,7 @@ import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
 import type { Player, PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
+import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
 import { useLayoutMode } from '../lib/useLayout';
@@ -32,6 +33,7 @@ const LudoGame: React.FC = () => {
   const isRolling = useLudoStore(s => s.isRolling);
   const gamePhase = useLudoStore(s => s.gamePhase);
   const winner = useLudoStore(s => s.winner);
+  const message = useLudoStore(s => s.message);
   const selectableTokenIds = useLudoStore(s => s.selectableTokenIds);
   const rollDice = useLudoStore(s => s.rollDice);
   const selectToken = useLudoStore(s => s.selectToken);
@@ -143,6 +145,7 @@ const LudoGame: React.FC = () => {
 
   return (
     <PhoneShell decorative={false} fluid>
+      <LiveRegion text={message} />
       <Header
         title="Ludo"
         onBack={() => { resetGame(); navigate('/select'); }}

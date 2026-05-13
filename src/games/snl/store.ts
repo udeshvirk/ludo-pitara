@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { SNLGameState, SNLGameOptions, SNLPlayer } from './types';
 import { SNL_PLAYER_COLORS } from './constants';
 import { generateSNLLayout, buildLayoutLookup, randomBoardCode } from './generator';
+import { SNL_TIMING } from './timing';
 import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { saveDebounced, clear, load } from '../../lib/persist';
@@ -135,7 +136,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
             lastAction: `${currentPlayer.name} needs a 1 to start`,
             message: `${state.players[nextIdx].name}'s turn — Tap the dice to roll!`,
           });
-        }, 700);
+        }, SNL_TIMING.forfeitTurnMs);
         return;
       }
 
@@ -152,7 +153,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         newPos = currentPos;
         actionMessage = `Need exact roll · stayed at ${currentPos}`;
         set({ lastAction: actionMessage, message: `${currentPlayer.name}: ${actionMessage}` });
-        setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 600);
+        setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, SNL_TIMING.overshootHoldMs);
         return;
       }
 
@@ -190,9 +191,9 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: intermediatePos };
         set({ players: ps });
         if (step < stepCount) {
-          setTimeout(walk, 90);
+          setTimeout(walk, SNL_TIMING.cellStepMs);
         } else {
-          setTimeout(() => { if (stillCurrent(myGen)) afterWalk(); }, 180);
+          setTimeout(() => { if (stillCurrent(myGen)) afterWalk(); }, SNL_TIMING.walkSettleMs);
         }
       };
 
@@ -240,16 +241,16 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
           // slide finishes, drop the flag and snap position to finalPos.
           const player = currentPlayer;
           set({ sliding: { playerId: player.id, fromCell: newPos, toCell: finalPos, type: entityType } });
-          const slideMs = entityType === 'snake' ? 850 : 550;
+          const slideMs = entityType === 'snake' ? SNL_TIMING.slideSnakeMs : SNL_TIMING.slideLadderMs;
           setTimeout(() => {
             if (!stillCurrent(myGen)) return;
             const ps = [...get().players];
             ps[state.currentPlayerIndex] = { ...ps[state.currentPlayerIndex], position: finalPos };
             set({ players: ps, sliding: null });
-            setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 350);
+            setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, SNL_TIMING.postSlideMs);
           }, slideMs);
         } else {
-          setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, 600);
+          setTimeout(() => { if (stillCurrent(myGen)) advanceTurn(); }, SNL_TIMING.turnEndMs);
         }
       }
 
@@ -267,7 +268,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       }
 
       walk();
-    }, 800);
+    }, SNL_TIMING.diceSettleMs);
   },
 
   resetGame: () => {

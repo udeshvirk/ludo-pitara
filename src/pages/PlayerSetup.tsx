@@ -5,6 +5,10 @@ import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
 import Avatar from '../components/ui/Avatar';
+import Card from '../components/ui/Card';
+import Chip from '../components/ui/Chip';
+import OptionTile from '../components/ui/OptionTile';
+import SegmentedPicker from '../components/ui/SegmentedPicker';
 import { useFlow, type FlowPlayer, type GameOptions, type CPUDifficulty } from '../games/flow/store';
 import { normaliseBoardCode } from '../games/snl/generator';
 import { useLudoStore } from '../games/ludo/store';
@@ -22,6 +26,19 @@ const COLOR_VAR: Record<LudoColor, string> = {
   yellow: 'var(--p-yellow)',
   blue: 'var(--p-blue)',
 };
+
+// Yard position is fixed by slot index AND player count (see LudoGame
+// `SEATS_BY_COUNT`). The user-picked colour is purely cosmetic — it
+// fills that slot's avatar/yard/tokens but does NOT move the player.
+// Defaults match each slot's seat namesake so a fresh setup renders a
+// canonical-looking board:
+//   2 players → diagonal BL (blue) + TR (green)
+//   3 players → BL (blue) + TL (red) + TR (green)
+//   4 players → BL (blue) + TL (red) + TR (green) + BR (yellow)
+function defaultColorsForCount(n: number): LudoColor[] {
+  if (n === 2) return ['blue', 'green', 'yellow', 'red'];
+  return ['blue', 'red', 'green', 'yellow'];
+}
 
 // Default name = "Player N" for humans, "Bot N" for CPUs, where N
 // counts only the same-type slots up to and including this one.
@@ -45,7 +62,7 @@ const PlayerSetup: React.FC = () => {
 
   // SNL only — user can type a 6-char code to reproduce a specific
   // board. Empty = a fresh random board.
-  const [boardCode, setBoardCodeLocal] = useState('');
+  const [boardCode, setBoardCode] = useState('');
 
   useEffect(() => {
     if (!game) navigate('/select');
@@ -67,18 +84,6 @@ const PlayerSetup: React.FC = () => {
       ? [...last.names, '', '', '', ''].slice(0, 4)
       : ['', '', '', ''],
   );
-  // Yard position is fixed by slot index AND player count (see
-  // LudoGame `SEATS_BY_COUNT`). The user-picked colour is purely
-  // cosmetic — it fills that slot's avatar/yard/tokens but does NOT
-  // move the player. Defaults match each slot's seat namesake so a
-  // fresh setup renders a canonical-looking board:
-  //   2 players → diagonal BL (blue) + TR (green)
-  //   3 players → BL (blue) + TL (red) + TR (green)
-  //   4 players → BL (blue) + TL (red) + TR (green) + BR (yellow)
-  const defaultColorsForCount = (n: number): LudoColor[] => {
-    if (n === 2) return ['blue', 'green', 'yellow', 'red'];
-    return ['blue', 'red', 'green', 'yellow'];
-  };
   const [colors, setColors] = useState<LudoColor[]>(() => {
     const initialCount = last?.count ?? 2;
     const fallback = defaultColorsForCount(initialCount);
@@ -98,15 +103,11 @@ const PlayerSetup: React.FC = () => {
   const [activeNameIndex, setActiveNameIndex] = useState<number | null>(null);
   const [recents, setRecents] = useState<string[]>(() => getRecentNames());
 
-  // Game-rules toggles. Pre-fill from the last saved setup so users
-  // don't have to flip the same options every session. The "Game
+  // Game-rules toggles. Pre-fill from the last saved setup. The "Game
   // options" section starts collapsed when nothing's enabled, expanded
   // otherwise — anyone running with non-default rules sees them at a
   // glance instead of having to remember to open the panel.
   const [options, setOptions] = useState<GameOptions>(() => loadOptionsOrDefault());
-  // Difficulty only counts toward "configured" if a bot exists in the
-  // setup — otherwise it has no effect and would just spuriously open
-  // the panel on a fresh mount.
   const initialHasCpu = isCPU.slice(0, count).some(Boolean);
   const anyOptionEnabled =
     options.ludo.oneTokenOut ||
@@ -163,6 +164,14 @@ const PlayerSetup: React.FC = () => {
     haptics.tap();
   };
 
+  const chipsForRow = (idx: number): string[] => {
+    if (recents.length === 0) return [];
+    const taken = new Set(
+      Array.from({ length: count }, (_, i) => (i === idx ? '' : displayName(i).toLowerCase().trim())).filter(Boolean),
+    );
+    return recents.filter(r => !taken.has(r.toLowerCase()));
+  };
+
   const start = () => {
     const finalNames = Array.from({ length: count }, (_, i) => displayName(i));
     // Only remember user-typed names (skip auto defaults like "Bot 1").
@@ -197,23 +206,21 @@ const PlayerSetup: React.FC = () => {
     // setup would be ignored. The destination page's bootstrap
     // useEffect then sees gamePhase='setup' and re-inits with the
     // fresh flowPlayers.
-    if (game === 'ludo') {
-      useLudoStore.getState().resetGame();
-    } else {
-      useSNLStore.getState().resetGame();
-    }
+    if (game === 'ludo') useLudoStore.getState().resetGame();
+    else useSNLStore.getState().resetGame();
     setFlowOptions(options);
     setSnlBoardCode(game === 'snl' ? boardCode : '');
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };
 
-  const chipsForRow = (idx: number): string[] => {
-    if (recents.length === 0) return [];
-    const taken = new Set(
-      Array.from({ length: count }, (_, i) => (i === idx ? '' : displayName(i).toLowerCase().trim())).filter(Boolean),
-    );
-    return recents.filter(r => !taken.has(r.toLowerCase()));
+  const handleCountChange = (n: number) => {
+    if (n === count) return;
+    setCount(n);
+    // Reset colour assignments to the CW-from-BL default for this
+    // count — so 4-player picks don't inherit the 2-player diagonal
+    // layout. User can recustomize via the colour chips after.
+    setColors(defaultColorsForCount(n));
   };
 
   return (
@@ -221,174 +228,42 @@ const PlayerSetup: React.FC = () => {
       <Header title="Set up players" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/select')} />
 
       <div style={{ flex: 1, padding: '8px 22px 12px', overflow: 'auto' }}>
-        <div style={{ display: 'flex', gap: 8, padding: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', marginBottom: 22 }}>
-          {[2, 3, 4].map(n => (
-            <button
-              key={n}
-              onClick={() => {
-                if (n !== count) {
-                  setCount(n);
-                  // Reset colour assignments to the CW-from-BL default
-                  // for this count — so 4-player picks don't inherit
-                  // the 2-player diagonal layout. User can recustomize
-                  // via the colour chips after.
-                  setColors(defaultColorsForCount(n));
-                }
-                playTap();
-                haptics.tap();
-              }}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                borderRadius: 999,
-                fontFamily: 'var(--font-ui)',
-                fontWeight: 700,
-                fontSize: 14,
-                letterSpacing: 0.4,
-                color: count === n ? '#fff' : 'var(--ink-dim)',
-                background: count === n ? 'linear-gradient(180deg, #ffa771, var(--saffron))' : 'transparent',
-                boxShadow: count === n ? 'inset 0 1px 0 rgba(255,255,255,0.35)' : 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {n} Players
-            </button>
+        <div style={{ marginBottom: 22 }}>
+          <SegmentedPicker
+            size="chunky"
+            options={[
+              { value: 2, label: '2 Players' },
+              { value: 3, label: '3 Players' },
+              { value: 4, label: '4 Players' },
+            ]}
+            value={count}
+            onChange={handleCountChange}
+            ariaLabel="Number of players"
+          />
+        </div>
+
+        <ul aria-label="Players" style={{ display: 'flex', flexDirection: 'column', gap: 12, listStyle: 'none', padding: 0, margin: 0 }}>
+          {Array.from({ length: count }, (_, i) => (
+            <PlayerRow
+              key={i}
+              index={i}
+              avatarColor={palette[i]}
+              name={customNames[i] || ''}
+              namePlaceholder={autoDefaultName(i, isCPU)}
+              displayInitial={displayName(i)[0]}
+              isCPU={isCPU[i]}
+              selectedColor={colors[i]}
+              colors={colors.slice(0, count)}
+              chips={activeNameIndex === i ? chipsForRow(i) : []}
+              onNameChange={(v) => updateName(i, v)}
+              onNameFocus={() => setActiveNameIndex(i)}
+              onNameBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === i ? null : prev)), 120)}
+              onColorPick={(c) => setColorAt(i, c)}
+              onToggleCpu={() => toggleCpu(i)}
+              onChipApply={(v) => applyChip(i, v)}
+            />
           ))}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {Array.from({ length: count }, (_, i) => {
-            const chips = activeNameIndex === i ? chipsForRow(i) : [];
-            const cpu = isCPU[i];
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  padding: 12,
-                  borderRadius: 18,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Avatar color={palette[i]} label={displayName(i)[0]} size={44} ring isBot={cpu} />
-                  <input
-                    type="text"
-                    value={customNames[i] || ''}
-                    onChange={e => updateName(i, e.target.value)}
-                    onFocus={() => setActiveNameIndex(i)}
-                    onBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === i ? null : prev)), 120)}
-                    placeholder={autoDefaultName(i, isCPU)}
-                    maxLength={14}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding: '10px 12px',
-                      borderRadius: 12,
-                      background: 'rgba(0,0,0,0.18)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: 'var(--ink)',
-                      fontFamily: 'var(--font-ui)',
-                      fontWeight: 600,
-                      fontSize: 15,
-                      outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleCpu(i)}
-                    aria-pressed={cpu}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 999,
-                      background: cpu ? 'rgba(255, 138, 61, 0.18)' : 'transparent',
-                      border: '1px solid ' + (cpu ? 'var(--saffron)' : 'rgba(255,255,255,0.20)'),
-                      color: cpu ? 'var(--saffron)' : 'var(--ink-dim)',
-                      fontFamily: 'var(--font-ui)',
-                      fontWeight: 800,
-                      fontSize: 10,
-                      letterSpacing: 1.4,
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {cpu ? 'Bot' : 'Human'}
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 56 }}>
-                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
-                    Color
-                  </span>
-                  {LUDO_COLORS.map(c => {
-                    const selected = colors[i] === c;
-                    const ownedBy = colors.indexOf(c);
-                    const ownedByOther = ownedBy !== -1 && ownedBy !== i && ownedBy < count;
-                    return (
-                      <button
-                        key={c}
-                        onClick={() => setColorAt(i, c)}
-                        aria-pressed={selected}
-                        aria-label={c}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
-                          background: COLOR_VAR[c],
-                          border: selected ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
-                          boxShadow: selected
-                            ? '0 0 0 2px var(--saffron), 0 2px 6px rgba(0,0,0,0.4)'
-                            : '0 1px 4px rgba(0,0,0,0.3)',
-                          opacity: ownedByOther ? 0.45 : 1,
-                          cursor: 'pointer',
-                          padding: 0,
-                          flexShrink: 0,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
-                {chips.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.18 }}
-                    style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
-                  >
-                    {chips.map(name => (
-                      <button
-                        key={name}
-                        onMouseDown={(e) => { e.preventDefault(); applyChip(i, name); }}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 999,
-                          background: 'rgba(255, 138, 61, 0.10)',
-                          border: '1px solid rgba(255, 138, 61, 0.35)',
-                          color: 'var(--saffron)',
-                          fontFamily: 'var(--font-ui)',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
+        </ul>
 
         <GameOptionsSection
           game={game}
@@ -397,7 +272,7 @@ const PlayerSetup: React.FC = () => {
           isOpen={optionsOpen}
           setOpen={setOptionsOpen}
           boardCode={boardCode}
-          setBoardCode={setBoardCodeLocal}
+          setBoardCode={setBoardCode}
           hasCpu={isCPU.slice(0, count).some(Boolean)}
         />
       </div>
@@ -408,6 +283,145 @@ const PlayerSetup: React.FC = () => {
     </PhoneShell>
   );
 };
+
+// ─── PlayerRow ────────────────────────────────────────────────────────
+
+interface PlayerRowProps {
+  index: number;
+  avatarColor: string;
+  name: string;
+  namePlaceholder: string;
+  displayInitial: string;
+  isCPU: boolean;
+  selectedColor: LudoColor;
+  colors: LudoColor[]; // colours used by other rows (for the "owned by other" dim)
+  chips: string[];
+  onNameChange: (v: string) => void;
+  onNameFocus: () => void;
+  onNameBlur: () => void;
+  onColorPick: (c: LudoColor) => void;
+  onToggleCpu: () => void;
+  onChipApply: (v: string) => void;
+}
+
+const PlayerRow: React.FC<PlayerRowProps> = ({
+  index, avatarColor, name, namePlaceholder, displayInitial, isCPU, selectedColor,
+  colors, chips, onNameChange, onNameFocus, onNameBlur, onColorPick, onToggleCpu, onChipApply,
+}) => (
+  <motion.li
+    initial={{ opacity: 0, x: -8 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay: index * 0.05 }}
+    style={{ listStyle: 'none' }}
+  >
+    <Card padding="md" radius={18}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Avatar color={avatarColor} label={displayInitial} size={44} ring isBot={isCPU} />
+          <input
+            type="text"
+            value={name}
+            onChange={e => onNameChange(e.target.value)}
+            onFocus={onNameFocus}
+            onBlur={onNameBlur}
+            placeholder={namePlaceholder}
+            maxLength={14}
+            aria-label={`Player ${index + 1} name`}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(0,0,0,0.18)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--ink)',
+              fontFamily: 'var(--font-ui)',
+              fontWeight: 600,
+              fontSize: 15,
+              outline: 'none',
+            }}
+          />
+          <Chip
+            tone={isCPU ? 'saffron' : 'default'}
+            onClick={onToggleCpu}
+            ariaLabel={isCPU ? 'Bot player' : 'Human player'}
+            style={{ fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: 800, padding: '6px 10px' }}
+          >
+            {isCPU ? 'Bot' : 'Human'}
+          </Chip>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 56 }}>
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
+            Color
+          </span>
+          {LUDO_COLORS.map(c => {
+            const selected = selectedColor === c;
+            const ownedByOther = colors.includes(c) && selectedColor !== c;
+            return (
+              <ColorDot
+                key={c}
+                color={c}
+                selected={selected}
+                ownedByOther={ownedByOther}
+                onPick={() => onColorPick(c)}
+              />
+            );
+          })}
+        </div>
+
+        {chips.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
+          >
+            {chips.map(chipName => (
+              <Chip
+                key={chipName}
+                tone="saffron"
+                // mousedown fires before the input's blur — preventing
+                // default keeps the name input focused (and the mobile
+                // keyboard open) while the chip applies its value.
+                onMouseDown={(e) => { e.preventDefault(); onChipApply(chipName); }}
+                style={{ fontWeight: 600 }}
+              >
+                {chipName}
+              </Chip>
+            ))}
+          </motion.div>
+        )}
+      </div>
+    </Card>
+  </motion.li>
+);
+
+const ColorDot: React.FC<{ color: LudoColor; selected: boolean; ownedByOther: boolean; onPick: () => void }> = ({
+  color, selected, ownedByOther, onPick,
+}) => (
+  <button
+    onClick={onPick}
+    aria-pressed={selected}
+    aria-label={`Use ${color}`}
+    style={{
+      width: 24,
+      height: 24,
+      borderRadius: '50%',
+      background: COLOR_VAR[color],
+      border: selected ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)',
+      boxShadow: selected
+        ? '0 0 0 2px var(--saffron), 0 2px 6px rgba(0,0,0,0.4)'
+        : '0 1px 4px rgba(0,0,0,0.3)',
+      opacity: ownedByOther ? 0.45 : 1,
+      cursor: 'pointer',
+      padding: 0,
+      flexShrink: 0,
+    }}
+  />
+);
+
+// ─── GameOptionsSection ────────────────────────────────────────────────
 
 interface GameOptionsSectionProps {
   game: 'ludo' | 'snl' | null;
@@ -421,50 +435,39 @@ interface GameOptionsSectionProps {
 }
 
 const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
-  game,
-  options,
-  setOptions,
-  isOpen,
-  setOpen,
-  boardCode,
-  setBoardCode,
-  hasCpu,
+  game, options, setOptions, isOpen, setOpen, boardCode, setBoardCode, hasCpu,
 }) => {
   if (!game) return null;
-  const items = game === 'ludo'
-    ? [
-        {
-          key: 'oneTokenOut' as const,
-          label: '1 token starts out',
-          desc: 'One token per player starts already on its start cell. The other three still need a 6.',
-          checked: options.ludo.oneTokenOut,
-          set: (v: boolean) =>
-            setOptions({ ...options, ludo: { ...options.ludo, oneTokenOut: v } }),
-        },
-        {
-          key: 'firstHomeWins' as const,
-          label: 'First token home wins',
-          desc: 'The first player to bring any token home wins — instead of having to bring all four.',
-          checked: options.ludo.firstHomeWins,
-          set: (v: boolean) =>
-            setOptions({ ...options, ludo: { ...options.ludo, firstHomeWins: v } }),
-        },
-      ]
-    : [
-        {
-          key: 'autoStart' as const,
-          label: 'Skip 1-to-start',
-          desc: 'Players enter the board on any roll instead of needing to roll a 1.',
-          checked: options.snl.autoStart,
-          set: (v: boolean) =>
-            setOptions({ ...options, snl: { ...options.snl, autoStart: v } }),
-        },
-      ];
 
-  // Difficulty is not a toggle — track it for the "N on" summary so
-  // a non-default difficulty also reads as "configured". The picker
-  // only renders when at least one bot is in the players list (no
-  // bot → setting has no effect, so it'd just be noise).
+  const ludoItems = [
+    {
+      key: 'oneTokenOut',
+      label: '1 token starts out',
+      desc: 'One token per player starts already on its start cell. The other three still need a 6.',
+      checked: options.ludo.oneTokenOut,
+      set: (v: boolean) => setOptions({ ...options, ludo: { ...options.ludo, oneTokenOut: v } }),
+    },
+    {
+      key: 'firstHomeWins',
+      label: 'First token home wins',
+      desc: 'The first player to bring any token home wins — instead of having to bring all four.',
+      checked: options.ludo.firstHomeWins,
+      set: (v: boolean) => setOptions({ ...options, ludo: { ...options.ludo, firstHomeWins: v } }),
+    },
+  ];
+  const snlItems = [
+    {
+      key: 'autoStart',
+      label: 'Skip 1-to-start',
+      desc: 'Players enter the board on any roll instead of needing to roll a 1.',
+      checked: options.snl.autoStart,
+      set: (v: boolean) => setOptions({ ...options, snl: { ...options.snl, autoStart: v } }),
+    },
+  ];
+  const items = game === 'ludo' ? ludoItems : snlItems;
+
+  // Bot difficulty is not a toggle; track it separately for the "N on"
+  // header summary and only render when a bot is in the lineup.
   const showDifficulty = game === 'ludo' && hasCpu;
   const difficultyChanged = showDifficulty && options.ludo.cpuDifficulty !== 'medium';
   const showBoardCode = game === 'snl';
@@ -504,19 +507,7 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
             </span>
           )}
         </span>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 14 14"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 160ms ease' }}
-        >
-          <path d="M3 5l4 4 4-4" />
-        </svg>
+        <Chevron open={isOpen} />
       </button>
 
       {isOpen && (
@@ -527,42 +518,17 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
           style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}
         >
           {items.map(item => (
-            <label
+            <OptionTile
               key={item.key}
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 12,
-                padding: 12,
-                borderRadius: 14,
-                background: item.checked ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${item.checked ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
-                cursor: 'pointer',
-              }}
-            >
-              <Toggle
-                checked={item.checked}
-                onChange={v => { item.set(v); playTap(); haptics.tap(); }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                  {item.label}
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
-                  {item.desc}
-                </div>
-              </div>
-            </label>
+              label={item.label}
+              description={item.desc}
+              checked={item.checked}
+              onChange={v => { item.set(v); playTap(); haptics.tap(); }}
+            />
           ))}
+
           {showBoardCode && (
-            <div
-              style={{
-                padding: 12,
-                borderRadius: 14,
-                background: boardCode.length > 0 ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${boardCode.length > 0 ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
-              }}
-            >
+            <Card active={boardCode.length > 0}>
               <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
                 Board code
               </div>
@@ -577,6 +543,7 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
                 maxLength={6}
                 spellCheck={false}
                 autoCapitalize="characters"
+                aria-label="Board code"
                 style={{
                   marginTop: 10,
                   width: '100%',
@@ -594,55 +561,28 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
                   textAlign: 'center',
                 }}
               />
-            </div>
+            </Card>
           )}
+
           {showDifficulty && (
-            <div
-              style={{
-                padding: 12,
-                borderRadius: 14,
-                background: difficultyChanged ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${difficultyChanged ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
-              }}
-            >
-              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                Bot difficulty
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
-                How strong the bots play. Easy moves mostly at random; Medium plays a simple heuristic (prefers captures, freeing tokens, finishing); Hard adds a look-ahead so bots avoid landing where you could capture them next turn.
-              </div>
-              <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
-                {(['easy', 'medium', 'hard'] as CPUDifficulty[]).map(d => {
-                  const selected = options.ludo.cpuDifficulty === d;
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => {
-                        setOptions({ ...options, ludo: { ...options.ludo, cpuDifficulty: d } });
-                        playTap();
-                        haptics.tap();
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 0',
-                        borderRadius: 999,
-                        border: '1px solid ' + (selected ? 'var(--saffron)' : 'rgba(255,255,255,0.10)'),
-                        background: selected ? 'rgba(255, 138, 61, 0.16)' : 'transparent',
-                        color: selected ? 'var(--saffron)' : 'var(--ink-dim)',
-                        fontFamily: 'var(--font-ui)',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        letterSpacing: 0.4,
-                        textTransform: 'capitalize',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <OptionTile
+              label="Bot difficulty"
+              description="How strong the bots play. Easy moves mostly at random; Medium plays a simple heuristic (prefers captures, freeing tokens, finishing); Hard adds a look-ahead so bots avoid landing where you could capture them next turn."
+              active={difficultyChanged}
+              control={
+                <SegmentedPicker
+                  options={[
+                    { value: 'easy', label: 'Easy' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'hard', label: 'Hard' },
+                  ]}
+                  value={options.ludo.cpuDifficulty}
+                  onChange={(d: CPUDifficulty) =>
+                    setOptions({ ...options, ludo: { ...options.ludo, cpuDifficulty: d } })}
+                  ariaLabel="Bot difficulty"
+                />
+              }
+            />
           )}
         </motion.div>
       )}
@@ -650,38 +590,20 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
   );
 };
 
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    onClick={e => { e.preventDefault(); onChange(!checked); }}
-    style={{
-      flexShrink: 0,
-      width: 36,
-      height: 22,
-      borderRadius: 999,
-      padding: 2,
-      background: checked ? 'var(--saffron)' : 'rgba(255,255,255,0.12)',
-      border: '1px solid ' + (checked ? 'var(--saffron)' : 'rgba(255,255,255,0.18)'),
-      position: 'relative',
-      cursor: 'pointer',
-      transition: 'background 160ms ease, border-color 160ms ease',
-    }}
+const Chevron: React.FC<{ open: boolean }> = ({ open }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 160ms ease' }}
   >
-    <span
-      style={{
-        display: 'block',
-        width: 16,
-        height: 16,
-        borderRadius: '50%',
-        background: '#fff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-        transform: checked ? 'translateX(14px)' : 'translateX(0)',
-        transition: 'transform 160ms ease',
-      }}
-    />
-  </button>
+    <path d="M3 5l4 4 4-4" />
+  </svg>
 );
 
 export default PlayerSetup;

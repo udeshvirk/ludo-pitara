@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
   };
 
   return (
-    <div
+    <header
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -36,6 +36,8 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
         whileTap={{ scale: 0.92 }}
         onClick={showBack ? handleBack : undefined}
         aria-label={showBack ? 'Back' : undefined}
+        aria-hidden={!showBack}
+        tabIndex={showBack ? 0 : -1}
         style={{
           width: 40,
           height: 40,
@@ -88,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
       <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {action}
       </div>
-    </div>
+    </header>
   );
 };
 

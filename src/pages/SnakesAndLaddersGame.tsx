@@ -7,6 +7,7 @@ import { useSNLStore } from '../games/snl/store';
 import SNLBoard from '../games/snl/components/SNLBoard';
 import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
 import WinnerModal from '../components/WinnerModal';
+import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
 import { useRecordOnFinish } from '../lib/useRecordOnFinish';
@@ -37,6 +38,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   const winner = useSNLStore(s => s.winner);
   const isRolling = useSNLStore(s => s.isRolling);
   const diceValue = useSNLStore(s => s.diceValue);
+  const message = useSNLStore(s => s.message);
   const rollDice = useSNLStore(s => s.rollDice);
   const initGame = useSNLStore(s => s.initGame);
   const resetGame = useSNLStore(s => s.resetGame);
@@ -122,6 +124,7 @@ const SnakesAndLaddersGame: React.FC = () => {
 
   return (
     <PhoneShell decorative={false} fluid>
+      <LiveRegion text={message} />
       <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} action={<SoundToggle />} />
 
       {isWide ? (

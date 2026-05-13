@@ -17,6 +17,9 @@ interface BtnProps {
   className?: string;
   type?: 'button' | 'submit' | 'reset';
   'aria-label'?: string;
+  // Imperative ref to the underlying button — used by WinnerModal for
+  // focus management (autoFocus on open + 2-element focus trap).
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const VARIANT_STYLES: Record<Variant, React.CSSProperties> = {
@@ -57,6 +60,7 @@ const Btn: React.FC<BtnProps> = ({
   className,
   disabled,
   type = 'button',
+  buttonRef,
   ...rest
 }) => {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -68,6 +72,7 @@ const Btn: React.FC<BtnProps> = ({
 
   return (
     <motion.button
+      ref={buttonRef}
       whileTap={disabled ? undefined : { scale: 0.96 }}
       onClick={handleClick}
       className={className}

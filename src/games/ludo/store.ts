@@ -6,12 +6,15 @@ import type {
   Token,
   PlayerColor,
 } from './types';
+import { PLAYER_ORDER } from './constants';
 import {
-  PLAYER_ORDER,
-  YARD_POSITIONS,
-  isSafePosition,
-  getBoardPosition,
-} from './constants';
+  computeMoveOutcome,
+  intermediatePathIndex,
+  detectCaptures,
+  nextFinishOrder,
+  isGameOver,
+} from './moves';
+import { LUDO_TIMING } from './timing';
 import { playDice, playMove, playCapture, playHomeArrival, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { saveDebounced, clear, load } from '../../lib/persist';
@@ -225,7 +228,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
           selectableTokenIds: [],
         });
-      }, 700);
+      }, LUDO_TIMING.forfeitTurnMs);
       return;
     }
 
@@ -252,7 +255,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
           selectableTokenIds: [],
         });
-      }, 700);
+      }, LUDO_TIMING.forfeitTurnMs);
       return;
     }
 
@@ -269,7 +272,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       setTimeout(() => {
         if (!stillCurrent(myGen)) return;
         get().selectToken(selectableTokens[0]);
-      }, 400);
+      }, LUDO_TIMING.autoSelectMs);
       return;
     }
 
@@ -279,7 +282,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         message: `${currentPlayer.name} rolled ${diceValue} — Select a token to move!`,
         selectableTokenIds: selectableTokens,
       });
-    }, 800); // end of dice settle delay
+    }, LUDO_TIMING.diceSettleMs);
   },
 
   selectToken: (tokenId: string) => {
@@ -287,20 +290,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     if (!state.selectableTokenIds.includes(tokenId)) return;
     if (!state.diceValue) return;
 
-    const currentPlayer = state.players[state.currentPlayerIndex];
+    const currentPlayerIndex = state.currentPlayerIndex;
+    const currentPlayer = state.players[currentPlayerIndex];
     const tokenIndex = currentPlayer.tokens.findIndex(t => t.id === tokenId);
     if (tokenIndex === -1) return;
 
     const token = currentPlayer.tokens[tokenIndex];
     const diceValue = state.diceValue;
-    const fromYard = token.state === 'yard';
-    const startIndex = token.pathIndex;
-    const finalIndex = fromYard ? 0 : Math.min(startIndex + diceValue, 56);
-    const finalTokenState: Token['state'] = !fromYard && finalIndex >= 56 ? 'home' : 'active';
-    // Yard exits are a single jump (yard → start cell). Path moves walk
-    // one cell at a time so framer-motion's layoutId doesn't tween in a
-    // straight diagonal across path corners.
-    const stepsCount = fromYard ? 1 : finalIndex - startIndex;
+    const outcome = computeMoveOutcome(token, diceValue);
 
     const myGen = startAction();
 
@@ -310,136 +307,116 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     set({ gamePhase: 'moving', selectableTokenIds: [], movingTokenId: tokenId });
     playMove();
 
+    // ─── Walk: advance the token cell-by-cell ──────────────────────
     let step = 0;
     const advance = () => {
       if (!stillCurrent(myGen)) return;
       step++;
-      const intermediateIndex = fromYard ? 0 : startIndex + step;
+      const intermediateIndex = intermediatePathIndex(outcome, step);
       set(s => {
         const ps = [...s.players];
-        const me = { ...ps[state.currentPlayerIndex], tokens: [...ps[state.currentPlayerIndex].tokens] };
+        const me = { ...ps[currentPlayerIndex], tokens: [...ps[currentPlayerIndex].tokens] };
         me.tokens[tokenIndex] = { ...me.tokens[tokenIndex], pathIndex: intermediateIndex, state: 'active' };
-        ps[state.currentPlayerIndex] = me;
+        ps[currentPlayerIndex] = me;
         return { players: ps };
       });
-      if (step < stepsCount) {
-        setTimeout(advance, 90);
+      if (step < outcome.stepsCount) {
+        setTimeout(advance, LUDO_TIMING.cellStepMs);
       } else {
         // Brief settle pause so the last cell visibly registers before
         // capture/turn-end side effects fire.
-        setTimeout(() => { if (stillCurrent(myGen)) completeMove(); }, 120);
+        setTimeout(() => { if (stillCurrent(myGen)) completeMove(); }, LUDO_TIMING.walkSettleMs);
       }
     };
     advance();
 
+    // ─── Complete: capture detect, finish check, turn rotation ─────
     function completeMove() {
       const s = get();
-      const players = s.players.map(p => ({ ...p, tokens: [...p.tokens] }));
-      const me = players[state.currentPlayerIndex];
-
-      // Promote the token to its final state (home if applicable).
+      // Promote the moved token to its final state.
+      let players = s.players.map(p => ({ ...p, tokens: [...p.tokens] }));
+      const me = players[currentPlayerIndex];
       me.tokens[tokenIndex] = {
         ...me.tokens[tokenIndex],
-        pathIndex: finalIndex,
-        state: finalTokenState,
+        pathIndex: outcome.finalIndex,
+        state: outcome.finalState,
       };
-      if (finalTokenState === 'home') playHomeArrival();
+      if (outcome.finalState === 'home') playHomeArrival();
 
-      // The walk has settled — clear the "moving" flag so the next
-      // render treats this token as part of its cell's stack again.
-      // Subsequent set() calls in this completeMove preserve this
-      // (Zustand merges).
+      // Walk has settled — clear the "moving" flag so the next render
+      // treats this token as part of its cell's stack again. Subsequent
+      // set() calls in this function merge (Zustand) so the flag stays
+      // off.
       set({ movingTokenId: null });
 
-      // Capture detection — only on main path, not home stretch, not safe squares.
-      let gotCapture = false;
+      // Captures — pure helper hands back the updated players + arc
+      // descriptors, or null if no opponent token sat on the landing
+      // cell.
+      const capture = detectCaptures(players, currentPlayer.color, outcome.finalIndex, outcome.finalState);
       let capturedMessage = '';
-      const flyingCaptures: import('./types').CaptureFly[] = [];
-      if (finalTokenState === 'active' && finalIndex < 51 && !isSafePosition(currentPlayer.color, finalIndex)) {
-        const newBoardPos = getBoardPosition(currentPlayer.color, finalIndex);
-        for (let pi = 0; pi < players.length; pi++) {
-          if (players[pi].color === currentPlayer.color) continue;
-          for (let ti = 0; ti < players[pi].tokens.length; ti++) {
-            const otherToken = players[pi].tokens[ti];
-            if (otherToken.state !== 'active') continue;
-            const otherPos = getBoardPosition(otherToken.color, otherToken.pathIndex);
-            if (otherPos.row === newBoardPos.row && otherPos.col === newBoardPos.col) {
-              // Capture: token goes back to yard. We also stash a fly
-              // entry so the board can render an arc from this cell to
-              // the yard socket while the yard render skips it.
-              const yardPos = YARD_POSITIONS[otherToken.color][ti];
-              flyingCaptures.push({
-                tokenId: otherToken.id,
-                color: otherToken.color,
-                displayColor: otherToken.displayColor,
-                from: otherPos,
-                to: yardPos,
-              });
-              players[pi].tokens[ti] = { ...otherToken, state: 'yard', pathIndex: -1 };
-              gotCapture = true;
-              capturedMessage = ` — Captured ${players[pi].name}'s token!`;
-            }
-          }
-        }
-        if (gotCapture) {
-          playCapture();
-          haptics.capture();
-          // Kick off the arc immediately. Subsequent set() calls in
-          // this completeMove preserve flyingCaptures (Zustand merges),
-          // so the floating tokens stay airborne while the rest of the
-          // turn-end state emits. A timeout clears the list once the
-          // arc has landed.
-          set({ flyingCaptures });
-          setTimeout(() => {
-            if (!stillCurrent(myGen)) return;
-            set({ flyingCaptures: [] });
-          }, 520);
-        }
+      if (capture) {
+        players = capture.players;
+        capturedMessage = ` — Captured ${capture.capturedNames[0]}'s token!`;
+        playCapture();
+        haptics.capture();
+        // Kick off the arc immediately. flyingCaptures merges through
+        // subsequent set() calls below; a timer clears them when the
+        // arc has landed.
+        set({ flyingCaptures: capture.flyingCaptures });
+        setTimeout(() => {
+          if (!stillCurrent(myGen)) return;
+          set({ flyingCaptures: [] });
+        }, LUDO_TIMING.captureFlyMs);
       }
+      const gotCapture = capture !== null;
+
+      // Re-bind `me` to the updated players array (capture detection
+      // may have rebuilt it).
+      const movedPlayer = players[currentPlayerIndex];
 
       // "First home wins" short-circuit — the moment a player lands a
-      // single token in home, they win. Skip the all-four-tokens check
-      // and the next-active-player rotation entirely.
-      if (s.options.firstHomeWins && finalTokenState === 'home') {
-        me.finishOrder = 1;
+      // single token in home, they win.
+      if (s.options.firstHomeWins && outcome.finalState === 'home') {
+        const winner = { ...movedPlayer, finishOrder: 1 };
+        players[currentPlayerIndex] = winner;
         playWin();
         haptics.win();
         set({
           players,
           gamePhase: 'finished',
-          winner: me,
-          message: `🏆 ${me.name} wins!`,
+          winner,
+          message: `🏆 ${winner.name} wins!`,
           selectableTokenIds: [],
         });
         return;
       }
 
-      // Finish check
-      if (me.tokens.every(t => t.state === 'home')) {
-        const finishCount = players.filter(p => p.finishOrder > 0).length;
-        me.finishOrder = finishCount + 1;
+      // Assign a finishOrder if this move cleared all four tokens.
+      const newOrder = nextFinishOrder(movedPlayer, players);
+      if (newOrder > 0 && movedPlayer.finishOrder === 0) {
+        players[currentPlayerIndex] = { ...movedPlayer, finishOrder: newOrder };
       }
+      const meFinished = players[currentPlayerIndex].finishOrder > 0;
 
-      const gotSix = diceValue === 6;
-      const reachedHome = finalTokenState === 'home';
-      const bonusTurn = gotSix || reachedHome || gotCapture;
-
-      // Game over
-      if (me.finishOrder && players.filter(p => p.finishOrder === 0).length <= 1) {
+      // Game over check — ≤1 unfinished player left.
+      if (meFinished && isGameOver(players)) {
+        const winner = players[currentPlayerIndex];
         playWin();
         haptics.win();
         set({
           players,
           gamePhase: 'finished',
-          winner: me,
-          message: `🏆 ${me.name} wins!`,
+          winner,
+          message: `🏆 ${winner.name} wins!`,
           selectableTokenIds: [],
         });
         return;
       }
 
-      if (me.finishOrder) {
-        const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, players);
+      // Player just finished but others are still playing — skip their
+      // bonus turn and move on.
+      if (meFinished) {
+        const nextPlayerIndex = findNextActivePlayer(currentPlayerIndex, players);
         set({
           players,
           currentPlayerIndex: nextPlayerIndex,
@@ -447,39 +424,44 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           diceValue: null,
           hasRolled: false,
           consecutiveSixes: 0,
-          message: `${me.name} finished! 🏆 ${players[nextPlayerIndex].name}'s turn!`,
+          message: `${players[currentPlayerIndex].name} finished! 🏆 ${players[nextPlayerIndex].name}'s turn!`,
           selectableTokenIds: [],
         });
         return;
       }
 
+      // Bonus turn on 6 / reach-home / capture. Otherwise rotate.
+      const gotSix = diceValue === 6;
+      const reachedHome = outcome.finalState === 'home';
+      const bonusTurn = gotSix || reachedHome || gotCapture;
       if (bonusTurn) {
         set({
           players,
           gamePhase: 'rolling',
           diceValue: null,
           hasRolled: false,
-          // Only count six-streak if it WAS a six. Captures and reach-home
-          // grant a bonus turn but should reset the six-streak counter.
+          // Only count the six-streak if it WAS a six. Captures and
+          // reach-home grant a bonus turn but reset the streak.
           consecutiveSixes: gotSix ? state.consecutiveSixes : 0,
           message: `${currentPlayer.name}${capturedMessage || (reachedHome ? ' reached home!' : ' rolled 6!')} Bonus turn!`,
           selectableTokenIds: [],
         });
-      } else {
-        const nextPlayerIndex = findNextActivePlayer(state.currentPlayerIndex, players);
-        const nextPlayer = players[nextPlayerIndex];
-        set({ players, gamePhase: 'rolling', selectableTokenIds: [] });
-        setTimeout(() => {
-          if (!stillCurrent(myGen)) return;
-          set({
-            currentPlayerIndex: nextPlayerIndex,
-            diceValue: null,
-            hasRolled: false,
-            consecutiveSixes: 0,
-            message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
-          });
-        }, 600);
+        return;
       }
+
+      const nextPlayerIndex = findNextActivePlayer(currentPlayerIndex, players);
+      const nextPlayer = players[nextPlayerIndex];
+      set({ players, gamePhase: 'rolling', selectableTokenIds: [] });
+      setTimeout(() => {
+        if (!stillCurrent(myGen)) return;
+        set({
+          currentPlayerIndex: nextPlayerIndex,
+          diceValue: null,
+          hasRolled: false,
+          consecutiveSixes: 0,
+          message: `${nextPlayer.name}'s turn — Tap the dice to roll!`,
+        });
+      }, LUDO_TIMING.turnEndMs);
     }
   },
 

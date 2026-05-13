@@ -20,8 +20,10 @@ const PhoneShell: React.FC<PhoneShellProps> = ({
   className,
   contentMaxWidth,
 }) => {
+  // `<main>` makes every screen a real landmark — assistive tech can
+  // jump directly to game / page content past the festive chrome.
   const inner = (
-    <div
+    <main
       style={{
         position: 'relative',
         zIndex: 1,
@@ -35,7 +37,7 @@ const PhoneShell: React.FC<PhoneShellProps> = ({
       }}
     >
       {children}
-    </div>
+    </main>
   );
 
   return (

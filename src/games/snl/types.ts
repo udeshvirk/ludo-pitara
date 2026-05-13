@@ -34,6 +34,8 @@ export interface SNLGameState {
   lastAction: string;
   // Per-game randomized snakes & ladders. Empty before the first initGame.
   layout: SnakeOrLadder[];
+  // 6-char shareable seed for the layout. Same code → same board.
+  boardCode: string;
   sliding: Slide | null;
   // Player whose token is currently walking cell-by-cell. Pass-through
   // cells exclude them from their stack count (no re-stack flash on

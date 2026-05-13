@@ -42,6 +42,45 @@ const LADDERS: Array<{ base: Range; tops: Range[] }> = [
   { base: [75, 77], tops: [[94, 96]] },
 ];
 
+type RNG = () => number;
+
+// Hash a 6-char board code into a 32-bit seed for the xorshift PRNG.
+// FNV-1a-ish — small, no deps, mixes letters/digits reasonably.
+function seedFromCode(code: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < code.length; i++) {
+    h ^= code.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) || 1;
+}
+
+export function makeRNG(seed: number): RNG {
+  let state = seed >>> 0 || 1;
+  return () => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    state >>>= 0;
+    return state / 0x100000000;
+  };
+}
+
+const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // skip I/L/O/0/1 for readability
+
+export function randomBoardCode(): string {
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  }
+  return code;
+}
+
+// Accept lowercased / spaced user input.
+export function normaliseBoardCode(input: string): string {
+  return input.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+}
+
 function expandRange(r: Range, exclude: Set<number>): number[] {
   const cells: number[] = [];
   for (let n = r[0]; n <= r[1]; n++) {
@@ -50,15 +89,15 @@ function expandRange(r: Range, exclude: Set<number>): number[] {
   return cells;
 }
 
-function pickRandom<T>(arr: T[]): T | null {
+function pickRandom<T>(arr: T[], rng: RNG): T | null {
   if (arr.length === 0) return null;
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[Math.floor(rng() * arr.length)];
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: T[], rng: RNG): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -78,14 +117,15 @@ function placeSnake(
   heads: Set<number>,
   out: SnakeOrLadder[],
   attempts: number,
+  rng: RNG,
 ): boolean {
-  const shuffledHeads = shuffle(headOptions);
+  const shuffledHeads = shuffle(headOptions, rng);
   for (let i = 0; i < Math.min(attempts, shuffledHeads.length); i++) {
     const head = shuffledHeads[i];
     if (used.has(head)) continue;
     if (isHeadAdjacent(head, heads)) continue;
     const tailCandidates = expandRange(tailRange, used);
-    const tail = pickRandom(tailCandidates);
+    const tail = pickRandom(tailCandidates, rng);
     if (tail === null) continue;
     if (head <= tail) continue;
     used.add(head);
@@ -103,12 +143,13 @@ function placeLadder(
   used: Set<number>,
   out: SnakeOrLadder[],
   attempts: number,
+  rng: RNG,
 ): boolean {
   for (let i = 0; i < attempts; i++) {
     const baseCandidates = expandRange(baseRange, used);
-    const base = pickRandom(baseCandidates);
+    const base = pickRandom(baseCandidates, rng);
     if (base === null) continue;
-    const top = pickRandom(expandRange(pickRandom(tops)!, used));
+    const top = pickRandom(expandRange(pickRandom(tops, rng)!, used), rng);
     if (top === null) continue;
     if (top <= base) continue;
     used.add(base);
@@ -119,7 +160,11 @@ function placeLadder(
   return false;
 }
 
-export function generateSNLLayout(): SnakeOrLadder[] {
+// Seeded so the same board code always reproduces the same layout.
+// Pass an empty/undefined code for a random board; the caller can read
+// the actually-used code back via `randomBoardCode()` to display it.
+export function generateSNLLayout(boardCode: string): SnakeOrLadder[] {
+  const rng = makeRNG(seedFromCode(boardCode));
   // Cells 1 (start) and 100 (finish) are reserved so no special anchors there.
   const used = new Set<number>([1, 100]);
   const heads = new Set<number>();
@@ -128,20 +173,20 @@ export function generateSNLLayout(): SnakeOrLadder[] {
   // Place primary snakes first — they're mandatory and have the tightest
   // cell-range constraints. Shuffling the order avoids systematic bias
   // when two specs share a cell window.
-  for (const spec of shuffle(PRIMARY_SNAKES)) {
-    placeSnake(expandRange(spec.head, used), spec.tail, used, heads, layout, 30);
+  for (const spec of shuffle(PRIMARY_SNAKES, rng)) {
+    placeSnake(expandRange(spec.head, used), spec.tail, used, heads, layout, 30, rng);
   }
 
   // Probabilistic snakes — single-cell heads, so we either fit them or
   // skip without retrying.
   for (const spec of OCCASIONAL_SNAKES) {
-    if (Math.random() > spec.chance) continue;
-    placeSnake([spec.head], spec.tail, used, heads, layout, 1);
+    if (rng() > spec.chance) continue;
+    placeSnake([spec.head], spec.tail, used, heads, layout, 1, rng);
   }
 
   // Ladders.
-  for (const spec of shuffle(LADDERS)) {
-    placeLadder(spec.base, spec.tops, used, layout, 30);
+  for (const spec of shuffle(LADDERS, rng)) {
+    placeLadder(spec.base, spec.tops, used, layout, 30, rng);
   }
 
   return layout;

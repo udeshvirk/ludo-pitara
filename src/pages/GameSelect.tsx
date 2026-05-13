@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
@@ -7,6 +7,11 @@ import Corner from '../components/ui/Corner';
 import InstallPrompt from '../components/InstallPrompt';
 import { useFlow } from '../games/flow/store';
 import type { GameId } from '../games/flow/store';
+import { detectSavedFor } from '../lib/gameSaves';
+import { useLudoStore } from '../games/ludo/store';
+import { useSNLStore } from '../games/snl/store';
+import { playTap } from '../lib/sound';
+import { haptics } from '../lib/haptics';
 
 const games: Array<{
   id: GameId;
@@ -31,10 +36,30 @@ const games: Array<{
 const GameSelect: React.FC = () => {
   const navigate = useNavigate();
   const setGame = useFlow(s => s.setGame);
+  // Bumping this re-runs detectSavedFor after a dismiss so the chip
+  // disappears without a full route remount.
+  const [savedTick, setSavedTick] = useState(0);
 
   const choose = (g: GameId) => {
     setGame(g);
     navigate('/players');
+  };
+
+  const resume = (g: GameId) => {
+    playTap();
+    haptics.tap();
+    setGame(g);
+    navigate(g === 'ludo' ? '/ludo' : '/snakes-and-ladders');
+  };
+
+  const dismissSaved = (g: GameId) => {
+    playTap();
+    haptics.tap();
+    // resetGame() both clears the persisted snapshot and wipes the
+    // in-memory store so the next "New game" tap starts clean.
+    if (g === 'ludo') useLudoStore.getState().resetGame();
+    else useSNLStore.getState().resetGame();
+    setSavedTick(t => t + 1);
   };
 
   return (
@@ -70,12 +95,68 @@ const GameSelect: React.FC = () => {
         }
       />
       <div style={{ flex: 1, padding: '8px 22px 28px', display: 'flex', flexDirection: 'column', gap: 18, overflow: 'auto' }}>
-        {games.map((g, i) => (
-          <motion.button
+        {games.map((g, i) => {
+          // savedTick re-evaluates the chip after a dismiss.
+          void savedTick;
+          const saved = detectSavedFor(g.id);
+          return (
+          <motion.div
             key={g.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+          {saved && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'stretch',
+                borderRadius: 14,
+                background: 'rgba(255, 138, 61, 0.10)',
+                border: '1px solid rgba(255, 138, 61, 0.35)',
+                overflow: 'hidden',
+              }}
+            >
+              <button
+                onClick={() => resume(g.id)}
+                style={{
+                  flex: 1,
+                  padding: '8px 14px',
+                  background: 'transparent',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  color: 'var(--saffron)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                <span style={{ fontWeight: 800, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase' }}>Continue</span>
+                <span style={{ fontSize: 12, color: 'var(--ink-dim)', fontWeight: 600 }}>· {saved.hint}</span>
+                <svg width="11" height="11" viewBox="0 0 12 12" style={{ marginLeft: 'auto' }}><path d="M3 1l6 5-6 5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+              <button
+                onClick={() => dismissSaved(g.id)}
+                aria-label={`Dismiss saved ${g.title} game`}
+                style={{
+                  padding: '0 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderLeft: '1px solid rgba(255, 138, 61, 0.25)',
+                  cursor: 'pointer',
+                  color: 'var(--ink-dim)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+          )}
+          <motion.button
             whileHover={{ y: -3 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => choose(g.id)}
@@ -108,12 +189,14 @@ const GameSelect: React.FC = () => {
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 26, lineHeight: 1.1, color: 'var(--ink)' }}>{g.title}</div>
               <div style={{ marginTop: 4, fontSize: 13, color: 'var(--ink-dim)', fontFamily: 'var(--font-body)' }}>{g.subtitle}</div>
               <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--saffron)', fontFamily: 'var(--font-ui)', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700 }}>
-                Play
+                {saved ? 'New game' : 'Play'}
                 <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1l6 5-6 5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
             </div>
           </motion.button>
-        ))}
+          </motion.div>
+          );
+        })}
 
         <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button

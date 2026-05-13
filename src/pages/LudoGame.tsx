@@ -99,7 +99,7 @@ const LudoGame: React.FC = () => {
       const fresh = useLudoStore.getState();
       const player = fresh.players[fresh.currentPlayerIndex];
       if (!player) return;
-      const choice = pickCpuToken(player, selectableTokenIds, diceValue, fresh.players);
+      const choice = pickCpuToken(player, selectableTokenIds, diceValue, fresh.players, fresh.options.cpuDifficulty);
       if (choice) {
         const t = setTimeout(() => selectToken(choice), 600);
         return () => clearTimeout(t);

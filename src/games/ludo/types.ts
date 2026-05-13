@@ -45,9 +45,12 @@ export interface CaptureFly {
   to: BoardPosition;
 }
 
+export type CPUDifficulty = 'easy' | 'medium' | 'hard';
+
 export interface LudoGameOptions {
   oneTokenOut: boolean;
   firstHomeWins: boolean;
+  cpuDifficulty: CPUDifficulty;
 }
 
 export interface LudoGameState {

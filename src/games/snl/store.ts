@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import type { SNLGameState, SNLGameOptions, SNLPlayer } from './types';
 import { SNL_PLAYER_COLORS } from './constants';
-import { generateSNLLayout, buildLayoutLookup } from './generator';
+import { generateSNLLayout, buildLayoutLookup, randomBoardCode } from './generator';
 import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
-import { save, clear, load } from '../../lib/persist';
+import { saveDebounced, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface SNLStore extends SNLGameState {
@@ -14,6 +14,7 @@ interface SNLStore extends SNLGameState {
     isCPUFlags?: boolean[],
     playerColors?: string[],
     options?: SNLGameOptions,
+    boardCode?: string,
   ) => void;
   rollDice: () => void;
   resetGame: () => void;
@@ -41,8 +42,10 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       sliding: null,
       walkingPlayerId: null,
       message: `${persistedSNL.players[persistedSNL.currentPlayerIndex]?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
-      // Older saves predate options — fill so reads are always safe.
+      // Older saves predate options/boardCode — backfill so reads are
+      // always safe.
       options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
+      boardCode: persistedSNL.boardCode ?? '',
     }
   : {
       players: [],
@@ -55,6 +58,7 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       message: 'Set up your game!',
       lastAction: '',
       layout: [],
+      boardCode: '',
       sliding: null,
       walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
@@ -63,7 +67,7 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
 export const useSNLStore = create<SNLStore>((set, get) => ({
   ...initialSNL,
 
-  initGame: (playerCount, playerNames, isCPUFlags, playerColors, options) => {
+  initGame: (playerCount, playerNames, isCPUFlags, playerColors, options, boardCode) => {
     const players: SNLPlayer[] = Array.from({ length: playerCount }, (_, i) => ({
       id: `player-${i}`,
       name: playerNames?.[i] || `Player ${i + 1}`,
@@ -71,6 +75,10 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       position: 0,
       isCPU: isCPUFlags?.[i] ?? false,
     }));
+
+    // If no code is supplied, pick one so every board has a code the
+    // user can share / re-use later.
+    const code = boardCode && boardCode.length > 0 ? boardCode : randomBoardCode();
 
     set({
       players,
@@ -82,8 +90,10 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       winner: null,
       message: `${players[0].name}'s turn — Tap the dice to roll!`,
       lastAction: '',
-      // Fresh randomized board every game.
-      layout: generateSNLLayout(),
+      // Seeded so the same code reproduces the same layout across
+      // devices / sessions.
+      layout: generateSNLLayout(code),
+      boardCode: code,
       walkingPlayerId: null,
       options: options ?? DEFAULT_SNL_OPTIONS,
     });
@@ -276,6 +286,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       message: 'Set up your game!',
       lastAction: '',
       layout: [],
+      boardCode: '',
       sliding: null,
       walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
@@ -300,10 +311,13 @@ useSNLStore.subscribe((state) => {
     message: state.message,
     lastAction: state.lastAction,
     layout: state.layout,
+    boardCode: state.boardCode,
     // Sliding / walking are purely transient — never persist mid-flight.
     sliding: null,
     walkingPlayerId: null,
     options: state.options,
   };
-  save(STORAGE_KEYS.SNL, snapshot);
+  // Debounced — collapse the ~11 per-walk writes into one trailing
+  // write; pagehide/beforeunload drain the queue.
+  saveDebounced(STORAGE_KEYS.SNL, snapshot);
 });

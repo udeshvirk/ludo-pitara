@@ -5,7 +5,8 @@ import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
 import Avatar from '../components/ui/Avatar';
-import { useFlow, type FlowPlayer, type GameOptions } from '../games/flow/store';
+import { useFlow, type FlowPlayer, type GameOptions, type CPUDifficulty } from '../games/flow/store';
+import { normaliseBoardCode } from '../games/snl/generator';
 import { useLudoStore } from '../games/ludo/store';
 import { useSNLStore } from '../games/snl/store';
 import { playTap } from '../lib/sound';
@@ -40,6 +41,11 @@ const PlayerSetup: React.FC = () => {
   const game = useFlow(s => s.game);
   const setPlayers = useFlow(s => s.setPlayers);
   const setFlowOptions = useFlow(s => s.setOptions);
+  const setSnlBoardCode = useFlow(s => s.setSnlBoardCode);
+
+  // SNL only — user can type a 6-char code to reproduce a specific
+  // board. Empty = a fresh random board.
+  const [boardCode, setBoardCodeLocal] = useState('');
 
   useEffect(() => {
     if (!game) navigate('/select');
@@ -98,9 +104,14 @@ const PlayerSetup: React.FC = () => {
   // otherwise — anyone running with non-default rules sees them at a
   // glance instead of having to remember to open the panel.
   const [options, setOptions] = useState<GameOptions>(() => loadOptionsOrDefault());
+  // Difficulty only counts toward "configured" if a bot exists in the
+  // setup — otherwise it has no effect and would just spuriously open
+  // the panel on a fresh mount.
+  const initialHasCpu = isCPU.slice(0, count).some(Boolean);
   const anyOptionEnabled =
     options.ludo.oneTokenOut ||
     options.ludo.firstHomeWins ||
+    (initialHasCpu && options.ludo.cpuDifficulty !== 'medium') ||
     options.snl.autoStart;
   const [optionsOpen, setOptionsOpen] = useState<boolean>(anyOptionEnabled);
 
@@ -192,6 +203,7 @@ const PlayerSetup: React.FC = () => {
       useSNLStore.getState().resetGame();
     }
     setFlowOptions(options);
+    setSnlBoardCode(game === 'snl' ? boardCode : '');
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };
@@ -384,6 +396,9 @@ const PlayerSetup: React.FC = () => {
           setOptions={setOptions}
           isOpen={optionsOpen}
           setOpen={setOptionsOpen}
+          boardCode={boardCode}
+          setBoardCode={setBoardCodeLocal}
+          hasCpu={isCPU.slice(0, count).some(Boolean)}
         />
       </div>
 
@@ -400,6 +415,9 @@ interface GameOptionsSectionProps {
   setOptions: (o: GameOptions) => void;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
+  boardCode: string;
+  setBoardCode: (v: string) => void;
+  hasCpu: boolean;
 }
 
 const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
@@ -408,6 +426,9 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
   setOptions,
   isOpen,
   setOpen,
+  boardCode,
+  setBoardCode,
+  hasCpu,
 }) => {
   if (!game) return null;
   const items = game === 'ludo'
@@ -440,7 +461,17 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
         },
       ];
 
-  const enabledCount = items.filter(i => i.checked).length;
+  // Difficulty is not a toggle — track it for the "N on" summary so
+  // a non-default difficulty also reads as "configured". The picker
+  // only renders when at least one bot is in the players list (no
+  // bot → setting has no effect, so it'd just be noise).
+  const showDifficulty = game === 'ludo' && hasCpu;
+  const difficultyChanged = showDifficulty && options.ludo.cpuDifficulty !== 'medium';
+  const showBoardCode = game === 'snl';
+  const enabledCount =
+    items.filter(i => i.checked).length +
+    (difficultyChanged ? 1 : 0) +
+    (showBoardCode && boardCode.length > 0 ? 1 : 0);
 
   return (
     <div style={{ marginTop: 18 }}>
@@ -523,6 +554,96 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
               </div>
             </label>
           ))}
+          {showBoardCode && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                background: boardCode.length > 0 ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${boardCode.length > 0 ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                Board code
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
+                Picks the snakes & ladders layout — same code, same board. Leave blank for a random one; the code appears on the win screen so you can replay or share it. (This is not a resume code.)
+              </div>
+              <input
+                type="text"
+                value={boardCode}
+                onChange={e => setBoardCode(normaliseBoardCode(e.target.value))}
+                placeholder="e.g. K7Q3MX"
+                maxLength={6}
+                spellCheck={false}
+                autoCapitalize="characters"
+                style={{
+                  marginTop: 10,
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(0,0,0,0.18)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'var(--ink)',
+                  fontFamily: 'var(--font-ui)',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  letterSpacing: 3,
+                  textTransform: 'uppercase',
+                  outline: 'none',
+                  textAlign: 'center',
+                }}
+              />
+            </div>
+          )}
+          {showDifficulty && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                background: difficultyChanged ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${difficultyChanged ? 'rgba(255, 138, 61, 0.35)' : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                Bot difficulty
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
+                How strong the bots play. Easy moves mostly at random; Medium plays a simple heuristic (prefers captures, freeing tokens, finishing); Hard adds a look-ahead so bots avoid landing where you could capture them next turn.
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                {(['easy', 'medium', 'hard'] as CPUDifficulty[]).map(d => {
+                  const selected = options.ludo.cpuDifficulty === d;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => {
+                        setOptions({ ...options, ludo: { ...options.ludo, cpuDifficulty: d } });
+                        playTap();
+                        haptics.tap();
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 0',
+                        borderRadius: 999,
+                        border: '1px solid ' + (selected ? 'var(--saffron)' : 'rgba(255,255,255,0.10)'),
+                        background: selected ? 'rgba(255, 138, 61, 0.16)' : 'transparent',
+                        color: selected ? 'var(--saffron)' : 'var(--ink-dim)',
+                        fontFamily: 'var(--font-ui)',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        letterSpacing: 0.4,
+                        textTransform: 'capitalize',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </div>

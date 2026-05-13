@@ -27,6 +27,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowOptions = useFlow(s => s.options);
+  const flowBoardCode = useFlow(s => s.snlBoardCode);
   // Per-field selectors so the page only re-renders on the slices it
   // uses (avoid whole-store subscription pulling the board on every
   // unrelated set() like `message` / `lastAction` ticks).
@@ -51,8 +52,8 @@ const SnakesAndLaddersGame: React.FC = () => {
     const names = flowPlayers.map(p => p.name);
     const cpuFlags = flowPlayers.map(p => p.isCPU);
     const colors = flowPlayers.map(p => toSnlHex(p.color));
-    initGame(flowPlayers.length, names, cpuFlags, colors, flowOptions.snl);
-  }, [flowPlayers, flowOptions, navigate, initGame, gamePhase, players.length]);
+    initGame(flowPlayers.length, names, cpuFlags, colors, flowOptions.snl, flowBoardCode || undefined);
+  }, [flowPlayers, flowOptions, flowBoardCode, navigate, initGame, gamePhase, players.length]);
 
   useRecordOnFinish(
     'snl',
@@ -170,12 +171,15 @@ const SnakesAndLaddersGame: React.FC = () => {
         isOpen={gamePhase === 'finished' && winner !== null}
         winnerName={winner?.name || ''}
         winnerColor={winner?.color || 'var(--gold-hi)'}
+        stat={useSNLStore.getState().boardCode ? `Board · ${useSNLStore.getState().boardCode}` : undefined}
         onPlayAgain={() => {
           const count = players.length;
           const snapshotNames = players.map(p => p.name);
           const snapshotCpu = players.map(p => p.isCPU ?? false);
           const snapshotColors = players.map(p => p.color);
           // See LudoGame for why options are captured before reset.
+          // Rematch deliberately re-randomises the board (don't reuse
+          // the finished game's code).
           const opts = useSNLStore.getState().options;
           resetGame();
           initGame(count, snapshotNames, snapshotCpu, snapshotColors, opts);

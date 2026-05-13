@@ -3,7 +3,10 @@ import React from 'react';
 // Small numeric pill rendered in the top-right of a cell when ≥2 tokens
 // share it. Even with diagonal stack-offsets, two same-colour tokens can
 // look like one — the badge makes the count unambiguous.
-const StackCountBadge: React.FC<{ n: number }> = ({ n }) => (
+// React.memo: badges only differ by `n`, so skipping re-render unless
+// the count changes is a small but real saving when a sibling token
+// moves on a cell with 2+ residents.
+const StackCountBadge: React.FC<{ n: number }> = React.memo(({ n }) => (
   <span
     aria-hidden
     style={{
@@ -28,6 +31,6 @@ const StackCountBadge: React.FC<{ n: number }> = ({ n }) => (
   >
     {n}
   </span>
-);
+));
 
 export default StackCountBadge;

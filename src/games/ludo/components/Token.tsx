@@ -13,7 +13,7 @@ interface TokenProps {
   stackSize: number;
 }
 
-const LudoToken: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize }) => {
+const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize }) => {
   const selectToken = useLudoStore(s => s.selectToken);
   const { sizePercent, leftPercent, topPercent } = stackPlacement(stackSize, stackIndex);
 
@@ -51,4 +51,8 @@ const LudoToken: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIn
   );
 };
 
+// React.memo so a cell's resident tokens don't re-render when an
+// unrelated token moves. All props are primitives — default shallow
+// comparison is sufficient.
+const LudoToken = React.memo(LudoTokenInner);
 export default LudoToken;

@@ -14,7 +14,7 @@ import {
 } from './constants';
 import { playDice, playMove, playCapture, playHomeArrival, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
-import { save, clear, load } from '../../lib/persist';
+import { saveDebounced, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
 
 interface LudoStore extends LudoGameState {
@@ -32,6 +32,7 @@ interface LudoStore extends LudoGameState {
 const DEFAULT_LUDO_OPTIONS: LudoGameOptions = {
   oneTokenOut: false,
   firstHomeWins: false,
+  cpuDifficulty: 'medium',
 };
 
 function createPlayer(name: string, color: PlayerColor, displayColor: PlayerColor, isCPU = false, oneTokenOut = false): Player {
@@ -128,8 +129,10 @@ const initialState: LudoGameState = migrated && migrated.players.length > 0
       flyingCaptures: [],
       movingTokenId: null,
       message: `${migrated.players[migrated.currentPlayerIndex]?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
-      // Older saves predate options — fill so reads are always safe.
-      options: migrated.options ?? DEFAULT_LUDO_OPTIONS,
+      // Merge with defaults so a save written before any new option
+      // field landed (e.g. cpuDifficulty) still loads with that field
+      // populated.
+      options: { ...DEFAULT_LUDO_OPTIONS, ...(migrated.options ?? {}) },
     }
   : {
       players: [],
@@ -526,5 +529,8 @@ useLudoStore.subscribe((state) => {
     movingTokenId: null,
     options: state.options,
   };
-  save(STORAGE_KEYS.LUDO, snapshot);
+  // Debounced: a single walk fires ~11 subscribe events at ~90 ms each.
+  // Collapse them into one trailing-edge write. pagehide/beforeunload
+  // drain the queue so the latest state survives an app dismiss.
+  saveDebounced(STORAGE_KEYS.LUDO, snapshot);
 });

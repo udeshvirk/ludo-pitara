@@ -1,13 +1,30 @@
 name: CI
 
+# Push to main → build, test, deploy. PRs → build + test only (no deploy).
 on:
   push:
     branches: [main]
   pull_request:
 
+# Pages deployments need these permissions on the workflow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy can run at a time. New pushes cancel any
+# in-flight deploy so the latest commit always wins.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    outputs:
+      # Bubble up whether to deploy — only the main-branch push job
+      # uploads its artifact for the deploy job to pick up.
+      should-deploy: ${{ steps.gate.outputs.should-deploy }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +45,33 @@ jobs:
         run: npm test
 
       - name: Build
-        # Mirrors the deploy gate exactly (tsc -b + vite build), so the
-        # PR check fails on the same things `npm run deploy` would.
+        # Mirrors the deploy gate exactly (tsc -b + vite build).
         run: npm run build
+
+      - name: Gate deploy
+        id: gate
+        # Deploy only on direct pushes to main (not PR builds).
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "should-deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should-deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Pages artifact
+        if: steps.gate.outputs.should-deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build-and-test
+    if: needs.build-and-test.outputs.should-deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

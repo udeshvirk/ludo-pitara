@@ -136,11 +136,6 @@ const LudoBoard: React.FC = () => {
     return map;
   }, [players]);
 
-  // Active seats = ones with a player. LudoYards hides empty corners
-  // (the board-cream background shows through) so an empty seat's
-  // namesake colour can't collide with a user-picked one.
-  const activeSeats = useMemo(() => new Set(players.map(p => p.color)), [players]);
-
   // Seat → visual colour. Active seats use the seated player's
   // displayColor; empty seats get a leftover colour (any of the four
   // not already claimed by an active player), deterministically
@@ -207,7 +202,6 @@ const LudoBoard: React.FC = () => {
         seatToDisplay={seatToDisplay}
         yardTokens={yardTokens}
         nameByColor={nameByColor}
-        activeSeats={activeSeats}
       />
       {flyingCaptures.map(fly => (
         <FlyingCaptureToken key={fly.tokenId} fly={fly} />

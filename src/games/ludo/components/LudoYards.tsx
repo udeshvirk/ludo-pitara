@@ -8,23 +8,20 @@ interface YardOccupant { tokenId: string; isSelectable: boolean }
 
 interface LudoYardsProps {
   // Seat → user-picked visual colour. Yards render with whichever
-  // colour the seated player picked (with empty seats falling through
-  // to a random leftover colour per the seatToDisplay map).
+  // colour the seated player picked; empty seats fall through to a
+  // leftover colour (per the seatToDisplay map) so all four corners
+  // always show distinct colours.
   seatToDisplay: Record<PlayerColor, PlayerColor>;
   // Yard sockets keyed by seat, indexed by ORIGINAL token slot (0..3).
   // null = empty / token has left the yard.
   yardTokens: Record<PlayerColor, Array<YardOccupant | null>>;
-  // Player names keyed by seat — empty seats have no nameplate.
+  // Player names keyed by seat — empty seats simply have no nameplate.
   nameByColor: Partial<Record<PlayerColor, string>>;
-  // Set of seats that have an active player. Empty seats render their
-  // colour for visual continuity but skip the nameplate.
-  activeSeats: Set<PlayerColor>;
 }
 
-const LudoYards: React.FC<LudoYardsProps> = ({ seatToDisplay, yardTokens, nameByColor, activeSeats }) => (
+const LudoYards: React.FC<LudoYardsProps> = ({ seatToDisplay, yardTokens, nameByColor }) => (
   <>
     {(Object.keys(HOME_CORNERS) as PlayerColor[]).map(color => {
-      if (!activeSeats.has(color)) return null;
       const corner = HOME_CORNERS[color];
       // Yard rendering uses the seated player's chosen display colour,
       // so picking "red" for the BL slot makes the BL yard render red

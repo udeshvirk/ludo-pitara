@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import type { PlayerColor } from '../types';
 import { PLAYER_COLORS } from '../constants';
 import { useLudoStore } from '../store';
-import Coin, { stackPlacement } from '../../../components/ui/Coin';
+import Coin from '../../../components/ui/Coin';
+import { stackPlacement } from '../../../components/ui/stackPlacement';
 
 interface TokenProps {
   tokenId: string;

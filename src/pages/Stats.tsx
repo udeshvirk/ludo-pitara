@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
@@ -12,13 +12,16 @@ const GAME_LABEL: Record<GameKey, string> = {
 
 const StatsPage: React.FC = () => {
   const navigate = useNavigate();
-  // Bump on reset / reload so the memoised tables refresh.
-  const [version, setVersion] = useState(0);
+  // Reset bumps this counter, which re-renders the page and re-reads
+  // the stats from localStorage. Computed inline (no useMemo) because
+  // the reads are cheap and useMemo's dep-tracking can't see that
+  // these helpers read external state.
+  const [, setVersion] = useState(0);
   const [tab, setTab] = useState<GameKey>('ludo');
 
-  const totals = useMemo(() => getStats().byGame, [version]);
-  const board = useMemo(() => leaderboardFor(tab), [tab, version]);
-  const recent = useMemo(() => recentFor(tab), [tab, version]);
+  const totals = getStats().byGame;
+  const board = leaderboardFor(tab);
+  const recent = recentFor(tab);
 
   const onReset = () => {
     if (!confirm('Clear all stats? This cannot be undone.')) return;

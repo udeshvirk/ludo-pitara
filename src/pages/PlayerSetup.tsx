@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
@@ -70,9 +70,9 @@ const PlayerSetup: React.FC = () => {
 
   // PWA quality-of-life: pre-fill from the user's most recent setup so
   // they don't have to retype the same players every session. Captured
-  // once on mount; later state writes don't affect this snapshot.
-  const lastSetupRef = useRef(getLastSetup());
-  const last = lastSetupRef.current;
+  // once via a useState initializer so the localStorage read happens
+  // exactly once and there's no ref-read during render.
+  const [last] = useState(() => getLastSetup());
 
   const [count, setCount] = useState(() => last?.count ?? 2);
   // `customNames[i]` is whatever the user typed (or an empty string for

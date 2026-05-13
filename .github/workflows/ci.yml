@@ -22,10 +22,6 @@ jobs:
         run: npm ci
 
       - name: Lint
-        # Advisory for now — the repo has pre-existing react-hooks
-        # rule violations that we surface here without blocking the
-        # build. Once the lint backlog is clean, drop `continue-on-error`.
-        continue-on-error: true
         run: npm run lint
 
       - name: Test

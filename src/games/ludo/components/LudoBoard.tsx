@@ -15,6 +15,28 @@ import LudoYards from './LudoYards';
 import FlyingCaptureToken from './FlyingCaptureToken';
 import { IDENTITY_SEAT_MAP } from './boardChrome';
 
+// Deterministic Fisher–Yates: same `seedStr` → same permutation. Used
+// to pick a stable colour for each empty Ludo seat so the assignment
+// doesn't flicker across re-renders (Math.random would be an impure
+// call during render, which the lint rule rightly rejects).
+function stableShuffle<T>(arr: T[], seedStr: string): T[] {
+  let seed = 2166136261;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed ^= seedStr.charCodeAt(i);
+    seed = Math.imul(seed, 16777619);
+  }
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5;
+    seed >>>= 0;
+    const j = seed % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 // Orchestrator. Pulls slices from the store, derives the per-cell /
 // per-yard maps once, then hands them to focused sub-components:
 //
@@ -121,13 +143,12 @@ const LudoBoard: React.FC = () => {
 
   // Seat → visual colour. Active seats use the seated player's
   // displayColor; empty seats get a leftover colour (any of the four
-  // not already claimed by an active player), shuffled randomly so
-  // each board renders with all four yards in distinct colours.
+  // not already claimed by an active player), deterministically
+  // shuffled off a hash of the seat-key so each game has a stable
+  // assignment and no visible re-shuffle on walk-step renders.
   //
   // The dep is a stable seat+colour key, NOT the players array —
-  // depending on `[players]` would re-roll Math.random on every walk
-  // step (since `players` mutates per cell tween) and the empty
-  // corners would visibly flicker between leftover colours.
+  // `[players]` would invalidate on every walk step.
   const seatKey = players
     .map(p => `${p.color}:${p.displayColor}`)
     .sort()
@@ -140,13 +161,7 @@ const LudoBoard: React.FC = () => {
       used.add(p.displayColor);
     }
     const allColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
-    const leftover = allColors.filter(c => !used.has(c));
-    // Fisher–Yates so the random fill doesn't always prefer the same
-    // emptied seat for a given leftover colour.
-    for (let i = leftover.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [leftover[i], leftover[j]] = [leftover[j], leftover[i]];
-    }
+    const leftover = stableShuffle(allColors.filter(c => !used.has(c)), seatKey);
     const emptySeats = (Object.keys(map) as PlayerColor[]).filter(
       seat => !players.some(p => p.color === seat),
     );

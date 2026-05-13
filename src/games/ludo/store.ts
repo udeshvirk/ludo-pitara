@@ -12,7 +12,6 @@ import {
   intermediatePathIndex,
   detectCaptures,
   nextFinishOrder,
-  isGameOver,
 } from './moves';
 import { LUDO_TIMING } from './timing';
 import { playDice, playMove, playCapture, playHomeArrival, playWin } from '../../lib/sound';
@@ -158,18 +157,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
   initGame: (playerCount, playerNames, customPlayers, options) => {
     const opts = options ?? DEFAULT_LUDO_OPTIONS;
-    let players: Player[] = [];
-    if (customPlayers) {
-      players = customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.displayColor, cp.isCPU, opts.oneTokenOut));
-    } else {
-      const colors = PLAYER_ORDER[playerCount];
-      players = colors.map((color, i) => {
-        const name = playerNames?.[i] || `Player ${i + 1}`;
-        // No explicit displayColor → seat doubles as visual (legacy
-        // path; the setup screen always supplies displayColor).
-        return createPlayer(name, color, color, false, opts.oneTokenOut);
-      });
-    }
+    const players: Player[] = customPlayers
+      ? customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.displayColor, cp.isCPU, opts.oneTokenOut))
+      : PLAYER_ORDER[playerCount].map((color, i) => {
+          const name = playerNames?.[i] || `Player ${i + 1}`;
+          // No explicit displayColor → seat doubles as visual (legacy
+          // path; the setup screen always supplies displayColor).
+          return createPlayer(name, color, color, false, opts.oneTokenOut);
+        });
 
     set({
       players,
@@ -391,16 +386,18 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         return;
       }
 
-      // Assign a finishOrder if this move cleared all four tokens.
+      // Standard Ludo: the first player to bring all four tokens home
+      // WINS — game ends right there. (The `firstHomeWins` option above
+      // is a more aggressive variant where the first single-token-home
+      // wins.) `nextFinishOrder` does double duty: it returns >0 if
+      // either the player already had a finishOrder (defensive) or
+      // they just cleared all four tokens.
       const newOrder = nextFinishOrder(movedPlayer, players);
-      if (newOrder > 0 && movedPlayer.finishOrder === 0) {
-        players[currentPlayerIndex] = { ...movedPlayer, finishOrder: newOrder };
-      }
-      const meFinished = players[currentPlayerIndex].finishOrder > 0;
-
-      // Game over check — ≤1 unfinished player left.
-      if (meFinished && isGameOver(players)) {
-        const winner = players[currentPlayerIndex];
+      if (newOrder > 0) {
+        const winner = movedPlayer.finishOrder === 0
+          ? { ...movedPlayer, finishOrder: newOrder }
+          : movedPlayer;
+        players[currentPlayerIndex] = winner;
         playWin();
         haptics.win();
         set({
@@ -408,23 +405,6 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
           gamePhase: 'finished',
           winner,
           message: `🏆 ${winner.name} wins!`,
-          selectableTokenIds: [],
-        });
-        return;
-      }
-
-      // Player just finished but others are still playing — skip their
-      // bonus turn and move on.
-      if (meFinished) {
-        const nextPlayerIndex = findNextActivePlayer(currentPlayerIndex, players);
-        set({
-          players,
-          currentPlayerIndex: nextPlayerIndex,
-          gamePhase: 'rolling',
-          diceValue: null,
-          hasRolled: false,
-          consecutiveSixes: 0,
-          message: `${players[currentPlayerIndex].name} finished! 🏆 ${players[nextPlayerIndex].name}'s turn!`,
           selectableTokenIds: [],
         });
         return;

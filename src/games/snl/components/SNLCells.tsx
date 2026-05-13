@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BOARD_SIZE, rowColToCell } from '../constants';
 import type { SNLPlayer } from '../types';
-import Coin, { stackPlacement } from '../../../components/ui/Coin';
+import Coin from '../../../components/ui/Coin';
+import { stackPlacement } from '../../../components/ui/stackPlacement';
 import StackCountBadge from '../../../components/ui/StackCountBadge';
 import { SNL_TOKEN_SCALE } from './snlChrome';
 

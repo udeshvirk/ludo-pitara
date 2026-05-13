@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
@@ -11,8 +11,13 @@ import { detectSaved } from '../lib/gameSaves';
 
 const Splash: React.FC = () => {
   const navigate = useNavigate();
-  const saved = useMemo(detectSaved, []);
-  const [autoAdvance, setAutoAdvance] = useState(!saved);
+  // Detect once via useState initializer — keeps the localStorage
+  // read off the render path and avoids the (now-redundant) sync
+  // effect that used to clamp autoAdvance off when a save existed.
+  const [saved] = useState(detectSaved);
+  // Auto-advance to /select after a short hold, unless there's a save
+  // — then the user gets the Continue / New-game CTAs and we wait.
+  const autoAdvance = !saved;
 
   const proceed = () => {
     playTap();
@@ -30,13 +35,6 @@ const Splash: React.FC = () => {
     const t = window.setTimeout(() => navigate('/select'), 2400);
     return () => window.clearTimeout(t);
   }, [navigate, autoAdvance]);
-
-  // If user touches the screen while a saved game banner is shown,
-  // cancel the auto-advance.
-  useEffect(() => {
-    if (!saved) return;
-    setAutoAdvance(false);
-  }, [saved]);
 
   return (
     <PhoneShell contentMaxWidth={520}>

@@ -32,9 +32,12 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
+  // Generate confetti once each time the modal opens. setState-in-
+  // effect is the right tool for "one-shot side-effecting state when
+  // an input flips" — the lint rule's blanket warning doesn't fit
+  // here, so we scope a disable.
   useEffect(() => {
     if (!isOpen) return;
-    // Confetti
     const pieces: ConfettiPiece[] = Array.from({ length: 60 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -44,9 +47,9 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
       size: 6 + Math.random() * 8,
       rotate: Math.random() * 360,
     }));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setConfetti(pieces);
 
-    // Capture the focused element so we can restore it on close.
     previouslyFocused.current = document.activeElement as HTMLElement | null;
     // Defer until the modal has mounted + entered.
     const t = setTimeout(() => playAgainRef.current?.focus(), 50);

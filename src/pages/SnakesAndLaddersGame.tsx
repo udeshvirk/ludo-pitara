@@ -27,7 +27,18 @@ const SnakesAndLaddersGame: React.FC = () => {
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowOptions = useFlow(s => s.options);
-  const { players, currentPlayerIndex, gamePhase, winner, isRolling, diceValue, rollDice, initGame, resetGame } = useSNLStore();
+  // Per-field selectors so the page only re-renders on the slices it
+  // uses (avoid whole-store subscription pulling the board on every
+  // unrelated set() like `message` / `lastAction` ticks).
+  const players = useSNLStore(s => s.players);
+  const currentPlayerIndex = useSNLStore(s => s.currentPlayerIndex);
+  const gamePhase = useSNLStore(s => s.gamePhase);
+  const winner = useSNLStore(s => s.winner);
+  const isRolling = useSNLStore(s => s.isRolling);
+  const diceValue = useSNLStore(s => s.diceValue);
+  const rollDice = useSNLStore(s => s.rollDice);
+  const initGame = useSNLStore(s => s.initGame);
+  const resetGame = useSNLStore(s => s.resetGame);
 
   useEffect(() => {
     if (initialized.current) return;

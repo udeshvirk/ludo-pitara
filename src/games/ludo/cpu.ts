@@ -5,7 +5,7 @@
 // 4. Otherwise the farthest-back active token, so progress stays even.
 
 import type { Player, Token } from './types';
-import { getBoardPosition, isSafePosition, START_INDEX } from './constants';
+import { getBoardPosition, isSafePosition } from './constants';
 
 interface Move {
   tokenId: string;
@@ -64,9 +64,6 @@ function scoreMove(token: Token, diceValue: number, player: Player, allPlayers: 
   // Mild penalty for a token that's already very advanced — don't over-stack
   if (token.pathIndex > 45) score -= 10;
 
-  // Discourage exiting yard via a 6 if a captureable target is reachable —
-  // handled by the capture branch above. No-op here.
-  void START_INDEX;
   return score;
 }
 

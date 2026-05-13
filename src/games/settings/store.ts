@@ -3,21 +3,14 @@ import { load, save } from '../../lib/persist';
 import { setSoundEnabled } from '../../lib/sound';
 import { setHapticsEnabled } from '../../lib/haptics';
 
-export type AnimationSpeed = 'slow' | 'normal' | 'fast';
-export type BoardTheme = 'cream' | 'night' | 'royal';
-
 export interface Settings {
   sound: boolean;
   haptics: boolean;
-  animationSpeed: AnimationSpeed;
-  boardTheme: BoardTheme;
 }
 
 const DEFAULTS: Settings = {
   sound: true,
   haptics: true,
-  animationSpeed: 'normal',
-  boardTheme: 'cream',
 };
 
 interface SettingsStore extends Settings {
@@ -52,12 +45,5 @@ function extractSettings(s: SettingsStore): Settings {
   return {
     sound: s.sound,
     haptics: s.haptics,
-    animationSpeed: s.animationSpeed,
-    boardTheme: s.boardTheme,
   };
-}
-
-// Convenience for animation duration scaling.
-export function speedMultiplier(speed: AnimationSpeed): number {
-  return speed === 'slow' ? 1.5 : speed === 'fast' ? 0.6 : 1;
 }

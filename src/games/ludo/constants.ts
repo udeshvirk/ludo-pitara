@@ -188,18 +188,9 @@ const HOME_STRETCHES: Record<PlayerColor, BoardPosition[]> = {
   ],
 };
 
-// Home column entry point (the index on main path where a color turns into its home stretch)
-// This is the last square on the main path before entering the home column
-export const HOME_ENTRY_INDEX: Record<PlayerColor, number> = {
-  red: 50, // at (6,0) then enters home stretch
-  green: 11, // at (0,7) then enters home stretch — but actually the square before the home column
-  yellow: 24, // at (7,14) then enters
-  blue: 37, // at (14,7) then enters
-};
-
 // Build complete path for each color:
 // path[0] = start position, path[1..50] = around the board, path[51..56] = home stretch
-export function getFullPath(color: PlayerColor): BoardPosition[] {
+function buildFullPath(color: PlayerColor): BoardPosition[] {
   const startIdx = START_INDEX[color];
   const path: BoardPosition[] = [];
 
@@ -212,6 +203,20 @@ export function getFullPath(color: PlayerColor): BoardPosition[] {
   path.push(...HOME_STRETCHES[color]);
 
   return path; // Total: 57 positions (index 0-56, where 56 = home)
+}
+
+// Precomputed full paths — called per token per render in
+// getBoardPosition; rebuilding the 57-cell array each time is pure
+// waste. Computed once at module load.
+const FULL_PATHS: Record<PlayerColor, BoardPosition[]> = {
+  red: buildFullPath('red'),
+  green: buildFullPath('green'),
+  yellow: buildFullPath('yellow'),
+  blue: buildFullPath('blue'),
+};
+
+export function getFullPath(color: PlayerColor): BoardPosition[] {
+  return FULL_PATHS[color];
 }
 
 // Safe positions on the main path (star squares) — indices on the main path
@@ -235,7 +240,7 @@ export function getBoardPosition(color: PlayerColor, pathIndex: number): BoardPo
     // In yard - return yard position (use token index)
     return YARD_POSITIONS[color][0];
   }
-  const fullPath = getFullPath(color);
+  const fullPath = FULL_PATHS[color];
   if (pathIndex >= fullPath.length) {
     return fullPath[fullPath.length - 1]; // home
   }
@@ -246,22 +251,6 @@ export function getBoardPosition(color: PlayerColor, pathIndex: number): BoardPo
 export function getSafeSquares(): BoardPosition[] {
   return SAFE_POSITIONS_ON_MAIN.map(idx => MAIN_PATH[idx]);
 }
-
-// Home yard area boundaries (for rendering the colored areas)
-export const HOME_AREAS: Record<PlayerColor, { startRow: number; startCol: number; endRow: number; endCol: number }> = {
-  red: { startRow: 0, startCol: 0, endRow: 5, endCol: 5 },
-  green: { startRow: 0, startCol: 9, endRow: 5, endCol: 14 },
-  yellow: { startRow: 9, startCol: 9, endRow: 14, endCol: 14 },
-  blue: { startRow: 9, startCol: 0, endRow: 14, endCol: 5 },
-};
-
-// Center home area (the triangular areas in the middle)
-export const CENTER_AREA = {
-  startRow: 6,
-  startCol: 6,
-  endRow: 8,
-  endCol: 8,
-};
 
 // Path colored cells (the colored cells on the path and home stretch)
 export function getColoredCells(): Map<string, PlayerColor> {

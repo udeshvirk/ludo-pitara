@@ -113,7 +113,10 @@ const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
 };
 
 const LudoBoard: React.FC = () => {
-  const { players, selectableTokenIds } = useLudoStore();
+  // Per-field selectors — a whole-store destructure would re-render
+  // the 225-cell board on every unrelated set() (e.g. `message` ticks).
+  const players = useLudoStore(s => s.players);
+  const selectableTokenIds = useLudoStore(s => s.selectableTokenIds);
   const flyingCaptures = useLudoStore(s => s.flyingCaptures);
   const movingTokenId = useLudoStore(s => s.movingTokenId);
   const flyingIds = useMemo(() => new Set(flyingCaptures.map(f => f.tokenId)), [flyingCaptures]);
@@ -202,9 +205,17 @@ const LudoBoard: React.FC = () => {
   // Seat → visual colour. Active seats use the seated player's
   // displayColor; empty seats get a leftover colour (any of the four
   // not already claimed by an active player), shuffled randomly so
-  // each board renders with all four yards in distinct colours. The
-  // useMemo only re-runs when the player set changes, so colours
-  // stay stable through a game.
+  // each board renders with all four yards in distinct colours.
+  //
+  // The useMemo dep is a stable seat+colour key — NOT the players
+  // array — so the shuffle stays stable through the whole game.
+  // Using `[players]` as dep would re-roll Math.random on every walk
+  // step (since `players` mutates per cell tween) and the empty
+  // corners would visibly flicker between leftover colours.
+  const seatKey = players
+    .map(p => `${p.color}:${p.displayColor}`)
+    .sort()
+    .join(',');
   const seatToDisplay = useMemo(() => {
     const map: Record<PlayerColor, PlayerColor> = { ...IDENTITY_SEAT_MAP };
     const used = new Set<PlayerColor>();
@@ -227,7 +238,8 @@ const LudoBoard: React.FC = () => {
       map[seat] = leftover[i] ?? seat;
     });
     return map;
-  }, [players]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seatKey]);
 
   return (
     <motion.div

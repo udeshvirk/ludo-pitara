@@ -147,8 +147,17 @@ export function generateSNLLayout(): SnakeOrLadder[] {
   return layout;
 }
 
+// Memoised by layout reference — called once per roll, the layout
+// itself doesn't change during a game, so we hand back the cached
+// lookup for the same array. WeakMap keeps it GC-friendly across
+// many rematches.
+const lookupCache = new WeakMap<SnakeOrLadder[], Record<number, number>>();
+
 export function buildLayoutLookup(layout: SnakeOrLadder[]): Record<number, number> {
+  const cached = lookupCache.get(layout);
+  if (cached) return cached;
   const map: Record<number, number> = {};
   for (const item of layout) map[item.from] = item.to;
+  lookupCache.set(layout, map);
   return map;
 }

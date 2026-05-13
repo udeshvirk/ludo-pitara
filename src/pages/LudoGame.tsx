@@ -21,19 +21,22 @@ const LudoGame: React.FC = () => {
   const flowGame = useFlow(s => s.game);
   const flowOptions = useFlow(s => s.options);
 
-  const {
-    players,
-    currentPlayerIndex,
-    diceValue,
-    isRolling,
-    gamePhase,
-    winner,
-    rollDice,
-    selectToken,
-    initGame,
-    resetGame,
-    selectableTokenIds,
-  } = useLudoStore();
+  // Per-field selectors so this page only re-renders on the slices it
+  // actually uses. A whole-store destructure causes every `message`
+  // tick (and many other transient updates) to trigger a full re-
+  // render of LudoBoard via prop chains. Action fns are referentially
+  // stable, but using selectors keeps the pattern consistent.
+  const players = useLudoStore(s => s.players);
+  const currentPlayerIndex = useLudoStore(s => s.currentPlayerIndex);
+  const diceValue = useLudoStore(s => s.diceValue);
+  const isRolling = useLudoStore(s => s.isRolling);
+  const gamePhase = useLudoStore(s => s.gamePhase);
+  const winner = useLudoStore(s => s.winner);
+  const selectableTokenIds = useLudoStore(s => s.selectableTokenIds);
+  const rollDice = useLudoStore(s => s.rollDice);
+  const selectToken = useLudoStore(s => s.selectToken);
+  const initGame = useLudoStore(s => s.initGame);
+  const resetGame = useLudoStore(s => s.resetGame);
 
   // Bootstrap on mount. Three cases:
   //  1. Resumed from a save → store has players, gamePhase != 'setup'. Do nothing.
@@ -80,21 +83,29 @@ const LudoGame: React.FC = () => {
 
   // CPU autoplay — when a CPU player's turn starts, auto-roll, then auto-pick
   // a token after the roll resolves.
-  const currentPlayer = players[currentPlayerIndex];
+  //
+  // Deps key off PRIMITIVE signals (isCPU boolean, phase, dice, etc.)
+  // so the effect doesn't re-run every 90 ms during a walk, where
+  // `players` mutates per step. The fresh players/currentPlayer are
+  // pulled from the store at the moment we actually need them.
+  const currentIsCPU = !!players[currentPlayerIndex]?.isCPU;
   useEffect(() => {
-    if (!currentPlayer?.isCPU) return;
+    if (!currentIsCPU) return;
     if (gamePhase === 'rolling' && !isRolling && diceValue === null) {
       const t = setTimeout(rollDice, 700);
       return () => clearTimeout(t);
     }
     if (gamePhase === 'selecting' && diceValue !== null && selectableTokenIds.length > 0) {
-      const choice = pickCpuToken(currentPlayer, selectableTokenIds, diceValue, players);
+      const fresh = useLudoStore.getState();
+      const player = fresh.players[fresh.currentPlayerIndex];
+      if (!player) return;
+      const choice = pickCpuToken(player, selectableTokenIds, diceValue, fresh.players);
       if (choice) {
         const t = setTimeout(() => selectToken(choice), 600);
         return () => clearTimeout(t);
       }
     }
-  }, [currentPlayer, gamePhase, isRolling, diceValue, selectableTokenIds, players, rollDice, selectToken]);
+  }, [currentIsCPU, gamePhase, isRolling, diceValue, selectableTokenIds, rollDice, selectToken]);
 
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';

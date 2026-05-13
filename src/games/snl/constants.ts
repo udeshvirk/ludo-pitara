@@ -32,29 +32,3 @@ export function rowColToCell(row: number, col: number): number {
   return rowFromBottom * BOARD_SIZE + colInRow + 1;
 }
 
-// Get cell center position as percentage (for SVG overlay positioning)
-export function getCellCenter(cellNum: number): { x: number; y: number } {
-  const { row, col } = cellToRowCol(cellNum);
-  const cellSize = 100 / BOARD_SIZE;
-  return {
-    x: col * cellSize + cellSize / 2,
-    y: row * cellSize + cellSize / 2,
-  };
-}
-
-// Snake colors for visual variety
-export const SNAKE_COLORS = [
-  ['#22c55e', '#15803d'],
-  ['#ef4444', '#b91c1c'],
-  ['#8b5cf6', '#6d28d9'],
-  ['#f97316', '#c2410c'],
-  ['#06b6d4', '#0e7490'],
-];
-
-// Ladder colors
-export const LADDER_COLORS = [
-  '#92400e',
-  '#78350f',
-  '#854d0e',
-  '#713f12',
-];

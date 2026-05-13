@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
 import Btn from '../components/ui/Btn';
-import { useSettings, type AnimationSpeed, type BoardTheme } from '../games/settings/store';
+import { useSettings } from '../games/settings/store';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,29 +17,6 @@ const SettingsPage: React.FC = () => {
         <Section title="Audio & motion">
           <Toggle label="Sound effects" sub="Synthesized in-browser" value={settings.sound} onChange={v => settings.set('sound', v)} />
           <Toggle label="Haptic feedback" sub="Vibration on actions" value={settings.haptics} onChange={v => settings.set('haptics', v)} />
-          <Picker<AnimationSpeed>
-            label="Animation speed"
-            options={[
-              { value: 'slow', label: 'Slow' },
-              { value: 'normal', label: 'Normal' },
-              { value: 'fast', label: 'Fast' },
-            ]}
-            value={settings.animationSpeed}
-            onChange={v => settings.set('animationSpeed', v)}
-          />
-        </Section>
-
-        <Section title="Board">
-          <Picker<BoardTheme>
-            label="Theme"
-            options={[
-              { value: 'cream', label: 'Cream' },
-              { value: 'night', label: 'Night' },
-              { value: 'royal', label: 'Royal' },
-            ]}
-            value={settings.boardTheme}
-            onChange={v => settings.set('boardTheme', v)}
-          />
         </Section>
 
         <Section title="Data">
@@ -92,41 +69,5 @@ const Toggle: React.FC<{ label: string; sub?: string; value: boolean; onChange: 
     </button>
   </div>
 );
-
-interface PickerProps<T extends string> {
-  label: string;
-  options: Array<{ value: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}
-function Picker<T extends string>({ label, options, value, onChange }: PickerProps<T>) {
-  return (
-    <div style={{ padding: 14, borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, marginBottom: 10 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => onChange(opt.value)}
-            style={{
-              flex: 1,
-              padding: '8px 0',
-              borderRadius: 999,
-              border: '1px solid ' + (value === opt.value ? 'var(--saffron)' : 'rgba(255,255,255,0.10)'),
-              background: value === opt.value ? 'rgba(255, 138, 61, 0.16)' : 'transparent',
-              color: value === opt.value ? 'var(--saffron)' : 'var(--ink-dim)',
-              fontFamily: 'var(--font-ui)',
-              fontWeight: 700,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default SettingsPage;

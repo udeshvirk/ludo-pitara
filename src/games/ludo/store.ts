@@ -114,10 +114,20 @@ const migrated = persisted
 const initialState: LudoGameState = migrated && migrated.players.length > 0
   ? {
       ...migrated,
+      // The persisted snapshot can have captured a mid-walk or mid-
+      // select phase — there are no live setTimeout chains on reload,
+      // so any non-rolling phase would soft-lock the user (dice won't
+      // accept, no selectable tokens). Always snap back to the start
+      // of the current player's turn.
+      gamePhase: 'rolling',
+      diceValue: null,
+      hasRolled: false,
+      consecutiveSixes: 0,
       isRolling: false,
+      selectableTokenIds: [],
       flyingCaptures: [],
-      // Walk state is purely transient — never resume mid-walk.
       movingTokenId: null,
+      message: `${migrated.players[migrated.currentPlayerIndex]?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
       // Older saves predate options — fill so reads are always safe.
       options: migrated.options ?? DEFAULT_LUDO_OPTIONS,
     }

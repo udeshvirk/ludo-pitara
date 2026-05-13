@@ -31,10 +31,16 @@ const persistedSNL = load<SNLGameState | null>(STORAGE_KEYS.SNL, null);
 const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0 && persistedSNL.layout?.length
   ? {
       ...persistedSNL,
+      // Mid-walk / mid-slide snapshots have no live timers on reload,
+      // so any non-rolling phase would soft-lock the user. Always snap
+      // back to the start of the current player's turn.
+      gamePhase: 'rolling',
+      diceValue: null,
+      hasRolled: false,
       isRolling: false,
       sliding: null,
-      // Walk state is purely transient — never resume mid-walk.
       walkingPlayerId: null,
+      message: `${persistedSNL.players[persistedSNL.currentPlayerIndex]?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
       // Older saves predate options — fill so reads are always safe.
       options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
     }
@@ -186,8 +192,12 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
         // (Zustand merges).
         set({ walkingPlayerId: null });
 
-        // Reached newPos — win check first.
-        if (newPos === 100) {
+        // Win-check uses finalPos (post snake/ladder) — today the
+        // generator never places an entity at cell 100, so this is
+        // equivalent to checking newPos. Keying off finalPos future-
+        // proofs the path: a snake whose head is 100 would otherwise
+        // be skipped because we'd declare a win before resolving it.
+        if (finalPos === 100) {
           playWin();
           haptics.win();
           const ps = [...get().players];

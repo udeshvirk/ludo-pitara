@@ -74,6 +74,7 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               isActive={isActive}
               isRolling={isRolling}
               diceValue={diceValue}
+              lastRoll={player.lastRoll}
               onRoll={rollDice}
               canRoll={gamePhase === 'rolling'}
               compact={compact}

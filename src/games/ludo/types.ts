@@ -30,6 +30,10 @@ export interface Player {
   tokens: Token[];
   finishOrder: number; // 0 = not finished, 1 = first, 2 = second, etc.
   isCPU?: boolean;
+  // Most recent dice face this player rolled. Pods of inactive players
+  // display this so each die "stays put" like a real tabletop die,
+  // instead of resetting to 1 between turns.
+  lastRoll: number | null;
 }
 
 // Set briefly after a capture so the captured token can animate in an

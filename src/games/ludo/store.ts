@@ -53,6 +53,7 @@ function createPlayer(name: string, color: PlayerColor, displayColor: PlayerColo
     })),
     finishOrder: 0,
     isCPU,
+    lastRoll: null,
   };
 }
 
@@ -107,6 +108,7 @@ const migrated = persisted
       players: persisted.players.map(p => ({
         ...p,
         displayColor: p.displayColor ?? p.color,
+        lastRoll: p.lastRoll ?? null,
         tokens: p.tokens.map(t => ({
           ...t,
           displayColor: t.displayColor ?? t.color,
@@ -193,8 +195,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     playDice();
     haptics.diceRoll();
 
+    // Stamp the rolling player's lastRoll so their pod's die "stays
+    // put" on this face once the turn passes to someone else (instead
+    // of falling back to 1).
+    const updatedPlayers = state.players.map((p, i) =>
+      i === state.currentPlayerIndex ? { ...p, lastRoll: diceValue } : p,
+    );
+
     // Only set the dice value so the 3D dice can animate to the face
-    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers });
 
     // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
     setTimeout(() => {

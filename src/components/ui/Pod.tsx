@@ -9,6 +9,10 @@ interface PodProps {
   isActive: boolean;   // highlight + dice ring
   isRolling: boolean;  // dice tumble animation
   diceValue: number | null;
+  // The face this player last rolled. Shown when the pod isn't active
+  // (or before this player's first-ever roll, when null falls back to
+  // 1) so each die "stays put" like a real tabletop die.
+  lastRoll?: number | null;
   onRoll?: () => void; // dice tap handler when canRoll
   canRoll: boolean;    // whether the dice should be tappable
   compact?: boolean;   // smaller variant for side rails
@@ -89,6 +93,7 @@ const Pod: React.FC<PodProps> = ({
   isActive,
   isRolling,
   diceValue,
+  lastRoll = null,
   onRoll,
   canRoll,
   compact = false,
@@ -116,7 +121,7 @@ const Pod: React.FC<PodProps> = ({
     >
       <Avatar color={color} label={label} size={s.avatar} ring active={isActive} isBot={isBot} />
       <Die
-        value={isActive && diceValue ? diceValue : 1}
+        value={isActive && diceValue ? diceValue : (lastRoll ?? 1)}
         size={s.die}
         active={isActive}
         rolling={isActive && isRolling}

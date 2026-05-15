@@ -42,6 +42,9 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       sliding: null,
       walkingPlayerId: null,
       message: `${persistedSNL.players[persistedSNL.currentPlayerIndex]?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
+      // Pre-lastRoll saves: backfill on each player so the pod's die
+      // fallback resolves cleanly.
+      players: persistedSNL.players.map(p => ({ ...p, lastRoll: p.lastRoll ?? null })),
       // Older saves predate options — backfill so reads are always safe.
       options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
     }
@@ -71,6 +74,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       color: playerColors?.[i] || SNL_PLAYER_COLORS[i].color,
       position: 0,
       isCPU: isCPUFlags?.[i] ?? false,
+      lastRoll: null,
     }));
 
     set({
@@ -101,7 +105,13 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     playDice();
     haptics.diceRoll();
 
-    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling' });
+    // Stamp the rolling player's lastRoll so their pod's die "stays
+    // put" on this face once the turn passes (instead of resetting to 1).
+    const updatedPlayers = state.players.map((p, i) =>
+      i === state.currentPlayerIndex ? { ...p, lastRoll: diceValue } : p,
+    );
+
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers });
 
     // House rule: a player at position 0 has to roll a 1 to enter the
     // board. Every other roll just passes the turn. The "autoStart"

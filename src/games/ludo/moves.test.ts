@@ -16,7 +16,7 @@ function makeToken(color: PlayerColor, idx: number, pathIndex: number, state: To
 }
 
 function makePlayer(color: PlayerColor, tokens: Token[], finishOrder = 0): Player {
-  return { id: color, name: color, color, displayColor: color, tokens, finishOrder };
+  return { id: color, name: color, color, displayColor: color, tokens, finishOrder, lastRoll: null };
 }
 
 // ─── computeMoveOutcome ───────────────────────────────────────────────

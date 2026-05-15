@@ -86,6 +86,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
                 isActive={isActive}
                 isRolling={isRolling}
                 diceValue={diceValue}
+                lastRoll={player.lastRoll}
                 onRoll={rollDice}
                 canRoll={gamePhase === 'rolling'}
                 compact={compact}

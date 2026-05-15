@@ -4,6 +4,10 @@ export interface SNLPlayer {
   color: string;
   position: number; // 0 = not started, 1-100
   isCPU?: boolean;
+  // Most recent dice face this player rolled. Pods of inactive players
+  // display this so each die "stays put" like a real tabletop die,
+  // instead of resetting to 1 between turns.
+  lastRoll: number | null;
 }
 
 export type SNLGamePhase = 'setup' | 'rolling' | 'moving' | 'finished';

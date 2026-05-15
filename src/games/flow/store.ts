@@ -45,13 +45,9 @@ interface FlowStore {
   game: GameId | null;
   players: FlowPlayer[];
   options: GameOptions;
-  // Optional user-supplied SNL board code captured at setup time. Not
-  // persisted in lastSetup — leaving it blank means "random board".
-  snlBoardCode: string;
   setGame: (g: GameId) => void;
   setPlayers: (players: FlowPlayer[]) => void;
   setOptions: (options: GameOptions) => void;
-  setSnlBoardCode: (code: string) => void;
   reset: () => void;
 }
 
@@ -59,10 +55,8 @@ export const useFlow = create<FlowStore>((set) => ({
   game: null,
   players: [],
   options: DEFAULT_OPTIONS,
-  snlBoardCode: '',
   setGame: (g) => set({ game: g }),
   setPlayers: (players) => set({ players }),
   setOptions: (options) => set({ options }),
-  setSnlBoardCode: (code) => set({ snlBoardCode: code }),
-  reset: () => set({ game: null, players: [], options: DEFAULT_OPTIONS, snlBoardCode: '' }),
+  reset: () => set({ game: null, players: [], options: DEFAULT_OPTIONS }),
 }));

@@ -10,7 +10,6 @@ import Chip from '../components/ui/Chip';
 import OptionTile from '../components/ui/OptionTile';
 import SegmentedPicker from '../components/ui/SegmentedPicker';
 import { useFlow, type FlowPlayer, type GameOptions, type CPUDifficulty } from '../games/flow/store';
-import { normaliseBoardCode } from '../games/snl/generator';
 import { useLudoStore } from '../games/ludo/store';
 import { useSNLStore } from '../games/snl/store';
 import { playTap } from '../lib/sound';
@@ -58,11 +57,6 @@ const PlayerSetup: React.FC = () => {
   const game = useFlow(s => s.game);
   const setPlayers = useFlow(s => s.setPlayers);
   const setFlowOptions = useFlow(s => s.setOptions);
-  const setSnlBoardCode = useFlow(s => s.setSnlBoardCode);
-
-  // SNL only — user can type a 6-char code to reproduce a specific
-  // board. Empty = a fresh random board.
-  const [boardCode, setBoardCode] = useState('');
 
   useEffect(() => {
     if (!game) navigate('/select');
@@ -209,7 +203,6 @@ const PlayerSetup: React.FC = () => {
     if (game === 'ludo') useLudoStore.getState().resetGame();
     else useSNLStore.getState().resetGame();
     setFlowOptions(options);
-    setSnlBoardCode(game === 'snl' ? boardCode : '');
     setPlayers(built);
     navigate(game === 'ludo' ? '/ludo' : '/snakes-and-ladders');
   };
@@ -271,8 +264,6 @@ const PlayerSetup: React.FC = () => {
           setOptions={setOptions}
           isOpen={optionsOpen}
           setOpen={setOptionsOpen}
-          boardCode={boardCode}
-          setBoardCode={setBoardCode}
           hasCpu={isCPU.slice(0, count).some(Boolean)}
         />
       </div>
@@ -429,13 +420,11 @@ interface GameOptionsSectionProps {
   setOptions: (o: GameOptions) => void;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
-  boardCode: string;
-  setBoardCode: (v: string) => void;
   hasCpu: boolean;
 }
 
 const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
-  game, options, setOptions, isOpen, setOpen, boardCode, setBoardCode, hasCpu,
+  game, options, setOptions, isOpen, setOpen, hasCpu,
 }) => {
   if (!game) return null;
 
@@ -470,11 +459,9 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
   // header summary and only render when a bot is in the lineup.
   const showDifficulty = game === 'ludo' && hasCpu;
   const difficultyChanged = showDifficulty && options.ludo.cpuDifficulty !== 'medium';
-  const showBoardCode = game === 'snl';
   const enabledCount =
     items.filter(i => i.checked).length +
-    (difficultyChanged ? 1 : 0) +
-    (showBoardCode && boardCode.length > 0 ? 1 : 0);
+    (difficultyChanged ? 1 : 0);
 
   return (
     <div style={{ marginTop: 18 }}>
@@ -526,43 +513,6 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
               onChange={v => { item.set(v); playTap(); haptics.tap(); }}
             />
           ))}
-
-          {showBoardCode && (
-            <Card active={boardCode.length > 0}>
-              <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                Board code
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.4 }}>
-                Picks the snakes & ladders layout — same code, same board. Leave blank for a random one; the code appears on the win screen so you can replay or share it. (This is not a resume code.)
-              </div>
-              <input
-                type="text"
-                value={boardCode}
-                onChange={e => setBoardCode(normaliseBoardCode(e.target.value))}
-                placeholder="e.g. K7Q3MX"
-                maxLength={6}
-                spellCheck={false}
-                autoCapitalize="characters"
-                aria-label="Board code"
-                style={{
-                  marginTop: 10,
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  background: 'rgba(0,0,0,0.18)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'var(--ink)',
-                  fontFamily: 'var(--font-ui)',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  letterSpacing: 3,
-                  textTransform: 'uppercase',
-                  outline: 'none',
-                  textAlign: 'center',
-                }}
-              />
-            </Card>
-          )}
 
           {showDifficulty && (
             <OptionTile

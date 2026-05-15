@@ -13,6 +13,10 @@ offline once installed.
 Stack: React 19, Vite 8, Zustand, framer-motion, react-router-dom,
 vite-plugin-pwa, Tailwind 4.
 
+Licensed MIT (see `LICENSE`). Public repo, intentionally permissive —
+fine to suggest changes that broaden adoption (e.g. better docs,
+shareable links) without worrying about leaking proprietary IP.
+
 ## Commands
 
 ```bash

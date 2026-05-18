@@ -206,7 +206,7 @@ describe('Ludo game-over orchestration (3 players)', () => {
       { name: 'Alice',  color: 'blue',  displayColor: 'blue',  isCPU: false },
       { name: 'BotOne', color: 'red',   displayColor: 'red',   isCPU: true },
       { name: 'BotTwo', color: 'green', displayColor: 'green', isCPU: true },
-    ], { oneTokenOut: false, firstHomeWins: true, cpuDifficulty: 'medium' });
+    ], { oneTokenOut: false, firstHomeWins: true, cpuDifficulty: 'medium', partners: false });
 
     // Alice has 3 still in yard, 1 token at pathIndex 55 about to home.
     useLudoStore.setState({

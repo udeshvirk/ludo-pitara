@@ -25,6 +25,10 @@ export interface LudoOptions {
   // awareness (penalise moves that leave own tokens within 6 of a
   // captureable opponent next turn).
   cpuDifficulty: CPUDifficulty;
+  // 2v2 partner mode. When on, force 4 seats grouped into 2 teams
+  // (blue+green vs red+yellow diagonals); the team can move from either
+  // of its two colours on its turn.
+  partners: boolean;
 }
 export interface SNLOptions {
   // Skip the "must roll a 1 to enter" rule — players can enter the
@@ -37,7 +41,7 @@ export interface GameOptions {
 }
 
 export const DEFAULT_OPTIONS: GameOptions = {
-  ludo: { oneTokenOut: false, firstHomeWins: false, cpuDifficulty: 'medium' },
+  ludo: { oneTokenOut: false, firstHomeWins: false, cpuDifficulty: 'medium', partners: false },
   snl: { autoStart: false },
 };
 

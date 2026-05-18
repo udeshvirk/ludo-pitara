@@ -271,6 +271,20 @@ export function getColoredCells(): Map<string, PlayerColor> {
   return map;
 }
 
+// Partners mode (2v2) seat→team map. Diagonal pairing: BL+TR vs TL+BR.
+//   team 0 → blue (BL) + green (TR)
+//   team 1 → red  (TL) + yellow (BR)
+export const TEAM_OF_SEAT: Record<PlayerColor, 0 | 1> = {
+  blue: 0,
+  green: 0,
+  red: 1,
+  yellow: 1,
+};
+export const TEAM_SEATS: Record<0 | 1, PlayerColor[]> = {
+  0: ['blue', 'green'],
+  1: ['red', 'yellow'],
+};
+
 // Check if a cell is part of the path
 export function isPathCell(row: number, col: number): boolean {
   // Middle row

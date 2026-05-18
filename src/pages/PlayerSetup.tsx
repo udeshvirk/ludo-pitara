@@ -106,6 +106,7 @@ const PlayerSetup: React.FC = () => {
   const anyOptionEnabled =
     options.ludo.oneTokenOut ||
     options.ludo.firstHomeWins ||
+    options.ludo.partners ||
     (initialHasCpu && options.ludo.cpuDifficulty !== 'medium') ||
     options.snl.autoStart;
   const [optionsOpen, setOptionsOpen] = useState<boolean>(anyOptionEnabled);
@@ -166,7 +167,52 @@ const PlayerSetup: React.FC = () => {
     return recents.filter(r => !taken.has(r.toLowerCase()));
   };
 
+  const partners = game === 'ludo' && options.ludo.partners;
+
+  // Partner mode hijacks the player list: 2 team slots (A = blue+green,
+  // B = red+yellow). We reuse customNames/isCPU slots 0 and 1 for the
+  // two teams, and synthesise the 4 seat-coloured FlowPlayers at start.
+  const TEAM_A_COLORS: LudoColor[] = ['blue', 'green'];
+  const TEAM_B_COLORS: LudoColor[] = ['red', 'yellow'];
+  const teamRow = (slot: 0 | 1): { name: string; isCPU: boolean; colors: LudoColor[] } => ({
+    name: (customNames[slot] || '').trim() || (isCPU[slot] ? `Bot ${slot + 1}` : `Team ${slot === 0 ? 'A' : 'B'}`),
+    isCPU: isCPU[slot],
+    colors: slot === 0 ? TEAM_A_COLORS : TEAM_B_COLORS,
+  });
+
   const start = () => {
+    if (partners) {
+      const teamA = teamRow(0);
+      const teamB = teamRow(1);
+      // Persist the human-facing summary so the next session pre-fills
+      // the same team names and bot flags.
+      saveLastSetup({
+        count: 2,
+        names: [teamA.name, teamB.name],
+        colors: [teamA.colors[0], teamB.colors[0]],
+        isCPU: [teamA.isCPU, teamB.isCPU],
+        options,
+      });
+      const typed = [customNames[0], customNames[1]].filter(n => n.trim().length > 0);
+      if (typed.length > 0) {
+        rememberNames(typed);
+        setRecents(getRecentNames());
+      }
+      // Build 4 FlowPlayers in seat order [blue, red, green, yellow] —
+      // matches LudoGame's SEATS_BY_COUNT[4] so the seats line up
+      // exactly. Each seat carries its team owner's name + bot flag.
+      const built: FlowPlayer[] = [
+        { name: teamA.name, color: 'blue',   isCPU: teamA.isCPU },
+        { name: teamB.name, color: 'red',    isCPU: teamB.isCPU },
+        { name: teamA.name, color: 'green',  isCPU: teamA.isCPU },
+        { name: teamB.name, color: 'yellow', isCPU: teamB.isCPU },
+      ];
+      useLudoStore.getState().resetGame();
+      setFlowOptions(options);
+      setPlayers(built);
+      navigate('/ludo');
+      return;
+    }
     const finalNames = Array.from({ length: count }, (_, i) => displayName(i));
     // Only remember user-typed names (skip auto defaults like "Bot 1").
     const typed = customNames.slice(0, count).filter(n => n.trim().length > 0);
@@ -221,42 +267,67 @@ const PlayerSetup: React.FC = () => {
       <Header title="Set up players" subtitle={game === 'ludo' ? 'Ludo' : 'Snakes & Ladders'} onBack={() => navigate('/select')} />
 
       <div style={{ flex: 1, padding: '8px 22px 12px', overflow: 'auto' }}>
-        <div style={{ marginBottom: 22 }}>
-          <SegmentedPicker
-            size="chunky"
-            options={[
-              { value: 2, label: '2 Players' },
-              { value: 3, label: '3 Players' },
-              { value: 4, label: '4 Players' },
-            ]}
-            value={count}
-            onChange={handleCountChange}
-            ariaLabel="Number of players"
-          />
-        </div>
-
-        <ul aria-label="Players" style={{ display: 'flex', flexDirection: 'column', gap: 12, listStyle: 'none', padding: 0, margin: 0 }}>
-          {Array.from({ length: count }, (_, i) => (
-            <PlayerRow
-              key={i}
-              index={i}
-              avatarColor={palette[i]}
-              name={customNames[i] || ''}
-              namePlaceholder={autoDefaultName(i, isCPU)}
-              displayInitial={displayName(i)[0]}
-              isCPU={isCPU[i]}
-              selectedColor={colors[i]}
-              colors={colors.slice(0, count)}
-              chips={activeNameIndex === i ? chipsForRow(i) : []}
-              onNameChange={(v) => updateName(i, v)}
-              onNameFocus={() => setActiveNameIndex(i)}
-              onNameBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === i ? null : prev)), 120)}
-              onColorPick={(c) => setColorAt(i, c)}
-              onToggleCpu={() => toggleCpu(i)}
-              onChipApply={(v) => applyChip(i, v)}
+        {!partners && (
+          <div style={{ marginBottom: 22 }}>
+            <SegmentedPicker
+              size="chunky"
+              options={[
+                { value: 2, label: '2 Players' },
+                { value: 3, label: '3 Players' },
+                { value: 4, label: '4 Players' },
+              ]}
+              value={count}
+              onChange={handleCountChange}
+              ariaLabel="Number of players"
             />
-          ))}
-        </ul>
+          </div>
+        )}
+
+        {partners ? (
+          <ul aria-label="Teams" style={{ display: 'flex', flexDirection: 'column', gap: 12, listStyle: 'none', padding: 0, margin: 0 }}>
+            {[0, 1].map((slot) => {
+              const teamColors = slot === 0 ? TEAM_A_COLORS : TEAM_B_COLORS;
+              const label = `Team ${slot === 0 ? 'A' : 'B'}`;
+              return (
+                <TeamRow
+                  key={slot}
+                  index={slot}
+                  label={label}
+                  colors={teamColors}
+                  name={customNames[slot] || ''}
+                  namePlaceholder={isCPU[slot] ? `Bot ${slot + 1}` : label}
+                  displayInitial={(customNames[slot]?.trim() || label)[0]}
+                  isCPU={isCPU[slot]}
+                  onNameChange={(v) => updateName(slot, v)}
+                  onToggleCpu={() => toggleCpu(slot)}
+                />
+              );
+            })}
+          </ul>
+        ) : (
+          <ul aria-label="Players" style={{ display: 'flex', flexDirection: 'column', gap: 12, listStyle: 'none', padding: 0, margin: 0 }}>
+            {Array.from({ length: count }, (_, i) => (
+              <PlayerRow
+                key={i}
+                index={i}
+                avatarColor={palette[i]}
+                name={customNames[i] || ''}
+                namePlaceholder={autoDefaultName(i, isCPU)}
+                displayInitial={displayName(i)[0]}
+                isCPU={isCPU[i]}
+                selectedColor={colors[i]}
+                colors={colors.slice(0, count)}
+                chips={activeNameIndex === i ? chipsForRow(i) : []}
+                onNameChange={(v) => updateName(i, v)}
+                onNameFocus={() => setActiveNameIndex(i)}
+                onNameBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === i ? null : prev)), 120)}
+                onColorPick={(c) => setColorAt(i, c)}
+                onToggleCpu={() => toggleCpu(i)}
+                onChipApply={(v) => applyChip(i, v)}
+              />
+            ))}
+          </ul>
+        )}
 
         <GameOptionsSection
           game={game}
@@ -264,7 +335,7 @@ const PlayerSetup: React.FC = () => {
           setOptions={setOptions}
           isOpen={optionsOpen}
           setOpen={setOptionsOpen}
-          hasCpu={isCPU.slice(0, count).some(Boolean)}
+          hasCpu={(options.ludo.partners ? isCPU.slice(0, 2) : isCPU.slice(0, count)).some(Boolean)}
         />
       </div>
 
@@ -412,6 +483,99 @@ const ColorDot: React.FC<{ color: LudoColor; selected: boolean; ownedByOther: bo
   />
 );
 
+// ─── TeamRow (partner mode) ───────────────────────────────────────────
+
+interface TeamRowProps {
+  index: number;
+  label: string;
+  colors: LudoColor[]; // two seat colours that belong to this team
+  name: string;
+  namePlaceholder: string;
+  displayInitial: string;
+  isCPU: boolean;
+  onNameChange: (v: string) => void;
+  onToggleCpu: () => void;
+}
+
+const TeamRow: React.FC<TeamRowProps> = ({
+  index, label, colors, name, namePlaceholder, displayInitial, isCPU,
+  onNameChange, onToggleCpu,
+}) => (
+  <motion.li
+    initial={{ opacity: 0, x: -8 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay: index * 0.05 }}
+    style={{ listStyle: 'none' }}
+  >
+    <Card padding="md" radius={18}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Two-tone avatar — the team's two colours, side by side. */}
+          <div
+            aria-hidden
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${COLOR_VAR[colors[0]]} 50%, ${COLOR_VAR[colors[1]]} 50%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontFamily: 'var(--font-ui)',
+              boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.25)',
+            }}
+          >
+            {displayInitial.toUpperCase()}
+          </div>
+          <input
+            type="text"
+            value={name}
+            onChange={e => onNameChange(e.target.value)}
+            placeholder={namePlaceholder}
+            maxLength={14}
+            aria-label={`${label} name`}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(0,0,0,0.18)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--ink)',
+              fontFamily: 'var(--font-ui)',
+              fontWeight: 600,
+              fontSize: 15,
+              outline: 'none',
+            }}
+          />
+          <Chip
+            tone={isCPU ? 'saffron' : 'default'}
+            onClick={onToggleCpu}
+            ariaLabel={isCPU ? 'Bot player' : 'Human player'}
+            style={{ fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: 800, padding: '6px 10px' }}
+          >
+            {isCPU ? 'Bot' : 'Human'}
+          </Chip>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 56 }}>
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
+            Plays
+          </span>
+          {colors.map(c => (
+            <span
+              key={c}
+              aria-label={c}
+              style={{
+                width: 18, height: 18, borderRadius: '50%',
+                background: COLOR_VAR[c],
+                border: '1px solid rgba(255,255,255,0.25)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </Card>
+  </motion.li>
+);
+
 // ─── GameOptionsSection ────────────────────────────────────────────────
 
 interface GameOptionsSectionProps {
@@ -430,19 +594,28 @@ const GameOptionsSection: React.FC<GameOptionsSectionProps> = ({
 
   const ludoItems = [
     {
+      key: 'partners',
+      label: 'Partner mode (2v2)',
+      desc: 'Two teams of two colours each (Blue+Green vs Red+Yellow, diagonally). On your turn you can move any token from either of your team\'s two colours. Teammates can\'t capture each other.',
+      checked: options.ludo.partners,
+      set: (v: boolean) => setOptions({ ...options, ludo: { ...options.ludo, partners: v } }),
+    },
+    {
       key: 'oneTokenOut',
       label: '1 token starts out',
       desc: 'One token per player starts already on its start cell. The other three still need a 6.',
       checked: options.ludo.oneTokenOut,
       set: (v: boolean) => setOptions({ ...options, ludo: { ...options.ludo, oneTokenOut: v } }),
     },
-    {
+    // firstHomeWins is hidden in partner mode — a team only wins when
+    // all 8 of its tokens are home.
+    ...(options.ludo.partners ? [] : [{
       key: 'firstHomeWins',
       label: 'First token home wins',
       desc: 'The first player to bring any token home wins — instead of having to bring all four.',
       checked: options.ludo.firstHomeWins,
       set: (v: boolean) => setOptions({ ...options, ludo: { ...options.ludo, firstHomeWins: v } }),
-    },
+    }]),
   ];
   const snlItems = [
     {

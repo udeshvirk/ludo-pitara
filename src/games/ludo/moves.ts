@@ -53,16 +53,21 @@ export interface CaptureResult {
 
 // Returns `null` if no capture occurred. A capture is impossible if
 // the landing cell is home, on the home stretch, or on a safe square.
+// `friendlyColors` lists seat colours that should be treated as same
+// side (no capture). In solo play that's just [currentColor]; in
+// partners mode it's both teammate seats.
 export function detectCaptures(
   players: Player[],
   currentColor: PlayerColor,
   finalIndex: number,
   finalState: TokenState,
+  friendlyColors?: readonly PlayerColor[],
 ): CaptureResult | null {
   if (finalState !== 'active') return null;
   if (finalIndex >= 51) return null; // home stretch
   if (isSafePosition(currentColor, finalIndex)) return null;
 
+  const friends = new Set<PlayerColor>(friendlyColors ?? [currentColor]);
   const landing = getBoardPosition(currentColor, finalIndex);
   const flyingCaptures: CaptureFly[] = [];
   const capturedNames: string[] = [];
@@ -70,7 +75,7 @@ export function detectCaptures(
 
   for (let pi = 0; pi < updated.length; pi++) {
     const opp = updated[pi];
-    if (opp.color === currentColor) continue;
+    if (friends.has(opp.color)) continue;
     for (let ti = 0; ti < opp.tokens.length; ti++) {
       const ot = opp.tokens[ti];
       if (ot.state !== 'active') continue;

@@ -29,14 +29,28 @@ export function pickCpuToken(
   if (selectableIds.length === 0) return null;
   if (selectableIds.length === 1) return selectableIds[0];
 
+  // In partner mode the selectable set spans the teammate's seat too,
+  // so tokens may live on either team-mate player. Build a pooled
+  // lookup of all team tokens.
+  const teamPlayers = player.team !== undefined
+    ? allPlayers.filter(p => p.team === player.team)
+    : [player];
+  const findTeamToken = (id: string): { token: Token; owner: Player } | null => {
+    for (const tp of teamPlayers) {
+      const t = tp.tokens.find(tk => tk.id === id);
+      if (t) return { token: t, owner: tp };
+    }
+    return null;
+  };
+
   if (difficulty === 'easy') {
     // On a 6, prefer freeing a yard token if one is selectable —
     // wasting a 6 on an already-out token is the most common cheap
     // mistake, and we want Easy to be "novice", not "self-sabotaging".
     if (diceValue === 6) {
       const yardChoice = selectableIds.find(id => {
-        const t = player.tokens.find(tk => tk.id === id);
-        return t?.state === 'yard';
+        const found = findTeamToken(id);
+        return found?.token.state === 'yard';
       });
       if (yardChoice) return yardChoice;
     }
@@ -44,8 +58,8 @@ export function pickCpuToken(
   }
 
   const moves: Move[] = selectableIds.map((id) => {
-    const token = player.tokens.find(t => t.id === id)!;
-    return { tokenId: id, score: scoreMove(token, diceValue, player, allPlayers, difficulty) };
+    const found = findTeamToken(id)!;
+    return { tokenId: id, score: scoreMove(found.token, diceValue, found.owner, allPlayers, difficulty) };
   });
   moves.sort((a, b) => b.score - a.score);
   return moves[0].tokenId;
@@ -77,6 +91,9 @@ function scoreMove(
     const newPos = getBoardPosition(player.color, newPathIndex);
     for (const other of allPlayers) {
       if (other.color === player.color) continue;
+      // Partner mode: teammate isn't an opponent — never score capturing
+      // (or fearing capture from) their tokens.
+      if (player.team !== undefined && other.team === player.team) continue;
       for (const ot of other.tokens) {
         if (ot.state !== 'active') continue;
         const op = getBoardPosition(other.color, ot.pathIndex);
@@ -102,6 +119,9 @@ function scoreMove(
     const myPos = getBoardPosition(player.color, newPathIndex);
     for (const other of allPlayers) {
       if (other.color === player.color) continue;
+      // Partner mode: teammate isn't an opponent — never score capturing
+      // (or fearing capture from) their tokens.
+      if (player.team !== undefined && other.team === player.team) continue;
       for (const ot of other.tokens) {
         if (ot.state !== 'active') continue;
         // Distance from the opponent token to our landing cell along

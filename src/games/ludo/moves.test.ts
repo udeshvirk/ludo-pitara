@@ -129,6 +129,19 @@ describe('detectCaptures', () => {
     expect(detectCaptures([red, green], 'red', 56, 'home')).toBeNull();
   });
 
+  it('partner mode: treats teammate seat as friendly (no capture)', () => {
+    // Red lands at path index 5 (not safe). Yellow has a token on the
+    // same cell. In partner mode red+yellow are the same team, so this
+    // must NOT count as a capture.
+    const red = makePlayer('red', [makeToken('red', 0, 5, 'active')]);
+    // Yellow's path index 31 maps to the same main-path cell as red 5
+    // (red start = 0, yellow start = 26 → yellow needs to be at 5 + 26
+    // = 31 to share that cell, mod 52).
+    const yellow = makePlayer('yellow', [makeToken('yellow', 0, 31, 'active')]);
+    const result = detectCaptures([red, yellow], 'red', 5, 'active', ['red', 'yellow']);
+    expect(result).toBeNull();
+  });
+
   it('does not capture on the home stretch', () => {
     // Home stretch is path index 51+. Suppress capture there.
     const red = makePlayer('red', [makeToken('red', 0, 53, 'active')]);

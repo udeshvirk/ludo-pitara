@@ -46,7 +46,14 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
           return <div key={slot} />;
         }
         const player = players[idx];
-        const isActive = idx === currentPlayerIndex && gamePhase !== 'finished';
+        const currentPlayer = players[currentPlayerIndex];
+        // Partner mode: both teammate pods highlight together so the
+        // human reading the screen can see "team A is up" at a glance.
+        const sameTeam =
+          player.team !== undefined &&
+          currentPlayer?.team !== undefined &&
+          player.team === currentPlayer.team;
+        const isActive = (idx === currentPlayerIndex || sameTeam) && gamePhase !== 'finished';
         const justify = isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
         // Two-slot rows: slot 0 hugs the left edge → arrow on the right;
         // slot 1 hugs the right edge → arrow on the left. Single-slot
@@ -72,11 +79,11 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               color={PLAYER_COLORS[player.displayColor].bg}
               label={player.name[0]}
               isActive={isActive}
-              isRolling={isRolling}
+              isRolling={isRolling && idx === currentPlayerIndex}
               diceValue={diceValue}
               lastRoll={player.lastRoll}
               onRoll={rollDice}
-              canRoll={gamePhase === 'rolling'}
+              canRoll={gamePhase === 'rolling' && idx === currentPlayerIndex}
               compact={compact}
               isBot={!!player.isCPU}
               arrowSide={podArrowSide}

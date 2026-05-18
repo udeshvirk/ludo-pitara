@@ -6,7 +6,7 @@ import type {
   Token,
   PlayerColor,
 } from './types';
-import { PLAYER_ORDER } from './constants';
+import { PLAYER_ORDER, TEAM_OF_SEAT, TEAM_SEATS } from './constants';
 import {
   computeMoveOutcome,
   intermediatePathIndex,
@@ -35,9 +35,17 @@ const DEFAULT_LUDO_OPTIONS: LudoGameOptions = {
   oneTokenOut: false,
   firstHomeWins: false,
   cpuDifficulty: 'medium',
+  partners: false,
 };
 
-function createPlayer(name: string, color: PlayerColor, displayColor: PlayerColor, isCPU = false, oneTokenOut = false): Player {
+function createPlayer(
+  name: string,
+  color: PlayerColor,
+  displayColor: PlayerColor,
+  isCPU = false,
+  oneTokenOut = false,
+  team?: 0 | 1,
+): Player {
   return {
     id: color,
     name,
@@ -54,24 +62,35 @@ function createPlayer(name: string, color: PlayerColor, displayColor: PlayerColo
     finishOrder: 0,
     isCPU,
     lastRoll: null,
+    team,
   };
 }
 
-function getSelectableTokens(diceValue: number, player: Player): string[] {
+// Partners helpers — return the players sharing a team with `player`
+// (always includes `player` itself). In solo play this is just [player].
+function teamPlayers(player: Player, players: Player[]): Player[] {
+  if (player.team === undefined) return [player];
+  return players.filter(p => p.team === player.team);
+}
+
+function getSelectableTokens(diceValue: number, player: Player, allPlayers: Player[]): string[] {
   if (diceValue === 0) return [];
   const selectable: string[] = [];
+  const sources = teamPlayers(player, allPlayers);
 
-  for (const token of player.tokens) {
-    if (token.state === 'home') continue;
+  for (const src of sources) {
+    for (const token of src.tokens) {
+      if (token.state === 'home') continue;
 
-    if (token.state === 'yard') {
-      if (diceValue === 6) {
-        selectable.push(token.id);
-      }
-    } else {
-      const newIndex = token.pathIndex + diceValue;
-      if (newIndex <= 56) {
-        selectable.push(token.id);
+      if (token.state === 'yard') {
+        if (diceValue === 6) {
+          selectable.push(token.id);
+        }
+      } else {
+        const newIndex = token.pathIndex + diceValue;
+        if (newIndex <= 56) {
+          selectable.push(token.id);
+        }
       }
     }
   }
@@ -159,13 +178,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
   initGame: (playerCount, playerNames, customPlayers, options) => {
     const opts = options ?? DEFAULT_LUDO_OPTIONS;
+    const teamFor = (seat: PlayerColor): 0 | 1 | undefined =>
+      opts.partners ? TEAM_OF_SEAT[seat] : undefined;
     const players: Player[] = customPlayers
-      ? customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.displayColor, cp.isCPU, opts.oneTokenOut))
+      ? customPlayers.map(cp => createPlayer(cp.name, cp.color, cp.displayColor, cp.isCPU, opts.oneTokenOut, teamFor(cp.color)))
       : PLAYER_ORDER[playerCount].map((color, i) => {
           const name = playerNames?.[i] || `Player ${i + 1}`;
           // No explicit displayColor → seat doubles as visual (legacy
           // path; the setup screen always supplies displayColor).
-          return createPlayer(name, color, color, false, opts.oneTokenOut);
+          return createPlayer(name, color, color, false, opts.oneTokenOut, teamFor(color));
         });
 
     set({
@@ -236,8 +257,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       return;
     }
 
-      // Check selectable tokens
-      const selectableTokens = getSelectableTokens(diceValue, currentPlayer);
+      // Check selectable tokens (spans both teammates in partner mode)
+      const selectableTokens = getSelectableTokens(diceValue, currentPlayer, currentState.players);
 
       if (selectableTokens.length === 0) {
         // No valid moves
@@ -296,10 +317,24 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     const currentPlayerIndex = state.currentPlayerIndex;
     const currentPlayer = state.players[currentPlayerIndex];
-    const tokenIndex = currentPlayer.tokens.findIndex(t => t.id === tokenId);
+    // Partner mode: the moved token may belong to the teammate's seat
+    // (Blue rolling can play Green's tokens). Find whichever team
+    // player actually owns this token.
+    let movingPlayerIndex = currentPlayerIndex;
+    let tokenIndex = currentPlayer.tokens.findIndex(t => t.id === tokenId);
+    if (tokenIndex === -1) {
+      for (let i = 0; i < state.players.length; i++) {
+        const p = state.players[i];
+        if (p.team !== undefined && p.team === currentPlayer.team) {
+          const idx = p.tokens.findIndex(t => t.id === tokenId);
+          if (idx !== -1) { movingPlayerIndex = i; tokenIndex = idx; break; }
+        }
+      }
+    }
     if (tokenIndex === -1) return;
 
-    const token = currentPlayer.tokens[tokenIndex];
+    const movingPlayer = state.players[movingPlayerIndex];
+    const token = movingPlayer.tokens[tokenIndex];
     const diceValue = state.diceValue;
     const outcome = computeMoveOutcome(token, diceValue);
 
@@ -319,9 +354,9 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       const intermediateIndex = intermediatePathIndex(outcome, step);
       set(s => {
         const ps = [...s.players];
-        const me = { ...ps[currentPlayerIndex], tokens: [...ps[currentPlayerIndex].tokens] };
+        const me = { ...ps[movingPlayerIndex], tokens: [...ps[movingPlayerIndex].tokens] };
         me.tokens[tokenIndex] = { ...me.tokens[tokenIndex], pathIndex: intermediateIndex, state: 'active' };
-        ps[currentPlayerIndex] = me;
+        ps[movingPlayerIndex] = me;
         return { players: ps };
       });
       if (step < outcome.stepsCount) {
@@ -339,7 +374,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       const s = get();
       // Promote the moved token to its final state.
       let players = s.players.map(p => ({ ...p, tokens: [...p.tokens] }));
-      const me = players[currentPlayerIndex];
+      const me = players[movingPlayerIndex];
       me.tokens[tokenIndex] = {
         ...me.tokens[tokenIndex],
         pathIndex: outcome.finalIndex,
@@ -355,8 +390,11 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
       // Captures — pure helper hands back the updated players + arc
       // descriptors, or null if no opponent token sat on the landing
-      // cell.
-      const capture = detectCaptures(players, currentPlayer.color, outcome.finalIndex, outcome.finalState);
+      // cell. In partner mode, both teammate seat colours are friendly.
+      const friendlyColors = movingPlayer.team !== undefined
+        ? TEAM_SEATS[movingPlayer.team]
+        : [movingPlayer.color];
+      const capture = detectCaptures(players, movingPlayer.color, outcome.finalIndex, outcome.finalState, friendlyColors);
       let capturedMessage = '';
       if (capture) {
         players = capture.players;
@@ -376,13 +414,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
       // Re-bind `me` to the updated players array (capture detection
       // may have rebuilt it).
-      const movedPlayer = players[currentPlayerIndex];
+      const movedPlayer = players[movingPlayerIndex];
+      const partners = movedPlayer.team !== undefined;
 
       // "First home wins" short-circuit — the moment a player lands a
-      // single token in home, they win.
-      if (s.options.firstHomeWins && outcome.finalState === 'home') {
+      // single token in home, they win. Disabled in partners mode
+      // (the team must bring all 8 tokens home).
+      if (!partners && s.options.firstHomeWins && outcome.finalState === 'home') {
         const winner = { ...movedPlayer, finishOrder: 1 };
-        players[currentPlayerIndex] = winner;
+        players[movingPlayerIndex] = winner;
         playWin();
         haptics.win();
         set({
@@ -395,28 +435,51 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         return;
       }
 
-      // Standard Ludo: the first player to bring all four tokens home
-      // WINS — game ends right there. (The `firstHomeWins` option above
-      // is a more aggressive variant where the first single-token-home
-      // wins.) `nextFinishOrder` does double duty: it returns >0 if
-      // either the player already had a finishOrder (defensive) or
-      // they just cleared all four tokens.
-      const newOrder = nextFinishOrder(movedPlayer, players);
-      if (newOrder > 0) {
-        const winner = movedPlayer.finishOrder === 0
-          ? { ...movedPlayer, finishOrder: newOrder }
-          : movedPlayer;
-        players[currentPlayerIndex] = winner;
-        playWin();
-        haptics.win();
-        set({
-          players,
-          gamePhase: 'finished',
-          winner,
-          message: `🏆 ${winner.name} wins!`,
-          selectableTokenIds: [],
-        });
-        return;
+      if (partners) {
+        // Partners: team wins when BOTH teammate seats have all 4 home.
+        const teamMembers = players.filter(p => p.team === movedPlayer.team);
+        const teamDone = teamMembers.every(p => p.tokens.every(t => t.state === 'home'));
+        if (teamDone) {
+          // Mark both teammates finished so any downstream "is this seat
+          // done" check stays consistent. The displayed winner is the
+          // moved seat (its displayColor lights up the WinnerModal).
+          players = players.map(p =>
+            p.team === movedPlayer.team ? { ...p, finishOrder: 1 } : p,
+          );
+          const winner = players[movingPlayerIndex];
+          playWin();
+          haptics.win();
+          set({
+            players,
+            gamePhase: 'finished',
+            winner,
+            message: `🏆 ${winner.name} wins!`,
+            selectableTokenIds: [],
+          });
+          return;
+        }
+      } else {
+        // Standard Ludo: the first player to bring all four tokens home
+        // WINS — game ends right there. (The `firstHomeWins` option
+        // above is a more aggressive variant where the first single-
+        // token-home wins.)
+        const newOrder = nextFinishOrder(movedPlayer, players);
+        if (newOrder > 0) {
+          const winner = movedPlayer.finishOrder === 0
+            ? { ...movedPlayer, finishOrder: newOrder }
+            : movedPlayer;
+          players[movingPlayerIndex] = winner;
+          playWin();
+          haptics.win();
+          set({
+            players,
+            gamePhase: 'finished',
+            winner,
+            message: `🏆 ${winner.name} wins!`,
+            selectableTokenIds: [],
+          });
+          return;
+        }
       }
 
       // Bonus turn on 6 / reach-home / capture. Otherwise rotate.

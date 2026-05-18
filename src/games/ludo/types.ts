@@ -30,6 +30,10 @@ export interface Player {
   tokens: Token[];
   finishOrder: number; // 0 = not finished, 1 = first, 2 = second, etc.
   isCPU?: boolean;
+  // Partners mode (2v2): team 0 = blue+green diagonal, team 1 = red+yellow.
+  // Undefined in solo play. Two seats sharing a team also share name +
+  // isCPU (one human / bot controls both colours).
+  team?: 0 | 1;
   // Most recent dice face this player rolled. Pods of inactive players
   // display this so each die "stays put" like a real tabletop die,
   // instead of resetting to 1 between turns.
@@ -55,6 +59,10 @@ export interface LudoGameOptions {
   oneTokenOut: boolean;
   firstHomeWins: boolean;
   cpuDifficulty: CPUDifficulty;
+  // Partner mode: 2 teams of 2 seats each. Team A = blue+green
+  // diagonal, Team B = red+yellow. firstHomeWins is forced off when
+  // partners is on (team wins only when all 8 of their tokens are home).
+  partners: boolean;
 }
 
 export interface LudoGameState {

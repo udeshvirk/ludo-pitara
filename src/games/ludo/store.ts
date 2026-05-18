@@ -218,10 +218,15 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
 
     // Stamp the rolling player's lastRoll so their pod's die "stays
     // put" on this face once the turn passes to someone else (instead
-    // of falling back to 1).
-    const updatedPlayers = state.players.map((p, i) =>
-      i === state.currentPlayerIndex ? { ...p, lastRoll: diceValue } : p,
-    );
+    // of falling back to 1). In partner mode, both teammate seats
+    // share the team's last roll — visually they're one dice.
+    const updatedPlayers = state.players.map((p, i) => {
+      const sameTeam =
+        currentPlayer.team !== undefined && p.team === currentPlayer.team;
+      return i === state.currentPlayerIndex || sameTeam
+        ? { ...p, lastRoll: diceValue }
+        : p;
+    });
 
     // Only set the dice value so the 3D dice can animate to the face
     set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers });

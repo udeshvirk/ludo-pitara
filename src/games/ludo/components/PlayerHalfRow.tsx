@@ -48,12 +48,20 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
         const player = players[idx];
         const currentPlayer = players[currentPlayerIndex];
         // Partner mode: both teammate pods highlight together so the
-        // human reading the screen can see "team A is up" at a glance.
+        // human reading the screen can see "team A is up" at a glance,
+        // and the dice is tappable from EITHER pod (their two yards
+        // sit diagonally — reaching across to the far pod every roll
+        // would be awkward on a shared device).
         const sameTeam =
           player.team !== undefined &&
           currentPlayer?.team !== undefined &&
           player.team === currentPlayer.team;
-        const isActive = (idx === currentPlayerIndex || sameTeam) && gamePhase !== 'finished';
+        const isCurrentSeat = idx === currentPlayerIndex;
+        const isActive = (isCurrentSeat || sameTeam) && gamePhase !== 'finished';
+        // The active seat owns the live dice. Teammate pods MIRROR the
+        // roll (same value, same tumble) so it visually reads as one
+        // shared team dice no matter which pod was tapped.
+        const showsLiveDice = isCurrentSeat || sameTeam;
         const justify = isSingle ? 'center' : (slot === 0 ? 'start' : 'end');
         // Two-slot rows: slot 0 hugs the left edge → arrow on the right;
         // slot 1 hugs the right edge → arrow on the left. Single-slot
@@ -79,11 +87,11 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               color={PLAYER_COLORS[player.displayColor].bg}
               label={player.name[0]}
               isActive={isActive}
-              isRolling={isRolling && idx === currentPlayerIndex}
+              isRolling={isRolling && showsLiveDice}
               diceValue={diceValue}
               lastRoll={player.lastRoll}
               onRoll={rollDice}
-              canRoll={gamePhase === 'rolling' && idx === currentPlayerIndex}
+              canRoll={gamePhase === 'rolling' && showsLiveDice}
               compact={compact}
               isBot={!!player.isCPU}
               arrowSide={podArrowSide}

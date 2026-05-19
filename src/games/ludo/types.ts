@@ -65,6 +65,12 @@ export interface LudoGameOptions {
   partners: boolean;
 }
 
+export interface LudoUndoSnapshot {
+  players: Player[];
+  currentPlayerIndex: number;
+  consecutiveSixes: number;
+}
+
 export interface LudoGameState {
   players: Player[];
   currentPlayerIndex: number;
@@ -82,6 +88,11 @@ export interface LudoGameState {
   // to fit two and flash the count badge as the walker passes over.
   movingTokenId: string | null;
   options: LudoGameOptions;
+  // Last-move undo. Captured at the start of every rollDice; the
+  // expiry is stamped once the move animation settles. Both transient
+  // — never persisted.
+  undoSnapshot: LudoUndoSnapshot | null;
+  undoableUntil: number | null;
 }
 
 export interface BoardPosition {

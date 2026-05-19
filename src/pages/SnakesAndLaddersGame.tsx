@@ -8,6 +8,7 @@ import SNLBoard from '../games/snl/components/SNLBoard';
 import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
 import WinnerModal from '../components/WinnerModal';
 import ConfirmExitModal from '../components/ConfirmExitModal';
+import UndoButton from '../components/UndoButton';
 import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
@@ -42,6 +43,8 @@ const SnakesAndLaddersGame: React.FC = () => {
   const rollDice = useSNLStore(s => s.rollDice);
   const initGame = useSNLStore(s => s.initGame);
   const resetGame = useSNLStore(s => s.resetGame);
+  const undoableUntil = useSNLStore(s => s.undoableUntil);
+  const undoMove = useSNLStore(s => s.undoMove);
   const [confirmExit, setConfirmExit] = useState(false);
 
   // See LudoGame for the back-confirmation rationale. Leaving without
@@ -198,6 +201,8 @@ const SnakesAndLaddersGame: React.FC = () => {
         }}
         onGoHome={() => { resetGame(); navigate('/'); }}
       />
+
+      <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
 
       <ConfirmExitModal
         isOpen={confirmExit}

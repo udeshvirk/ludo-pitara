@@ -29,7 +29,11 @@ interface LudoStore extends LudoGameState {
   rollDice: () => void;
   selectToken: (tokenId: string) => void;
   resetGame: () => void;
+  undoMove: () => void;
 }
+
+// How long the Undo button stays visible after a move settles.
+const UNDO_WINDOW_MS = 5000;
 
 const DEFAULT_LUDO_OPTIONS: LudoGameOptions = {
   oneTokenOut: false,
@@ -156,6 +160,8 @@ const initialState: LudoGameState = migrated && migrated.players.length > 0
       // field landed (e.g. cpuDifficulty) still loads with that field
       // populated.
       options: { ...DEFAULT_LUDO_OPTIONS, ...(migrated.options ?? {}) },
+      undoSnapshot: null,
+      undoableUntil: null,
     }
   : {
       players: [],
@@ -171,6 +177,8 @@ const initialState: LudoGameState = migrated && migrated.players.length > 0
       flyingCaptures: [],
       movingTokenId: null,
       options: DEFAULT_LUDO_OPTIONS,
+      undoSnapshot: null,
+      undoableUntil: null,
     };
 
 export const useLudoStore = create<LudoStore>((set, get) => ({
@@ -202,6 +210,8 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       selectableTokenIds: [],
       movingTokenId: null,
       options: opts,
+      undoSnapshot: null,
+      undoableUntil: null,
     });
   },
 
@@ -216,6 +226,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     playDice();
     haptics.diceRoll();
 
+    // Pre-roll snapshot for last-move undo. undoableUntil stays null
+    // until the move animation settles (stamped by the settle subscriber).
+    const undoSnapshot = {
+      players: state.players,
+      currentPlayerIndex: state.currentPlayerIndex,
+      consecutiveSixes: state.consecutiveSixes,
+    };
+
     // Stamp the rolling player's lastRoll so their pod's die "stays
     // put" on this face once the turn passes to someone else (instead
     // of falling back to 1). In partner mode, both teammate seats
@@ -229,7 +247,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
     });
 
     // Only set the dice value so the 3D dice can animate to the face
-    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers });
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers, undoSnapshot, undoableUntil: null });
 
     // Wait for the 3D dice to finish its "settle" animation (800ms) before continuing logic
     setTimeout(() => {
@@ -541,9 +559,55 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
       flyingCaptures: [],
       movingTokenId: null,
       options: DEFAULT_LUDO_OPTIONS,
+      undoSnapshot: null,
+      undoableUntil: null,
+    });
+  },
+
+  undoMove: () => {
+    const s = get();
+    if (!s.undoSnapshot) return;
+    if (s.undoableUntil === null || Date.now() > s.undoableUntil) return;
+    // Bump actionGen so any in-flight timeouts can't clobber the
+    // restored state.
+    startAction();
+    const restored = s.undoSnapshot;
+    const restoredPlayer = restored.players[restored.currentPlayerIndex];
+    set({
+      players: restored.players,
+      currentPlayerIndex: restored.currentPlayerIndex,
+      consecutiveSixes: restored.consecutiveSixes,
+      diceValue: null,
+      isRolling: false,
+      hasRolled: false,
+      gamePhase: 'rolling',
+      winner: null,
+      selectableTokenIds: [],
+      flyingCaptures: [],
+      movingTokenId: null,
+      message: `${restoredPlayer?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
+      undoSnapshot: null,
+      undoableUntil: null,
     });
   },
 }));
+
+// Settle detector — once the move animation finishes and the player
+// (or next player) regains control, stamp undoableUntil so the Undo
+// button shows. Covers both 'rolling' (turn passed / bonus turn) and
+// 'selecting' (waiting on the user to pick a token).
+useLudoStore.subscribe(state => {
+  if (!state.undoSnapshot) return;
+  if (state.undoableUntil !== null) return;
+  const settled =
+    (state.gamePhase === 'rolling' || state.gamePhase === 'selecting') &&
+    !state.isRolling &&
+    !state.movingTokenId &&
+    state.flyingCaptures.length === 0;
+  if (settled) {
+    useLudoStore.setState({ undoableUntil: Date.now() + UNDO_WINDOW_MS });
+  }
+});
 
 // Auto-persist the game on every meaningful change.
 useLudoStore.subscribe((state) => {
@@ -567,6 +631,9 @@ useLudoStore.subscribe((state) => {
     flyingCaptures: [],
     movingTokenId: null,
     options: state.options,
+    // Undo state is per-session only — never restore across reloads.
+    undoSnapshot: null,
+    undoableUntil: null,
   };
   // Debounced: a single walk fires ~11 subscribe events at ~90 ms each.
   // Collapse them into one trailing-edge write. pagehide/beforeunload

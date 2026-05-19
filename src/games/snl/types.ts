@@ -26,6 +26,11 @@ export interface SNLGameOptions {
   autoStart: boolean;
 }
 
+export interface SNLUndoSnapshot {
+  players: SNLPlayer[];
+  currentPlayerIndex: number;
+}
+
 export interface SNLGameState {
   players: SNLPlayer[];
   currentPlayerIndex: number;
@@ -44,6 +49,10 @@ export interface SNLGameState {
   // resident tokens, no count-badge flicker as the walker passes over).
   walkingPlayerId: string | null;
   options: SNLGameOptions;
+  // Last-move undo. Captured at start of rollDice, expiry stamped
+  // once the move settles. Both transient — never persisted.
+  undoSnapshot: SNLUndoSnapshot | null;
+  undoableUntil: number | null;
 }
 
 export interface SnakeOrLadder {

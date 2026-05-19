@@ -282,24 +282,3 @@ export function playTap() {
   osc.start(now);
   osc.stop(now + 0.05);
 }
-
-// "Rewind" cue for undo — a quick downward pitch slide so the action
-// reads as backwards-motion rather than a generic tap.
-export function playUndo() {
-  if (!enabled) return;
-  const ac = getCtx();
-  if (!ac) return;
-  const osc = ac.createOscillator();
-  const gain = ac.createGain();
-  const now = ac.currentTime;
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(900, now);
-  osc.frequency.exponentialRampToValueAtTime(380, now + 0.18);
-  gain.gain.setValueAtTime(0.001, now);
-  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-  osc.connect(gain);
-  gain.connect(ac.destination);
-  osc.start(now);
-  osc.stop(now + 0.24);
-}

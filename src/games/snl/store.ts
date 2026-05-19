@@ -18,11 +18,7 @@ interface SNLStore extends SNLGameState {
   ) => void;
   rollDice: () => void;
   resetGame: () => void;
-  undoMove: () => void;
 }
-
-// How long the Undo button stays visible after a move settles.
-const UNDO_WINDOW_MS = 5000;
 
 const DEFAULT_SNL_OPTIONS: SNLGameOptions = { autoStart: false };
 
@@ -51,8 +47,6 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       players: persistedSNL.players.map(p => ({ ...p, lastRoll: p.lastRoll ?? null })),
       // Older saves predate options — backfill so reads are always safe.
       options: persistedSNL.options ?? DEFAULT_SNL_OPTIONS,
-      undoSnapshot: null,
-      undoableUntil: null,
     }
   : {
       players: [],
@@ -68,8 +62,6 @@ const initialSNL: SNLGameState = persistedSNL && persistedSNL.players.length > 0
       sliding: null,
       walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
-      undoSnapshot: null,
-      undoableUntil: null,
     };
 
 export const useSNLStore = create<SNLStore>((set, get) => ({
@@ -98,8 +90,6 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       layout: generateSNLLayout(),
       walkingPlayerId: null,
       options: options ?? DEFAULT_SNL_OPTIONS,
-      undoSnapshot: null,
-      undoableUntil: null,
     });
   },
 
@@ -115,21 +105,13 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
     playDice();
     haptics.diceRoll();
 
-    // Snapshot the pre-roll state so Undo can rewind to right before
-    // the dice tap. undoableUntil is left null — the settle subscriber
-    // stamps it once the move animation finishes.
-    const undoSnapshot = {
-      players: state.players,
-      currentPlayerIndex: state.currentPlayerIndex,
-    };
-
     // Stamp the rolling player's lastRoll so their pod's die "stays
     // put" on this face once the turn passes (instead of resetting to 1).
     const updatedPlayers = state.players.map((p, i) =>
       i === state.currentPlayerIndex ? { ...p, lastRoll: diceValue } : p,
     );
 
-    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers, undoSnapshot, undoableUntil: null });
+    set({ diceValue, isRolling: true, hasRolled: true, gamePhase: 'rolling', players: updatedPlayers });
 
     // House rule: a player at position 0 has to roll a 1 to enter the
     // board. Every other roll just passes the turn. The "autoStart"
@@ -307,52 +289,9 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
       sliding: null,
       walkingPlayerId: null,
       options: DEFAULT_SNL_OPTIONS,
-      undoSnapshot: null,
-      undoableUntil: null,
-    });
-  },
-
-  undoMove: () => {
-    const s = get();
-    if (!s.undoSnapshot) return;
-    if (s.undoableUntil === null || Date.now() > s.undoableUntil) return;
-    // Bump actionGen so any in-flight timeouts can't clobber the
-    // restored state.
-    startAction();
-    const restored = s.undoSnapshot;
-    const restoredPlayer = restored.players[restored.currentPlayerIndex];
-    set({
-      players: restored.players,
-      currentPlayerIndex: restored.currentPlayerIndex,
-      diceValue: null,
-      isRolling: false,
-      hasRolled: false,
-      gamePhase: 'rolling',
-      winner: null,
-      sliding: null,
-      walkingPlayerId: null,
-      message: `${restoredPlayer?.name ?? 'Player'}'s turn — Tap the dice to roll!`,
-      lastAction: 'Move undone',
-      undoSnapshot: null,
-      undoableUntil: null,
     });
   },
 }));
-
-// Settle detector — once the move animation finishes and control
-// returns to the user, stamp undoableUntil so the Undo button shows.
-useSNLStore.subscribe(state => {
-  if (!state.undoSnapshot) return;
-  if (state.undoableUntil !== null) return;
-  const settled =
-    state.gamePhase === 'rolling' &&
-    !state.isRolling &&
-    !state.walkingPlayerId &&
-    !state.sliding;
-  if (settled) {
-    useSNLStore.setState({ undoableUntil: Date.now() + UNDO_WINDOW_MS });
-  }
-});
 
 useSNLStore.subscribe((state) => {
   if (state.gamePhase === 'setup') return;
@@ -375,9 +314,6 @@ useSNLStore.subscribe((state) => {
     sliding: null,
     walkingPlayerId: null,
     options: state.options,
-    // Undo state is per-session only — never restore across reloads.
-    undoSnapshot: null,
-    undoableUntil: null,
   };
   // Debounced — collapse the ~11 per-walk writes into one trailing
   // write; pagehide/beforeunload drain the queue.

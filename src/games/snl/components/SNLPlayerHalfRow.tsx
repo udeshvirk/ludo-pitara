@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSNLStore } from '../store';
 import Pod from '../../../components/ui/Pod';
-import UndoButton from '../../../components/UndoButton';
 
 interface SNLPlayerHalfRowProps {
   slots: Array<number | null>; // index into players[] or null for an empty slot
@@ -23,10 +22,6 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
   const isRolling = useSNLStore(s => s.isRolling);
   const gamePhase = useSNLStore(s => s.gamePhase);
   const rollDice = useSNLStore(s => s.rollDice);
-  const undoSnapshot = useSNLStore(s => s.undoSnapshot);
-  const undoableUntil = useSNLStore(s => s.undoableUntil);
-  const undoMove = useSNLStore(s => s.undoMove);
-  const undoOwnerIdx = undoSnapshot?.currentPlayerIndex ?? null;
 
   const nameSize = compact ? 11 : 12;
 
@@ -85,33 +80,19 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
             }}
           >
             <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
-                <Pod
-                  color={player.color}
-                  label={player.name[0]}
-                  isActive={isActive}
-                  isRolling={isRolling}
-                  diceValue={diceValue}
-                  lastRoll={player.lastRoll}
-                  onRoll={rollDice}
-                  canRoll={gamePhase === 'rolling'}
-                  compact={compact}
-                  isBot={!!player.isCPU}
-                  arrowSide={podArrowSide}
-                />
-                {idx === undoOwnerIdx && !player.isCPU && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      [podArrowSide === 'left' ? 'right' : 'left']: 'calc(100% + 8px)',
-                      transform: 'translateY(-50%)',
-                    }}
-                  >
-                    <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
-                  </span>
-                )}
-              </span>
+              <Pod
+                color={player.color}
+                label={player.name[0]}
+                isActive={isActive}
+                isRolling={isRolling}
+                diceValue={diceValue}
+                lastRoll={player.lastRoll}
+                onRoll={rollDice}
+                canRoll={gamePhase === 'rolling'}
+                compact={compact}
+                isBot={!!player.isCPU}
+                arrowSide={podArrowSide}
+              />
             </div>
             <div
               style={{

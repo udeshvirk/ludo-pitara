@@ -2,7 +2,6 @@ import React from 'react';
 import { useLudoStore } from '../store';
 import { PLAYER_COLORS } from '../constants';
 import Pod from '../../../components/ui/Pod';
-import UndoButton from '../../../components/UndoButton';
 
 interface PlayerHalfRowProps {
   slots: Array<number | null>; // index into the players[] array, or null for empty
@@ -27,13 +26,6 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
   const isRolling = useLudoStore(s => s.isRolling);
   const gamePhase = useLudoStore(s => s.gamePhase);
   const rollDice = useLudoStore(s => s.rollDice);
-  const undoSnapshot = useLudoStore(s => s.undoSnapshot);
-  const undoableUntil = useLudoStore(s => s.undoableUntil);
-  const undoMove = useLudoStore(s => s.undoMove);
-  // Undo lives next to the pod of the seat whose roll is being undone.
-  // In partner mode the snapshot pins to one specific seat (the seat
-  // that actually rolled), not both teammates.
-  const undoOwnerIdx = undoSnapshot?.currentPlayerIndex ?? null;
 
   // Single-slot rows (side rails) center the pod; two-slot rows pin the
   // pods to the row's two outer edges so each pod sits beside its
@@ -82,14 +74,6 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
         const podArrowSide: 'left' | 'right' = top
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
-        // Bots roll on their own; an undo on a bot's move is just noise
-        // (it would re-roll the same bot). Only humans get the pill.
-        const showUndo = idx === undoOwnerIdx && !player.isCPU;
-        // Undo is absolutely positioned on the same side as the turn-
-        // arrow (board-facing) so it never affects the pod's layout —
-        // single-slot side rails centre their cell, so any inline
-        // sibling would shift the pod. Absolute positioning keeps the
-        // pod anchored regardless of layout mode.
         return (
           <div
             key={slot}
@@ -99,33 +83,19 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               transform: top ? 'rotate(180deg)' : undefined,
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
-              <Pod
-                color={PLAYER_COLORS[player.displayColor].bg}
-                label={player.name[0]}
-                isActive={isActive}
-                isRolling={isRolling && showsLiveDice}
-                diceValue={diceValue}
-                lastRoll={player.lastRoll}
-                onRoll={rollDice}
-                canRoll={gamePhase === 'rolling' && showsLiveDice}
-                compact={compact}
-                isBot={!!player.isCPU}
-                arrowSide={podArrowSide}
-              />
-              {showUndo && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    [podArrowSide === 'left' ? 'right' : 'left']: 'calc(100% + 8px)',
-                    transform: 'translateY(-50%)',
-                  }}
-                >
-                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
-                </span>
-              )}
-            </span>
+            <Pod
+              color={PLAYER_COLORS[player.displayColor].bg}
+              label={player.name[0]}
+              isActive={isActive}
+              isRolling={isRolling && showsLiveDice}
+              diceValue={diceValue}
+              lastRoll={player.lastRoll}
+              onRoll={rollDice}
+              canRoll={gamePhase === 'rolling' && showsLiveDice}
+              compact={compact}
+              isBot={!!player.isCPU}
+              arrowSide={podArrowSide}
+            />
           </div>
         );
       })}

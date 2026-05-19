@@ -99,7 +99,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
                   isBot={!!player.isCPU}
                   arrowSide={podArrowSide}
                 />
-                {idx === undoOwnerIdx && (
+                {idx === undoOwnerIdx && !player.isCPU && (
                   <span
                     style={{
                       position: 'absolute',

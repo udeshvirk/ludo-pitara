@@ -82,7 +82,9 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
         const podArrowSide: 'left' | 'right' = top
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
-        const showUndo = idx === undoOwnerIdx;
+        // Bots roll on their own; an undo on a bot's move is just noise
+        // (it would re-roll the same bot). Only humans get the pill.
+        const showUndo = idx === undoOwnerIdx && !player.isCPU;
         // Undo is absolutely positioned on the same side as the turn-
         // arrow (board-facing) so it never affects the pod's layout —
         // single-slot side rails centre their cell, so any inline

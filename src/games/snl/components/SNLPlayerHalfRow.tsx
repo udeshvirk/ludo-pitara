@@ -85,19 +85,27 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
             }}
           >
             <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
-              <Pod
-                color={player.color}
-                label={player.name[0]}
-                isActive={isActive}
-                isRolling={isRolling}
-                diceValue={diceValue}
-                lastRoll={player.lastRoll}
-                onRoll={rollDice}
-                canRoll={gamePhase === 'rolling'}
-                compact={compact}
-                isBot={!!player.isCPU}
-                arrowSide={podArrowSide}
-              />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {idx === undoOwnerIdx && podArrowSide === 'right' && (
+                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+                )}
+                <Pod
+                  color={player.color}
+                  label={player.name[0]}
+                  isActive={isActive}
+                  isRolling={isRolling}
+                  diceValue={diceValue}
+                  lastRoll={player.lastRoll}
+                  onRoll={rollDice}
+                  canRoll={gamePhase === 'rolling'}
+                  compact={compact}
+                  isBot={!!player.isCPU}
+                  arrowSide={podArrowSide}
+                />
+                {idx === undoOwnerIdx && podArrowSide === 'left' && (
+                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+                )}
+              </span>
             </div>
             <div
               style={{
@@ -116,11 +124,6 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
             >
               {player.name}
             </div>
-            {idx === undoOwnerIdx && (
-              <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
-                <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
-              </div>
-            )}
           </div>
         );
       })}

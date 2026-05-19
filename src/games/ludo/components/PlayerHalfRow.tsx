@@ -83,33 +83,37 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
         const showUndo = idx === undoOwnerIdx;
+        // Place Undo on the side OPPOSITE the turn-arrow so the two
+        // cues never sit on the same edge of the card (the active seat
+        // can have both visible during a bonus-turn undo window).
+        const undoOnLeft = showUndo && podArrowSide === 'right';
+        const undoOnRight = showUndo && podArrowSide === 'left';
         return (
           <div
             key={slot}
             style={{
               minWidth: 0,
               justifySelf: justify,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 6,
               transform: top ? 'rotate(180deg)' : undefined,
             }}
           >
-            <Pod
-              color={PLAYER_COLORS[player.displayColor].bg}
-              label={player.name[0]}
-              isActive={isActive}
-              isRolling={isRolling && showsLiveDice}
-              diceValue={diceValue}
-              lastRoll={player.lastRoll}
-              onRoll={rollDice}
-              canRoll={gamePhase === 'rolling' && showsLiveDice}
-              compact={compact}
-              isBot={!!player.isCPU}
-              arrowSide={podArrowSide}
-            />
-            {showUndo && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {undoOnLeft && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
+              <Pod
+                color={PLAYER_COLORS[player.displayColor].bg}
+                label={player.name[0]}
+                isActive={isActive}
+                isRolling={isRolling && showsLiveDice}
+                diceValue={diceValue}
+                lastRoll={player.lastRoll}
+                onRoll={rollDice}
+                canRoll={gamePhase === 'rolling' && showsLiveDice}
+                compact={compact}
+                isBot={!!player.isCPU}
+                arrowSide={podArrowSide}
+              />
+              {undoOnRight && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
+            </span>
           </div>
         );
       })}

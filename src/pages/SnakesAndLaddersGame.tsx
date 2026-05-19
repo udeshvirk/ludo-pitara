@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
@@ -7,6 +7,7 @@ import { useSNLStore } from '../games/snl/store';
 import SNLBoard from '../games/snl/components/SNLBoard';
 import SNLPlayerHalfRow from '../games/snl/components/SNLPlayerHalfRow';
 import WinnerModal from '../components/WinnerModal';
+import ConfirmExitModal from '../components/ConfirmExitModal';
 import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { useLayoutMode } from '../lib/useLayout';
@@ -41,6 +42,18 @@ const SnakesAndLaddersGame: React.FC = () => {
   const rollDice = useSNLStore(s => s.rollDice);
   const initGame = useSNLStore(s => s.initGame);
   const resetGame = useSNLStore(s => s.resetGame);
+  const [confirmExit, setConfirmExit] = useState(false);
+
+  // See LudoGame for the back-confirmation rationale. Leaving without
+  // resetGame() preserves the save so the user can resume.
+  const handleBack = () => {
+    if (gamePhase === 'setup' || gamePhase === 'finished') {
+      resetGame();
+      navigate('/select');
+    } else {
+      setConfirmExit(true);
+    }
+  };
 
   useEffect(() => {
     if (initialized.current) return;
@@ -124,7 +137,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   return (
     <PhoneShell decorative={false} fluid>
       <LiveRegion text={message} />
-      <Header title="Snakes & Ladders" onBack={() => { resetGame(); navigate('/select'); }} action={<SoundToggle />} />
+      <Header title="Snakes & Ladders" onBack={handleBack} action={<SoundToggle />} />
 
       {isWide ? (
         <div
@@ -184,6 +197,12 @@ const SnakesAndLaddersGame: React.FC = () => {
           initGame(count, snapshotNames, snapshotCpu, snapshotColors, opts);
         }}
         onGoHome={() => { resetGame(); navigate('/'); }}
+      />
+
+      <ConfirmExitModal
+        isOpen={confirmExit}
+        onCancel={() => setConfirmExit(false)}
+        onConfirm={() => { setConfirmExit(false); navigate('/select'); }}
       />
     </PhoneShell>
   );

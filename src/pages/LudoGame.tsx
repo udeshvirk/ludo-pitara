@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PhoneShell from '../components/ui/PhoneShell';
 import Header from '../components/ui/Header';
@@ -9,6 +9,7 @@ import LudoBoard from '../games/ludo/components/LudoBoard';
 import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
 import type { Player, PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
+import ConfirmExitModal from '../components/ConfirmExitModal';
 import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
@@ -39,6 +40,20 @@ const LudoGame: React.FC = () => {
   const selectToken = useLudoStore(s => s.selectToken);
   const initGame = useLudoStore(s => s.initGame);
   const resetGame = useLudoStore(s => s.resetGame);
+  const [confirmExit, setConfirmExit] = useState(false);
+
+  // Back behaviour: if a game is in progress, prompt first. Leaving
+  // keeps the persisted save intact so the Continue strip on the home
+  // screens can resume it. If the game is finished or hasn't started,
+  // back goes straight to game select without prompting.
+  const handleBack = () => {
+    if (gamePhase === 'setup' || gamePhase === 'finished') {
+      resetGame();
+      navigate('/select');
+    } else {
+      setConfirmExit(true);
+    }
+  };
 
   // Bootstrap on mount. Three cases:
   //  1. Resumed from a save → store has players, gamePhase != 'setup'. Do nothing.
@@ -148,7 +163,7 @@ const LudoGame: React.FC = () => {
       <LiveRegion text={message} />
       <Header
         title="Ludo"
-        onBack={() => { resetGame(); navigate('/select'); }}
+        onBack={handleBack}
         action={<SoundToggle />}
       />
 
@@ -220,6 +235,12 @@ const LudoGame: React.FC = () => {
           resetGame();
           navigate('/');
         }}
+      />
+
+      <ConfirmExitModal
+        isOpen={confirmExit}
+        onCancel={() => setConfirmExit(false)}
+        onConfirm={() => { setConfirmExit(false); navigate('/select'); }}
       />
     </PhoneShell>
   );

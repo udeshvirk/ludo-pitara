@@ -85,10 +85,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
             }}
           >
             <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                {idx === undoOwnerIdx && podArrowSide === 'left' && (
-                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
-                )}
+              <span style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
                 <Pod
                   color={player.color}
                   label={player.name[0]}
@@ -102,8 +99,17 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
                   isBot={!!player.isCPU}
                   arrowSide={podArrowSide}
                 />
-                {idx === undoOwnerIdx && podArrowSide === 'right' && (
-                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+                {idx === undoOwnerIdx && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      [podArrowSide === 'left' ? 'right' : 'left']: 'calc(100% + 8px)',
+                      transform: 'translateY(-50%)',
+                    }}
+                  >
+                    <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+                  </span>
                 )}
               </span>
             </div>

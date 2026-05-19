@@ -83,12 +83,11 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
         const showUndo = idx === undoOwnerIdx;
-        // Place Undo on the SAME side as the turn-arrow (i.e. on the
-        // board-facing side), beyond the arrow. The wrapper is anchored
-        // to the screen-edge via `justifySelf`, so extending outward on
-        // the arrow side keeps the pod card visually pinned in place.
-        const undoOnLeft = showUndo && podArrowSide === 'left';
-        const undoOnRight = showUndo && podArrowSide === 'right';
+        // Undo is absolutely positioned on the same side as the turn-
+        // arrow (board-facing) so it never affects the pod's layout —
+        // single-slot side rails centre their cell, so any inline
+        // sibling would shift the pod. Absolute positioning keeps the
+        // pod anchored regardless of layout mode.
         return (
           <div
             key={slot}
@@ -98,8 +97,7 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               transform: top ? 'rotate(180deg)' : undefined,
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {undoOnLeft && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
+            <span style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
               <Pod
                 color={PLAYER_COLORS[player.displayColor].bg}
                 label={player.name[0]}
@@ -113,7 +111,18 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
                 isBot={!!player.isCPU}
                 arrowSide={podArrowSide}
               />
-              {undoOnRight && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
+              {showUndo && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    [podArrowSide === 'left' ? 'right' : 'left']: 'calc(100% + 8px)',
+                    transform: 'translateY(-50%)',
+                  }}
+                >
+                  <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+                </span>
+              )}
             </span>
           </div>
         );

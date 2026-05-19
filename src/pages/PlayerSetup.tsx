@@ -159,15 +159,17 @@ const PlayerSetup: React.FC = () => {
     haptics.tap();
   };
 
+  const partners = game === 'ludo' && options.ludo.partners;
+
   const chipsForRow = (idx: number): string[] => {
     if (recents.length === 0) return [];
+    // Partner mode uses 2 team slots; solo mode uses `count` player slots.
+    const slotCount = partners ? 2 : count;
     const taken = new Set(
-      Array.from({ length: count }, (_, i) => (i === idx ? '' : displayName(i).toLowerCase().trim())).filter(Boolean),
+      Array.from({ length: slotCount }, (_, i) => (i === idx ? '' : displayName(i).toLowerCase().trim())).filter(Boolean),
     );
     return recents.filter(r => !taken.has(r.toLowerCase()));
   };
-
-  const partners = game === 'ludo' && options.ludo.partners;
 
   // Partner mode hijacks the player list: 2 team slots (A = blue+green,
   // B = red+yellow). We reuse customNames/isCPU slots 0 and 1 for the
@@ -298,8 +300,12 @@ const PlayerSetup: React.FC = () => {
                   namePlaceholder={isCPU[slot] ? `Bot ${slot + 1}` : label}
                   displayInitial={(customNames[slot]?.trim() || label)[0]}
                   isCPU={isCPU[slot]}
+                  chips={activeNameIndex === slot ? chipsForRow(slot) : []}
                   onNameChange={(v) => updateName(slot, v)}
+                  onNameFocus={() => setActiveNameIndex(slot)}
+                  onNameBlur={() => setTimeout(() => setActiveNameIndex(prev => (prev === slot ? null : prev)), 120)}
                   onToggleCpu={() => toggleCpu(slot)}
+                  onChipApply={(v) => applyChip(slot, v)}
                 />
               );
             })}
@@ -493,13 +499,17 @@ interface TeamRowProps {
   namePlaceholder: string;
   displayInitial: string;
   isCPU: boolean;
+  chips: string[];
   onNameChange: (v: string) => void;
+  onNameFocus: () => void;
+  onNameBlur: () => void;
   onToggleCpu: () => void;
+  onChipApply: (v: string) => void;
 }
 
 const TeamRow: React.FC<TeamRowProps> = ({
-  index, label, colors, name, namePlaceholder, displayInitial, isCPU,
-  onNameChange, onToggleCpu,
+  index, label, colors, name, namePlaceholder, displayInitial, isCPU, chips,
+  onNameChange, onNameFocus, onNameBlur, onToggleCpu, onChipApply,
 }) => (
   <motion.li
     initial={{ opacity: 0, x: -8 }}
@@ -527,6 +537,8 @@ const TeamRow: React.FC<TeamRowProps> = ({
             type="text"
             value={name}
             onChange={e => onNameChange(e.target.value)}
+            onFocus={onNameFocus}
+            onBlur={onNameBlur}
             placeholder={namePlaceholder}
             maxLength={14}
             aria-label={`${label} name`}
@@ -571,6 +583,26 @@ const TeamRow: React.FC<TeamRowProps> = ({
             />
           ))}
         </div>
+
+        {chips.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
+          >
+            {chips.map(chipName => (
+              <Chip
+                key={chipName}
+                tone="saffron"
+                onMouseDown={(e) => { e.preventDefault(); onChipApply(chipName); }}
+                style={{ fontWeight: 600 }}
+              >
+                {chipName}
+              </Chip>
+            ))}
+          </motion.div>
+        )}
       </div>
     </Card>
   </motion.li>

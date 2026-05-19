@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { playTap } from '../lib/sound';
+import { playUndo } from '../lib/sound';
 import { haptics } from '../lib/haptics';
 
 interface UndoButtonProps {
@@ -34,7 +34,7 @@ const UndoButton: React.FC<UndoButtonProps> = ({ undoableUntil, onUndo }) => {
       {visible && (
         <motion.button
           key="undo-btn"
-          onClick={() => { playTap(); haptics.tap(); onUndo(); }}
+          onClick={() => { playUndo(); haptics.tap(); onUndo(); }}
           aria-label="Undo last move"
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}

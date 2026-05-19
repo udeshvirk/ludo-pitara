@@ -83,11 +83,12 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
         const showUndo = idx === undoOwnerIdx;
-        // Place Undo on the side OPPOSITE the turn-arrow so the two
-        // cues never sit on the same edge of the card (the active seat
-        // can have both visible during a bonus-turn undo window).
-        const undoOnLeft = showUndo && podArrowSide === 'right';
-        const undoOnRight = showUndo && podArrowSide === 'left';
+        // Place Undo on the SAME side as the turn-arrow (i.e. on the
+        // board-facing side), beyond the arrow. The wrapper is anchored
+        // to the screen-edge via `justifySelf`, so extending outward on
+        // the arrow side keeps the pod card visually pinned in place.
+        const undoOnLeft = showUndo && podArrowSide === 'left';
+        const undoOnRight = showUndo && podArrowSide === 'right';
         return (
           <div
             key={slot}

@@ -76,6 +76,12 @@ const LudoCells: React.FC<LudoCellsProps> = ({
 
       const residents = tokens.filter(t => !t.isMoving);
       const walkers = tokens.filter(t => t.isMoving);
+      // Mixed-colour residents (only happens in partner mode when
+      // teammate seats stack on the same cell) need a split layout so
+      // each token gets its own tap zone. Same-colour stacks keep the
+      // diagonal look — that path is unchanged for solo Ludo.
+      const stackLayout: 'diagonal' | 'split' =
+        new Set(residents.map(t => t.color)).size > 1 ? 'split' : 'diagonal';
 
       return (
         <div
@@ -115,6 +121,7 @@ const LudoCells: React.FC<LudoCellsProps> = ({
                 isSelectable={selectableTokenIds.includes(t.tokenId)}
                 stackIndex={ti}
                 stackSize={arr.length}
+                stackLayout={stackLayout}
               />
             ))}
             {/* Walking token (if any) renders solo on top of the cell

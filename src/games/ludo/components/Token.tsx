@@ -12,11 +12,14 @@ interface TokenProps {
   isSelectable: boolean;
   stackIndex: number;
   stackSize: number;
+  // 'split' is used for mixed-colour stacks (partner mode teammates
+  // sharing a cell) so each token has its own tap zone.
+  stackLayout?: 'diagonal' | 'split';
 }
 
-const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize }) => {
+const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize, stackLayout = 'diagonal' }) => {
   const selectToken = useLudoStore(s => s.selectToken);
-  const { sizePercent, leftPercent, topPercent } = stackPlacement(stackSize, stackIndex);
+  const { sizePercent, leftPercent, topPercent } = stackPlacement(stackSize, stackIndex, 1, stackLayout);
 
   return (
     <motion.button

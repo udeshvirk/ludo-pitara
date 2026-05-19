@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSNLStore } from '../store';
 import Pod from '../../../components/ui/Pod';
+import UndoButton from '../../../components/UndoButton';
 
 interface SNLPlayerHalfRowProps {
   slots: Array<number | null>; // index into players[] or null for an empty slot
@@ -22,6 +23,10 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
   const isRolling = useSNLStore(s => s.isRolling);
   const gamePhase = useSNLStore(s => s.gamePhase);
   const rollDice = useSNLStore(s => s.rollDice);
+  const undoSnapshot = useSNLStore(s => s.undoSnapshot);
+  const undoableUntil = useSNLStore(s => s.undoableUntil);
+  const undoMove = useSNLStore(s => s.undoMove);
+  const undoOwnerIdx = undoSnapshot?.currentPlayerIndex ?? null;
 
   const nameSize = compact ? 11 : 12;
 
@@ -111,6 +116,11 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
             >
               {player.name}
             </div>
+            {idx === undoOwnerIdx && (
+              <div style={{ transform: top ? 'rotate(180deg)' : undefined }}>
+                <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
+              </div>
+            )}
           </div>
         );
       })}

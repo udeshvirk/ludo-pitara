@@ -2,6 +2,7 @@ import React from 'react';
 import { useLudoStore } from '../store';
 import { PLAYER_COLORS } from '../constants';
 import Pod from '../../../components/ui/Pod';
+import UndoButton from '../../../components/UndoButton';
 
 interface PlayerHalfRowProps {
   slots: Array<number | null>; // index into the players[] array, or null for empty
@@ -26,6 +27,13 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
   const isRolling = useLudoStore(s => s.isRolling);
   const gamePhase = useLudoStore(s => s.gamePhase);
   const rollDice = useLudoStore(s => s.rollDice);
+  const undoSnapshot = useLudoStore(s => s.undoSnapshot);
+  const undoableUntil = useLudoStore(s => s.undoableUntil);
+  const undoMove = useLudoStore(s => s.undoMove);
+  // Undo lives next to the pod of the seat whose roll is being undone.
+  // In partner mode the snapshot pins to one specific seat (the seat
+  // that actually rolled), not both teammates.
+  const undoOwnerIdx = undoSnapshot?.currentPlayerIndex ?? null;
 
   // Single-slot rows (side rails) center the pod; two-slot rows pin the
   // pods to the row's two outer edges so each pod sits beside its
@@ -74,12 +82,17 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
         const podArrowSide: 'left' | 'right' = top
           ? (naturalSide === 'left' ? 'right' : 'left')
           : naturalSide;
+        const showUndo = idx === undoOwnerIdx;
         return (
           <div
             key={slot}
             style={{
               minWidth: 0,
               justifySelf: justify,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 6,
               transform: top ? 'rotate(180deg)' : undefined,
             }}
           >
@@ -96,6 +109,7 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               isBot={!!player.isCPU}
               arrowSide={podArrowSide}
             />
+            {showUndo && <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />}
           </div>
         );
       })}

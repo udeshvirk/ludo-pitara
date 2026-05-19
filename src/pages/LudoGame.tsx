@@ -10,7 +10,6 @@ import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
 import type { Player, PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
 import ConfirmExitModal from '../components/ConfirmExitModal';
-import UndoButton from '../components/UndoButton';
 import LiveRegion from '../components/ui/LiveRegion';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
@@ -41,8 +40,6 @@ const LudoGame: React.FC = () => {
   const selectToken = useLudoStore(s => s.selectToken);
   const initGame = useLudoStore(s => s.initGame);
   const resetGame = useLudoStore(s => s.resetGame);
-  const undoableUntil = useLudoStore(s => s.undoableUntil);
-  const undoMove = useLudoStore(s => s.undoMove);
   const [confirmExit, setConfirmExit] = useState(false);
 
   // Back behaviour: if a game is in progress, prompt first. Leaving
@@ -239,8 +236,6 @@ const LudoGame: React.FC = () => {
           navigate('/');
         }}
       />
-
-      <UndoButton undoableUntil={undoableUntil} onUndo={undoMove} />
 
       <ConfirmExitModal
         isOpen={confirmExit}

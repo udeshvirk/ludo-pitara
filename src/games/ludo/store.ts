@@ -592,15 +592,16 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   },
 }));
 
-// Settle detector — once the move animation finishes and the player
-// (or next player) regains control, stamp undoableUntil so the Undo
-// button shows. Covers both 'rolling' (turn passed / bonus turn) and
-// 'selecting' (waiting on the user to pick a token).
+// Settle detector — stamp undoableUntil only once the token has
+// actually moved and control passes back. The 'selecting' phase
+// (waiting on the user to pick a token) is intentionally excluded:
+// showing Undo before the token moves was confusing — the roll isn't
+// resolved yet.
 useLudoStore.subscribe(state => {
   if (!state.undoSnapshot) return;
   if (state.undoableUntil !== null) return;
   const settled =
-    (state.gamePhase === 'rolling' || state.gamePhase === 'selecting') &&
+    state.gamePhase === 'rolling' &&
     !state.isRolling &&
     !state.movingTokenId &&
     state.flyingCaptures.length === 0;

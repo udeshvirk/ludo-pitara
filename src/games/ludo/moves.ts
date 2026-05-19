@@ -73,9 +73,32 @@ export function detectCaptures(
   const capturedNames: string[] = [];
   const updated = players.map(p => ({ ...p, tokens: [...p.tokens] }));
 
+  // Classic Ludo "block" rule: two or more tokens of the same side
+  // sitting on a cell form a safe stack — opponents landing there
+  // can't capture any of them. "Side" = team in partners mode, else
+  // a single seat colour. Count opponent tokens at the landing cell
+  // per side so we know which ones are protected.
+  const sideKey = (p: Player) => p.team !== undefined ? `team-${p.team}` : `seat-${p.color}`;
+  const opponentCountBySide = new Map<string, number>();
+  for (const p of updated) {
+    if (friends.has(p.color)) continue;
+    let n = 0;
+    for (const t of p.tokens) {
+      if (t.state !== 'active') continue;
+      const tp = getBoardPosition(t.color, t.pathIndex);
+      if (tp.row === landing.row && tp.col === landing.col) n++;
+    }
+    if (n === 0) continue;
+    const key = sideKey(p);
+    opponentCountBySide.set(key, (opponentCountBySide.get(key) ?? 0) + n);
+  }
+
   for (let pi = 0; pi < updated.length; pi++) {
     const opp = updated[pi];
     if (friends.has(opp.color)) continue;
+    // Side has a block (≥2 tokens at landing) — every token on this
+    // side is protected, skip the player entirely.
+    if ((opponentCountBySide.get(sideKey(opp)) ?? 0) >= 2) continue;
     for (let ti = 0; ti < opp.tokens.length; ti++) {
       const ot = opp.tokens[ti];
       if (ot.state !== 'active') continue;

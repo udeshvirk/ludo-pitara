@@ -12,19 +12,21 @@ interface TokenProps {
   isSelectable: boolean;
   stackIndex: number;
   stackSize: number;
-  // 'split' is used for mixed-colour stacks (partner mode teammates
-  // sharing a cell) so each token has its own tap zone.
-  stackLayout?: 'diagonal' | 'split';
+  // When the cell shows a colour-picker popup (mixed-colour teammate
+  // stack in partner mode), the overlay above the cell captures taps —
+  // the token still pulses to signal "tappable" but its own onClick is
+  // suppressed so a stray tap can't bypass the picker.
+  suppressClick?: boolean;
 }
 
-const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize, stackLayout = 'diagonal' }) => {
+const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, stackIndex, stackSize, suppressClick = false }) => {
   const selectToken = useLudoStore(s => s.selectToken);
-  const { sizePercent, leftPercent, topPercent } = stackPlacement(stackSize, stackIndex, 1, stackLayout);
+  const { sizePercent, leftPercent, topPercent } = stackPlacement(stackSize, stackIndex);
 
   return (
     <motion.button
       layoutId={tokenId}
-      onClick={() => isSelectable && selectToken(tokenId)}
+      onClick={() => !suppressClick && isSelectable && selectToken(tokenId)}
       aria-label={`${color} token`}
       style={{
         position: 'absolute',
@@ -35,7 +37,7 @@ const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, st
         padding: 0,
         background: 'transparent',
         border: 'none',
-        cursor: isSelectable ? 'pointer' : 'default',
+        cursor: isSelectable && !suppressClick ? 'pointer' : 'default',
         zIndex: isSelectable ? 25 : 10 + stackIndex,
         display: 'flex',
         alignItems: 'center',

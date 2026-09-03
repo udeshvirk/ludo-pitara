@@ -9,6 +9,7 @@ import SettingsPage from './pages/Settings';
 import StatsPage from './pages/Stats';
 import LudoGame from './pages/LudoGame';
 import SnakesAndLaddersGame from './pages/SnakesAndLaddersGame';
+import DiceGame from './pages/DiceGame';
 
 const App: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const App: React.FC = () => {
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/ludo" element={<LudoGame />} />
         <Route path="/snakes-and-ladders" element={<SnakesAndLaddersGame />} />
+        <Route path="/dice" element={<DiceGame />} />
       </Routes>
     </AnimatePresence>
   );

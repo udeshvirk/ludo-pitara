@@ -96,6 +96,23 @@ const GameSelect: React.FC = () => {
             </motion.li>
           );
         })}
+          <motion.li
+            key="dice"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: games.length * 0.08, duration: 0.4 }}
+            style={{ listStyle: 'none' }}
+          >
+            <GameTile
+              game={{ id: 'dice', title: 'Dice', subtitle: 'Just roll · no rules', preview: <DiceMini /> }}
+              cta="Roll"
+              onClick={() => {
+                playTap();
+                haptics.tap();
+                navigate('/dice');
+              }}
+            />
+          </motion.li>
         </ul>
 
         <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -188,7 +205,7 @@ const ContinueStrip: React.FC<ContinueStripProps> = ({ saved, gameTitle, onResum
 // ─── GameTile ─────────────────────────────────────────────────────────
 
 interface GameTileProps {
-  game: { id: GameId; title: string; subtitle: string; preview: React.ReactNode };
+  game: { id: string; title: string; subtitle: string; preview: React.ReactNode };
   cta: string;
   onClick: () => void;
 }
@@ -285,6 +302,20 @@ function SnLMini() {
         <line x1="22" y1="65" x2="32" y2="65" stroke="var(--ladder)" strokeWidth="1.5" />
         <line x1="28" y1="45" x2="38" y2="45" stroke="var(--ladder)" strokeWidth="1.5" />
         <path d="M 80 20 C 60 40, 90 60, 70 80" stroke="var(--snake)" strokeWidth="3" fill="none" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+function DiceMini() {
+  const pips: [number, number][] = [[1, 1], [1, 3], [3, 1], [3, 3], [2, 2]];
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-board-cream)' }}>
+      <svg width="62%" height="62%" viewBox="0 0 4 4">
+        <rect x="0" y="0" width="4" height="4" rx="0.7" fill="var(--gold)" />
+        {pips.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="0.42" fill="#1a0e2e" />
+        ))}
       </svg>
     </div>
   );

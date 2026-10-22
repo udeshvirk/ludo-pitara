@@ -57,7 +57,6 @@ const GameSelect: React.FC = () => {
     <PhoneShell contentMaxWidth={520}>
       <Header
         title="Choose your game"
-        subtitle="Section 1 · Entry"
         onBack={() => navigate('/')}
         action={
           <div style={{ display: 'flex', gap: 8 }}>

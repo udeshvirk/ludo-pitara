@@ -118,6 +118,11 @@ before making non-trivial changes. Highlights worth knowing up front:
 - **Layout sizing**: `useLayoutMode` (`src/lib/useLayout.ts`) drives
   breakpoints; game pages use a height-primary aspect-ratio calc so the
   board fits exactly between the pod rows (no `flex-1` wrappers).
+- Fonts (Fredoka, Inter) are self-hosted from `@fontsource-variable`
+  via `src/fonts.css`, Latin + Latin-ext subsets only. Don't import
+  Fontsource's own CSS (it ships every script subset into the
+  precache), and don't re-add Google Fonts: the app makes no
+  third-party requests, which the install page advertises.
 - Sounds are WebAudio-synthesised in `src/lib/sound.ts`. To add a
   sound, write a `play*` function there and call it from the relevant
   game store at the appropriate moment.

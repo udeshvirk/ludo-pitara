@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
+import './fonts.css'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';

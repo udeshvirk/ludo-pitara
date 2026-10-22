@@ -151,7 +151,10 @@ const SnakesAndLaddersGame: React.FC = () => {
             alignItems: 'stretch',
             justifyContent: 'center',
             gap: 14,
-            padding: '0 13px 13px',
+            // Top padding leaves room for the board's 9px gold frame,
+            // which is a box-shadow drawn outside the board (overflow
+            // is hidden here, so it would otherwise be clipped).
+            padding: '12px 13px 13px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',

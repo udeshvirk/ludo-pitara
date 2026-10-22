@@ -32,6 +32,10 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
         zIndex: 5,
       }}
     >
+      {/* Side slots share leftover space equally (flex 1 1 0) so the
+          title stays centred, but never shrink below their content —
+          the action slot can hold more than one button. */}
+      <div style={{ flex: '1 1 0', display: 'flex', justifyContent: 'flex-start' }}>
       <motion.button
         whileTap={{ scale: 0.92 }}
         onClick={showBack ? handleBack : undefined}
@@ -56,7 +60,8 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
           <path d="M9 1L3 7l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </motion.button>
-      <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+      </div>
+      <div style={{ textAlign: 'center', flex: '0 1 auto', minWidth: 0, padding: '0 8px' }}>
         <div
           style={{
             fontFamily: 'var(--font-display)',
@@ -87,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
           </div>
         )}
       </div>
-      <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: '1 1 0', minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
         {action}
       </div>
     </header>

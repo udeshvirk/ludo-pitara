@@ -56,13 +56,33 @@ before making non-trivial changes. Highlights worth knowing up front:
   Game pages read `useFlow` on mount and call the per-game store's
   `initGame()`. Bots are per-slot via the Human/Bot toggle on each
   PlayerSetup row.
+- **Code layout**: each game lives in `src/games/<game>/` — `store.ts`
+  (Zustand + chained-timeout animation), `types.ts`, `constants.ts`,
+  `timing.ts`, `components/`. Ludo's rules are pure functions in
+  `moves.ts` (move outcome, captures, game-over) and `cpu.ts`
+  (`pickCpuToken`), which is where the unit tests live; keep new rule
+  logic there rather than in the store. Route pages are in `src/pages/`.
+- **Dice mode** (`/dice`, `src/pages/DiceGame.tsx`) is a standalone
+  tap-to-roll die with local component state only — no store, no
+  `useFlow`, no persistence. `GameId` in `useFlow` is still just
+  `'ludo' | 'snl'`.
 - **Game-rules options system**: per-game toggles
-  (`ludo.oneTokenOut`, `ludo.firstHomeWins`, `snl.autoStart`) live on
+  (`ludo.oneTokenOut`, `ludo.firstHomeWins`, `ludo.cpuDifficulty`,
+  `ludo.partners`, `snl.autoStart`; types + `DEFAULT_OPTIONS` in
+  `src/games/flow/store.ts`) live on
   `useFlow.options`, are forwarded into the per-game store at
   `initGame` time, and are persisted to `lastSetup` so they pre-fill on
   the next session. When adding a new option, thread it through all
   four points (FlowPlayer types → useFlow → initGame signature → store
   field) and update the PlayerSetup UI.
+- **Ludo partner mode** (`ludo.partners`): forces 4 seats in two
+  diagonal teams (blue+green vs red+yellow). A seat's `team` is set
+  only when partners is on, so store code checks
+  `player.team !== undefined`. On its turn a team may move either
+  colour; teammates' tokens are friendly (no capture), the team wins
+  only with all 8 tokens home, and `firstHomeWins` is ignored.
+  When teammate tokens of different colours share a cell and both can
+  move, tapping the cell opens a colour-picker popup (`LudoCells.tsx`).
 - **Animation = cell-by-cell walk + framer-motion `layoutId`**. The
   move action chains `setTimeout(..., 90 ms)` updates to `pathIndex` /
   `position` one cell at a time. `layoutId` tweens the motion element
@@ -70,6 +90,8 @@ before making non-trivial changes. Highlights worth knowing up front:
   match the step interval (90 ms)** — longer durations look smoother
   in isolation but visually cut corners on multi-cell walks because
   the tween is re-aimed before reaching its target. Both are linear.
+  All gameplay delays are named constants in `src/games/<game>/timing.ts`
+  (`LUDO_TIMING.cellStepMs` etc.) — change them there, not inline.
 - **`actionGen` generation counter** (Ludo store): module-level int
   bumped on `rollDice` / `selectToken` / `resetGame`. Every chained
   `setTimeout` captures the gen at start and bails before doing work

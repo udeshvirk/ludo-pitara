@@ -8,7 +8,8 @@ the first time, then dip into individual sections later.
 
 A React + TypeScript PWA hosted on GitHub Pages
 (`udeshvirk.github.io/ludo-pitara`). Two games — Ludo (4 colours, 4 tokens
-each) and Snakes & Ladders (single token, 1–100 board). Single-device
+each) and Snakes & Ladders (single token, 1–100 board) — plus a
+standalone Dice mode (a physical-dice replacement). Single-device
 play (pass-and-play) with optional CPU opponents. No server, no
 multiplayer, no asset fetches at runtime — sounds are synthesised in
 WebAudio so the app works fully offline once installed.
@@ -24,12 +25,15 @@ src/
 ├── main.tsx             ← React + SW bootstrap
 ├── pages/               ← one component per route
 ├── components/ui/       ← shared visuals (Header, Pod, Die, Coin, ...)
-├── components/          ← higher-level UI (WinnerModal, InstallPrompt)
+├── components/          ← higher-level UI (WinnerModal, ConfirmExitModal,
+│                           InstallPrompt, ErrorBoundary)
 ├── games/
 │   ├── flow/store.ts    ← cross-screen "what is the user setting up?"
 │   ├── settings/store.ts← sound / haptics / theme
-│   ├── ludo/            ← Ludo rules + UI
-│   └── snl/             ← Snakes & Ladders rules + UI
+│   ├── ludo/            ← Ludo: store, pure rules (moves.ts, cpu.ts),
+│   │                       timing.ts, constants, components/
+│   └── snl/             ← SNL: store, board generator, timing.ts,
+│                           constants, components/
 └── lib/                 ← persistence, sound, haptics, stats, hooks
 ```
 
@@ -40,10 +44,11 @@ src/
 | Path | Component | Purpose |
 |---|---|---|
 | `/` | `Splash` | Brand splash; navigates to `/select` |
-| `/select` | `GameSelect` | Pick Ludo or SNL, or resume saved game |
+| `/select` | `GameSelect` | Pick Ludo, SNL or Dice, or resume a saved game |
 | `/players` | `PlayerSetup` | Count, names, colours, human/CPU per slot |
 | `/ludo` | `LudoGame` | Ludo board + pods + winner modal |
 | `/snakes-and-ladders` | `SnakesAndLaddersGame` | SNL board + pods |
+| `/dice` | `DiceGame` | Standalone tap-to-roll die |
 | `/how-to-play` | `HowToPlay` | Static rules text |
 | `/settings` | `Settings` | Sound, haptics, theme |
 | `/stats` | `Stats` | Leaderboard + recent games |
@@ -55,6 +60,15 @@ in `useFlow` (`src/games/flow/store.ts`). The game pages read from
 start. Bots are assigned per-slot inside PlayerSetup via the Human/Bot
 toggle on each row — there's no separate "pass-and-play vs CPU" screen.
 
+Both game pages show `ConfirmExitModal` before leaving a game that's in
+progress.
+
+**Dice mode** skips the pipeline: GameSelect navigates straight to
+`/dice`. `DiceGame.tsx` keeps the face and rolling flag in local
+`useState`, reuses the shared `Die` component plus `playDice` /
+`haptics.diceRoll`, and has no store, no `useFlow` entry and no
+persistence. (`GameId` in `useFlow` is still `'ludo' | 'snl'`.)
+
 ## State stores
 
 Four Zustand stores. Each one is a singleton; components subscribe via
@@ -63,7 +77,10 @@ hooks (`useStoreName(s => s.field)`).
 ### `useFlow` — cross-screen setup
 - `game: 'ludo' | 'snl' | null`
 - `players: FlowPlayer[]` (name, colour, isCPU)
-- `options: GameOptions` — `{ ludo: { oneTokenOut, firstHomeWins }, snl: { autoStart } }`
+- `options: GameOptions` — `{ ludo: { oneTokenOut, firstHomeWins,
+  cpuDifficulty, partners }, snl: { autoStart } }`. Types and
+  `DEFAULT_OPTIONS` live in `src/games/flow/store.ts`; the defaults keep
+  the original rules (medium CPU, no partners).
 
 Read on the game page's mount effect to bootstrap `initGame` (which
 forwards `options.ludo` or `options.snl` into the per-game store).
@@ -72,7 +89,11 @@ to `lastSetup` so they pre-fill on the next session.
 
 ### `useLudoStore` — `src/games/ludo/store.ts`
 Holds the entire Ludo game state. Key fields:
-- `players: Player[]` — each has 4 tokens with `{state, pathIndex}`
+- `players: Player[]` — each has 4 tokens with `{state, pathIndex}`.
+  `color` is the **seat** (slot 0–3 → blue BL, red TL, green TR,
+  yellow BR); it drives yard corner, path start and home stretch.
+  `displayColor` is the colour the user picked, used only for
+  rendering. `team?: 0 | 1` is set only in partner mode.
 - `currentPlayerIndex: number`
 - `gamePhase: 'setup' | 'rolling' | 'selecting' | 'moving' | 'finished'`
 - `diceValue: number | null`, `isRolling: boolean`, `hasRolled: boolean`
@@ -81,10 +102,12 @@ Holds the entire Ludo game state. Key fields:
 - `flyingCaptures: CaptureFly[]` — transient, drives the capture-arc
   animation
 - `winner: Player | null`
-- `options: LudoGameOptions` — `{ oneTokenOut, firstHomeWins }` for the
-  current game. `oneTokenOut` flips the slot-0 token to `state: 'active',
-  pathIndex: 0` at `initGame` time. `firstHomeWins` short-circuits
-  `completeMove` the first time any token reaches home.
+- `options: LudoGameOptions` — `{ oneTokenOut, firstHomeWins,
+  cpuDifficulty, partners }` for the current game. `oneTokenOut` flips
+  the slot-0 token to `state: 'active', pathIndex: 0` at `initGame`
+  time. `firstHomeWins` short-circuits `completeMove` the first time
+  any token reaches home (ignored in partner mode). `cpuDifficulty` is
+  passed to `pickCpuToken`. `partners` — see *Partner mode* below.
 
 Actions: `initGame(playerCount, names, customPlayers, options?)`,
 `rollDice`, `selectToken`, `resetGame`.
@@ -130,10 +153,13 @@ in-flight state. `gameSaves.detectSaved()` reads both keys to drive the
 ## The Ludo game loop
 
 Files: `src/games/ludo/types.ts` (types), `src/games/ludo/store.ts`
-(rules + state), `src/games/ludo/constants.ts` (board geometry,
-PLAYER_COLORS, MAIN_PATH, YARD_POSITIONS, isSafePosition,
-getBoardPosition), `src/games/ludo/cpu.ts` (CPU heuristic), `src/games/
-ludo/components/*` (rendering).
+(state + turn sequencing), `src/games/ludo/moves.ts` (pure rules:
+`computeMoveOutcome`, `detectCaptures`, `isPlayerFinished`,
+`isGameOver` — unit-tested), `src/games/ludo/constants.ts` (board
+geometry, PLAYER_COLORS, MAIN_PATH, YARD_POSITIONS, isSafePosition,
+getBoardPosition, TEAM_OF_SEAT), `src/games/ludo/cpu.ts` (CPU
+heuristic), `src/games/ludo/timing.ts` (every delay as a named
+`LUDO_TIMING` constant), `src/games/ludo/components/*` (rendering).
 
 The board: 15×15 grid. Each colour has a 6×6 corner yard, a coloured
 home stretch leading to the centre, and a starting cell where its
@@ -176,8 +202,10 @@ derived. `getBoardPosition(color, pathIndex)` maps a token's
    in-line `completeMove()` function runs:
    - Promote the token to its final state (`'home'` if `pathIndex
      >= 56`, else stay `'active'`).
-   - **Capture detection** — only on the main path, not safe squares,
-     not the home stretch. For every collision, push a `CaptureFly`
+   - **Capture detection** (`detectCaptures` in `moves.ts`) — only on
+     the main path, not safe squares, not the home stretch. A **block**
+     (2+ tokens of the same side on one cell; "side" = team in partner
+     mode, else seat) can't be captured. For every collision, push a `CaptureFly`
      entry into a local list and demote the captured token to
      `state: 'yard'`. If anything captured, `set({ flyingCaptures })`
      immediately and schedule a 520 ms clear.
@@ -191,9 +219,33 @@ derived. `getBoardPosition(color, pathIndex)` maps a token's
 6. **CPU autoplay** — `LudoGame.tsx` has an effect that watches the
    active player. If they're CPU and `gamePhase === 'rolling'`, it
    calls `rollDice()` after 700 ms. If `gamePhase === 'selecting'`,
-   it picks a token via `pickCpuToken()` (`cpu.ts` — heuristic:
-   prefer captures > advancing the most-advanced token > yard exit
-   > random) and calls `selectToken()` after 600 ms.
+   it picks a token via `pickCpuToken(…, options.cpuDifficulty)` and
+   calls `selectToken()` after 600 ms. Difficulty levels in `cpu.ts`:
+   - **easy** — random, but prefers freeing a yard token on a 6.
+   - **medium** (default) — capture > home > yard exit > farthest
+     back, with a safe-square bonus and an over-stack penalty.
+   - **hard** — medium, plus a big penalty for leaving the moved token
+     within 6 cells of an opponent that could capture it next turn
+     (unless the move captures or lands on a safe square).
+
+### Partner mode (2v2)
+
+`options.partners` forces 4 seats into two diagonal teams
+(`TEAM_OF_SEAT` in `constants.ts`): team 0 = blue + green, team 1 =
+red + yellow. `initGame` sets `player.team` only when partners is on,
+so code checks `player.team !== undefined` to detect the mode.
+
+- On its turn, a seat may move tokens of **either** teammate colour —
+  `selectableTokenIds` spans both seats, and `pickCpuToken` pools both
+  teammates' tokens.
+- Teammates' tokens are friendly: no captures between them, and a
+  mixed teammate stack counts as a block.
+- The team wins only when all 8 of its tokens are home;
+  `firstHomeWins` is ignored.
+- When teammate tokens of different colours share a cell and both are
+  selectable, `LudoCells.tsx` puts an overlay on the cell that opens a
+  colour-picker popup (one coin button per choice) instead of making
+  the player tap small overlapping coins.
 
 ### Generation counter (`actionGen`)
 
@@ -382,22 +434,26 @@ screen" CTA when the browser fires `beforeinstallprompt`.
 npm run dev        # Vite dev server
 npm run build      # tsc -b && vite build → dist/
 npm run preview    # serve dist/
-npm run deploy     # gh-pages -d dist (pushes to gh-pages branch)
+npm test           # vitest run
+npm run lint       # eslint .
 ```
 
 `homepage` in `package.json` and `base` in `vite.config.ts` keep paths
-consistent with the GitHub Pages subpath. The deploy command publishes
-to the `gh-pages` branch which GitHub Pages serves.
+consistent with the GitHub Pages subpath. Deploys go through CI only
+(`.github/workflows/ci.yml`): every PR and push to `main` runs lint,
+test and build, and only a push to `main` deploys to GitHub Pages.
+There's no local `deploy` script. The Husky pre-commit hook runs
+`lint-staged` (eslint --fix) and `npm test`.
 
 ## Common change recipes
 
 - **Add a sound** — write a new `play*` function in `lib/sound.ts`,
   call it from the game store at the moment.
-- **Tweak movement speed** — step interval lives in the `setTimeout`
-  inside the walk loop in each store (Ludo: `selectToken`; SNL:
-  `rollDice`'s walk). Token tween is the `transition` prop on the
-  motion element in `Token.tsx` / `SNLBoard.tsx`.
-- **Tweak the capture arc** — `FlyingCaptureToken` in `LudoBoard.tsx`
+- **Tweak movement speed** — step interval is `cellStepMs` in
+  `games/ludo/timing.ts` / `games/snl/timing.ts`. Token tween is the
+  `transition` prop on the motion element in `Token.tsx` /
+  `SNLBoard.tsx`; keep the two equal.
+- **Tweak the capture arc** — `FlyingCaptureToken.tsx`
   (peak height, scale, rotation, duration). Game-state side has the
   matching `setTimeout` clear in `store.ts → completeMove`.
 - **Add a new screen** — new component in `pages/`, register in
@@ -406,20 +462,24 @@ to the `gh-pages` branch which GitHub Pages serves.
   `games/ludo/types.ts` (or snl), seed it in `initialState`, set it
   in `initGame` / `resetGame`, and decide whether the persist
   subscriber should snapshot it (transient fields are zeroed there).
-- **Change a delay** — common ones are: 800 ms dice settle (rollDice
-  setTimeout), 600 ms turn-pass beat, 700 ms no-moves / three-sixes
-  beat, 520 ms capture-arc, 850 / 550 ms snake / ladder slide.
+- **Change a delay** — every gameplay delay is a named constant in
+  `LUDO_TIMING` / the SNL `timing.ts` (dice settle, turn end, forfeit,
+  capture arc, snake / ladder slide, …). Edit it there, not inline.
+- **Add a game option** — add the field to the option types and
+  `DEFAULT_OPTIONS` in `games/flow/store.ts`, the per-game options
+  type, `initGame`, and the PlayerSetup UI. Options persist via
+  `lastSetup`.
 
 ## Things I'd flag for future-me
 
 - The two game stores duplicate the turn-end / persist-snapshot
   patterns. Could share a small turn-end helper but the rules diverge
   enough that splitting was rejected.
-- No tests yet. Highest-leverage targets: `getSelectableTokens`,
-  `findNextActivePlayer`, capture detection, snake/ladder lookup,
-  six-streak.
-- `LudoBoard.tsx` is ~480 lines. Splitting into Board + Yards +
-  Centre would be cleaner.
+- Tests (Vitest) cover the pure Ludo rules (`moves.test.ts`,
+  `gameOver.test.ts`), the SNL board generator, and the persistence
+  helpers (`persist`, `gameSaves`, `lastSetup`). Still untested:
+  `getSelectableTokens`, `findNextActivePlayer`, six-streak, and
+  `cpu.ts`.
 - The animation system uses three different positioning strategies
   (cell-grid, slide-on-path, fly-on-arc). Each uses `layoutId` /
   `keyframes` differently — consolidating would risk breaking the

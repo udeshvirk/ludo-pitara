@@ -3,8 +3,9 @@
 // Chrome / Edge / Android: fires `beforeinstallprompt` which we capture and
 // replay when the user taps our button.
 //
-// iOS Safari: no `beforeinstallprompt`. We detect iOS, check that we're not
-// already running standalone, and surface a manual hint instead.
+// Everywhere else (iOS, Samsung, Firefox, in-app browsers): no native
+// prompt, so the UI links to the /install guide. `detectPlatform` picks
+// which set of manual steps to show first.
 
 import { useEffect, useState } from 'react';
 
@@ -28,18 +29,6 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export function isIOSSafari(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  // iPhone / iPad / iPod, plus iPadOS 13+ which masquerades as Mac.
-  const iOSlike = /iPad|iPhone|iPod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints! > 1);
-  if (!iOSlike) return false;
-  // Treat any WebKit-based iOS browser the same — they all use Safari's
-  // Add to Home Screen path.
-  return /Safari/i.test(ua) || /CriOS|FxiOS|EdgiOS/i.test(ua);
-}
-
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   // iOS uses a non-standard navigator.standalone flag.
@@ -48,10 +37,55 @@ export function isStandalone(): boolean {
   return navStandalone || cssStandalone;
 }
 
+// Which set of manual "add to home screen" steps fits this browser.
+// Pure on the user-agent string so it can be unit-tested.
+export type InstallPlatform =
+  | 'in-app'          // X / Instagram / Facebook etc. webview — can't install at all
+  | 'ios-safari'
+  | 'ios-other'       // Chrome / Firefox / Edge on iOS (iOS 16.4+ supports Add to Home Screen)
+  | 'android-chrome'
+  | 'android-samsung'
+  | 'android-firefox'
+  | 'android-other'
+  | 'desktop-chromium' // Chrome / Edge / Brave / Opera
+  | 'desktop-safari'
+  | 'desktop-other';
+
+export function detectPlatform(ua: string, iPadAsMac = false): InstallPlatform {
+  // Social apps' built-in browsers identify themselves in the UA.
+  if (/FBAN|FBAV|FB_IAB|Instagram|Twitter|TwitterAndroid|LinkedInApp|Snapchat|musical_ly|TikTok|Line\/|Pinterest/i.test(ua)) {
+    return 'in-app';
+  }
+  const iOS = /iPad|iPhone|iPod/.test(ua) || iPadAsMac;
+  if (iOS) {
+    if (/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)) return 'ios-other';
+    // A real Safari UA carries "Safari/"; app webviews (incl. X) usually don't.
+    if (/Safari\//.test(ua)) return 'ios-safari';
+    return 'in-app';
+  }
+  if (/Android/i.test(ua)) {
+    if (/; wv\)/.test(ua)) return 'in-app'; // Android WebView
+    if (/SamsungBrowser/i.test(ua)) return 'android-samsung';
+    if (/Firefox/i.test(ua)) return 'android-firefox';
+    if (/Chrome\//.test(ua) && !/OPR\/|EdgA|YaBrowser|UCBrowser|MiuiBrowser/i.test(ua)) return 'android-chrome';
+    return 'android-other';
+  }
+  if (/Chrome\/|Chromium|Edg\//.test(ua) && !/Firefox/.test(ua)) return 'desktop-chromium';
+  if (/Safari\//.test(ua) && /Macintosh/.test(ua)) return 'desktop-safari';
+  return 'desktop-other';
+}
+
+export function currentPlatform(): InstallPlatform {
+  if (typeof navigator === 'undefined') return 'desktop-other';
+  const iPadAsMac = navigator.platform === 'MacIntel' &&
+    ((navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints ?? 0) > 1;
+  return detectPlatform(navigator.userAgent, iPadAsMac);
+}
+
 export type InstallStatus =
-  | { kind: 'unavailable' } // already installed, or browser doesn't support installing
-  | { kind: 'prompt' }      // beforeinstallprompt is queued — call install()
-  | { kind: 'ios-hint' };   // iOS Safari — show the manual hint
+  | { kind: 'installed' } // running as the installed app
+  | { kind: 'prompt' }    // beforeinstallprompt is queued — call install()
+  | { kind: 'manual' };   // no native prompt — show the /install guide
 
 export function useInstallStatus(): InstallStatus {
   const [, force] = useState(0);
@@ -62,10 +96,9 @@ export function useInstallStatus(): InstallStatus {
     return () => { listeners.delete(cb); };
   }, []);
 
-  if (isStandalone()) return { kind: 'unavailable' };
+  if (isStandalone()) return { kind: 'installed' };
   if (deferred) return { kind: 'prompt' };
-  if (isIOSSafari()) return { kind: 'ios-hint' };
-  return { kind: 'unavailable' };
+  return { kind: 'manual' };
 }
 
 export async function install(): Promise<'accepted' | 'dismissed' | 'unavailable'> {

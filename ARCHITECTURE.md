@@ -49,6 +49,7 @@ src/
 | `/ludo` | `LudoGame` | Ludo board + pods + winner modal |
 | `/snakes-and-ladders` | `SnakesAndLaddersGame` | SNL board + pods |
 | `/dice` | `DiceGame` | Standalone tap-to-roll die |
+| `/install` | `Install` | Shareable install guide, steps per browser |
 | `/how-to-play` | `HowToPlay` | Static rules text |
 | `/settings` | `Settings` | Sound, haptics, theme |
 | `/stats` | `Stats` | Leaderboard + recent games |
@@ -425,8 +426,24 @@ encapsulates the dedupe-via-ref pattern, used in both
 every built asset, so the app loads instantly offline. `main.tsx`
 registers the SW. The icons (`pwa-192x192`, `pwa-512x512`,
 `apple-touch-icon`) are generated at prebuild from
-`scripts/gen-icons.mjs`. `InstallPrompt.tsx` shows the "Add to home
-screen" CTA when the browser fires `beforeinstallprompt`.
+`scripts/gen-icons.mjs`.
+
+Installing: `lib/install.ts` captures `beforeinstallprompt` where the
+browser fires it (Chrome / Edge / Android). `InstallPrompt.tsx` (the
+"Install app" pill on GameSelect) fires that native prompt when it's
+available and otherwise opens `/install`. The `/install` page is also the
+link shared on social media. `detectPlatform(userAgent)` (unit-tested)
+picks which manual steps to show first: iOS Safari, iOS Chrome/Firefox,
+Android Chrome / Samsung / Firefox, desktop, or social apps' in-app
+browsers (X, Instagram, Facebook…). In-app browsers can't install, so
+those visitors are told to "Open in browser" first.
+
+Sharing: `index.html` carries Open Graph / Twitter card tags pointing at
+`public/og-image.png` (1200×630), built from the gameplay screenshots in
+`public/screenshots/` by `node scripts/gen-og.mjs`. That script is run by
+hand and is not part of the build. The same screenshots are listed in the
+manifest so Android shows a richer install sheet. Both are excluded from
+the service-worker precache (`globIgnores`) so installs stay small.
 
 ## Build / deploy
 

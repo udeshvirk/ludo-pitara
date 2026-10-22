@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: 'Ludo Pitara',
         short_name: 'Ludo Pitara',
-        description: 'Play Ludo & Snake and Ladders offline with friends!',
+        description: 'Free Ludo, Snakes & Ladders and Dice. No ads, plays offline.',
         start_url: '/ludo-pitara/',
         scope: '/ludo-pitara/',
         display: 'standalone',
@@ -23,6 +23,12 @@ export default defineConfig({
         orientation: 'any',
         background_color: '#190a2e',
         theme_color: '#190a2e',
+        // Phone screenshots give Android Chrome its richer install sheet.
+        screenshots: [
+          { src: 'screenshots/ludo.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Ludo' },
+          { src: 'screenshots/snakes-and-ladders.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Snakes & Ladders' },
+          { src: 'screenshots/game-select.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Choose a game' },
+        ],
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -46,6 +52,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Marketing images aren't needed to play offline.
+        globIgnores: ['og-image.png', 'screenshots/**'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

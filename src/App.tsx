@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Splash from './pages/Splash';
 import GameSelect from './pages/GameSelect';
@@ -26,6 +26,9 @@ const App: React.FC = () => {
         <Route path="/snakes-and-ladders" element={<SnakesAndLaddersGame />} />
         <Route path="/dice" element={<DiceGame />} />
         <Route path="/install" element={<InstallPage />} />
+        {/* Mistyped or truncated links (e.g. from social posts) land on the
+            splash instead of a blank screen. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );

@@ -87,6 +87,16 @@ placement logic with the new looks**. That is the current implementation in
 - Checked 320×568, 390×844, 430×932, 768×1024 and 844×390 with four players.
   Publishing includes refreshed screenshots and social preview assets.
 
+## iPad bottom strip investigation
+
+- User reports a thick bottom bar in both iPad orientations, not phone/laptop.
+- Simulated nonzero safe-area insets reproduce an exposed body-background strip:
+  body padding placed the phone frame above the bottom inset. Local fix moves
+  safe-area padding to `.phone-frame` so its background paints behind the inset
+  while content stays protected. Simulated 20px bottom strip becomes 0px in
+  portrait/landscape. Published for user verification; actual iPad confirmation
+  remains pending.
+
 ## Publishing, previews, and validation
 
 - Production: https://udeshvirk.github.io/ludo-pitara/

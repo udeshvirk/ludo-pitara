@@ -85,10 +85,6 @@ body {
   touch-action: manipulation;
   overscroll-behavior: none;
   user-select: none;
-  padding-top: var(--safe-area-top);
-  padding-bottom: var(--safe-area-bottom);
-  padding-left: var(--safe-area-left);
-  padding-right: var(--safe-area-right);
 }
 
 #root {
@@ -104,6 +100,11 @@ body {
      no visible letterbox edges. Each page is responsible for capping
      its own content width via PhoneShell's contentMaxWidth prop. */
 .phone-frame {
+  /* Paint the background behind system insets; inset only the content. */
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
   width: 100%;
   max-width: 480px;
   height: 100%;

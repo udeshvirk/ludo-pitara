@@ -78,7 +78,10 @@ placement logic with the new looks**. That is the current implementation in
   gutters are 9px; the board remains square. Tablet and wide layouts unchanged.
 - The mobile screenshot report was clarified: the card TOP BORDER, not its
   name, was obscured. Phone player rows must paint above the positioned board
-  and its deep shadow. Explicit name line height/wrapping remains in place.
+  and its deep shadow. S25 Ultra/Chrome still showed the lower card rim
+  obscured after stacking changes, so the bottom row also has 18px extra
+  physical clearance (30px total gap). Device confirmation remains pending.
+  Explicit name line height/wrapping remains in place.
 - Checked 320×568, 390×844, 430×932, 768×1024 and 844×390 with four players.
   Publishing includes refreshed screenshots and social preview assets.
 

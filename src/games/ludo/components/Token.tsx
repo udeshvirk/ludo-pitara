@@ -26,8 +26,11 @@ const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, st
   return (
     <motion.button
       layoutId={tokenId}
+      type="button"
+      className={isSelectable ? 'ludo-coin-choice' : undefined}
+      disabled={!isSelectable || suppressClick}
       onClick={() => !suppressClick && isSelectable && selectToken(tokenId)}
-      aria-label={`${color} token`}
+      aria-label={`${isSelectable ? 'Move' : ''} ${color} coin ${tokenId.split('-').at(-1)}`}
       style={{
         position: 'absolute',
         left: `${leftPercent}%`,
@@ -52,6 +55,7 @@ const LudoTokenInner: React.FC<TokenProps> = ({ tokenId, color, isSelectable, st
       // is preferred over a corner-cutting glide.
       transition={{ type: 'tween', ease: 'linear', duration: 0.09 }}
     >
+      {isSelectable && <span className="ludo-coin-marker" aria-hidden="true">▼</span>}
       <Coin color={PLAYER_COLORS[color].bg} active={isSelectable} />
     </motion.button>
   );

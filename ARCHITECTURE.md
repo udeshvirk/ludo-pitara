@@ -186,6 +186,12 @@ derived. `getBoardPosition(color, pathIndex)` maps a token's
    - **Multiple selectable**: enter `gamePhase: 'selecting'` and
      populate `selectableTokenIds`.
 
+The page derives persistent, visible next-action instructions through
+   `turnGuidance.ts`. It distinguishes yard/path choices on a six, automatic
+   moves, bots, and turn transitions. Player pods show “Tap a coin” during
+   selection and enable dice only when a human can actually roll. Selectable
+   coin buttons carry steady outlines/arrows and support keyboard activation.
+
 3. **Token tap** — In 'selecting', the user taps one of their
    highlighted tokens. `selectToken(tokenId)` runs.
 
@@ -422,6 +428,8 @@ time. No assets. Functions: `playDice` (clatter), `playMove` (sine
 ping), `playCapture`, `playSnake`, `playLadder`, `playWin`,
 `playHomeArrival`, `playSafeArrival`, `playTap`. Each one builds an `AudioBufferSource` /
 `OscillatorNode` chain with a short envelope and disposes immediately.
+All effects route through a shared gain of 0.45 for quieter output; capture
+uses triangle harmonics and move/tap envelopes have short soft attacks.
 The AudioContext is unlocked on the first user gesture (iOS Safari
 quirk handled in module init).
 

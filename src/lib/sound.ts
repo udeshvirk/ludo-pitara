@@ -12,6 +12,7 @@
 // click, etc.), well before they get to the dice.
 
 let ctx: AudioContext | null = null;
+let output: GainNode | null = null;
 let enabled = true;
 let unlocked = false;
 
@@ -21,6 +22,10 @@ function getCtx(): AudioContext | null {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return null;
     ctx = new AudioCtx();
+    // Keep effects in the background, including overlapping celebration notes.
+    output = ctx.createGain();
+    output.gain.value = 0.45;
+    output.connect(ctx.destination);
   }
   if (ctx.state === 'suspended') void ctx.resume();
   return ctx;
@@ -36,7 +41,7 @@ function unlockAudio() {
     const buffer = ac.createBuffer(1, 1, 22050);
     const source = ac.createBufferSource();
     source.buffer = buffer;
-    source.connect(ac.destination);
+    source.connect(output ?? ac.destination);
     source.start(0);
   } catch {
     // ignore — some browsers throw if the context isn't ready yet
@@ -102,7 +107,7 @@ export function playDice() {
     noiseGain.gain.exponentialRampToValueAtTime(0.001, at + dur);
     noise.connect(bp);
     bp.connect(noiseGain);
-    noiseGain.connect(ac.destination);
+    noiseGain.connect(output ?? ac.destination);
     noise.start(at);
     noise.stop(at + dur);
 
@@ -118,7 +123,7 @@ export function playDice() {
       oscGain.gain.linearRampToValueAtTime(0.12, at + 0.003);
       oscGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
       osc.connect(oscGain);
-      oscGain.connect(ac.destination);
+      oscGain.connect(output ?? ac.destination);
       osc.start(at);
       osc.stop(at + 0.06);
     }
@@ -139,16 +144,17 @@ export function playMove() {
   osc.frequency.setValueAtTime(820, now);
   osc.frequency.exponentialRampToValueAtTime(560, now + 0.06);
 
-  gain.gain.setValueAtTime(0.25, now);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.16, now + 0.008);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
   osc.connect(gain);
-  gain.connect(ac.destination);
+  gain.connect(output ?? ac.destination);
   osc.start(now);
   osc.stop(now + 0.1);
 }
 
-// Capture: descending arpeggio, sawtooth + lowpass, slightly menacing.
+// Capture: a warm descending arpeggio with softened harmonics.
 export function playCapture() {
   if (!enabled) return;
   const ac = getCtx();
@@ -162,14 +168,14 @@ export function playCapture() {
     const lp = ac.createBiquadFilter();
     lp.type = 'lowpass';
     lp.frequency.value = 1600;
-    osc.type = 'sawtooth';
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, start + i * step);
     gain.gain.setValueAtTime(0, start + i * step);
     gain.gain.linearRampToValueAtTime(0.18, start + i * step + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, start + i * step + step);
     osc.connect(lp);
     lp.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(output ?? ac.destination);
     osc.start(start + i * step);
     osc.stop(start + i * step + step + 0.02);
   });
@@ -190,7 +196,7 @@ export function playSnake() {
   gain.gain.linearRampToValueAtTime(0.25, now + 0.04);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
   osc.connect(gain);
-  gain.connect(ac.destination);
+  gain.connect(output ?? ac.destination);
   osc.start(now);
   osc.stop(now + 0.7);
 }
@@ -212,7 +218,7 @@ export function playLadder() {
     gain.gain.linearRampToValueAtTime(0.18, start + i * step + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, start + i * step + step);
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(output ?? ac.destination);
     osc.start(start + i * step);
     osc.stop(start + i * step + step + 0.02);
   });
@@ -236,7 +242,7 @@ export function playHomeArrival() {
     gain.gain.linearRampToValueAtTime(0.22, start + i * step + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.001, start + i * step + 0.32);
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(output ?? ac.destination);
     osc.start(start + i * step);
     osc.stop(start + i * step + 0.36);
   });
@@ -259,7 +265,7 @@ export function playWin() {
     gain.gain.linearRampToValueAtTime(0.22, start + i * step + 0.04);
     gain.gain.exponentialRampToValueAtTime(0.001, start + i * step + 0.5);
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(output ?? ac.destination);
     osc.start(start + i * step);
     osc.stop(start + i * step + 0.55);
   });
@@ -275,10 +281,11 @@ export function playTap() {
   const now = ac.currentTime;
   osc.type = 'sine';
   osc.frequency.setValueAtTime(1200, now);
-  gain.gain.setValueAtTime(0.08, now);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.06, now + 0.004);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
   osc.connect(gain);
-  gain.connect(ac.destination);
+  gain.connect(output ?? ac.destination);
   osc.start(now);
   osc.stop(now + 0.05);
 }
@@ -298,7 +305,7 @@ export function playSafeArrival() {
     gain.gain.linearRampToValueAtTime(0.1, at + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.001, at + 0.28);
     osc.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(output ?? ac.destination);
     osc.start(at);
     osc.stop(at + 0.3);
   });

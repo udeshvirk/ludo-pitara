@@ -10,7 +10,9 @@ import PlayerHalfRow from '../games/ludo/components/PlayerHalfRow';
 import type { Player, PlayerColor } from '../games/ludo/types';
 import WinnerModal from '../components/WinnerModal';
 import ConfirmExitModal from '../components/ConfirmExitModal';
+import { useSettings } from '../games/settings/store';
 import LiveRegion from '../components/ui/LiveRegion';
+import { turnGuidance } from '../games/ludo/turnGuidance';
 import { useFlow } from '../games/flow/store';
 import { pickCpuToken } from '../games/ludo/cpu';
 import { useLayoutMode } from '../lib/useLayout';
@@ -18,6 +20,7 @@ import { useRecordOnFinish } from '../lib/useRecordOnFinish';
 
 const LudoGame: React.FC = () => {
   const navigate = useNavigate();
+  const showInstructions = useSettings(s => s.ludoInstructions);
   const initialized = useRef(false);
   const flowPlayers = useFlow(s => s.players);
   const flowGame = useFlow(s => s.game);
@@ -158,14 +161,20 @@ const LudoGame: React.FC = () => {
         position: 'relative',
       };
 
+  const guidance = turnGuidance({ players, currentPlayerIndex, gamePhase, isRolling, diceValue, selectableTokenIds, message });
+
   return (
     <PhoneShell decorative={false} fluid>
-      <LiveRegion text={message} />
       <Header
         title="Ludo"
         onBack={handleBack}
         action={<SoundToggle />}
       />
+
+      {showInstructions ? <div className="ludo-turn-guide" role="status" aria-live="polite" aria-atomic="true">
+        <strong>{guidance.title}</strong>
+        <span>{guidance.detail}</span>
+      </div> : <LiveRegion text={message} />}
 
       {isWide ? (
         <div

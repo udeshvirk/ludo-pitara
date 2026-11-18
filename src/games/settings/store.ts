@@ -4,11 +4,13 @@ import { setSoundEnabled } from '../../lib/sound';
 import { setHapticsEnabled } from '../../lib/haptics';
 
 export interface Settings {
+  ludoInstructions: boolean;
   sound: boolean;
   haptics: boolean;
 }
 
 const DEFAULTS: Settings = {
+  ludoInstructions: true,
   sound: true,
   haptics: true,
 };
@@ -43,6 +45,7 @@ export const useSettings = create<SettingsStore>((set) => ({
 
 function extractSettings(s: SettingsStore): Settings {
   return {
+    ludoInstructions: s.ludoInstructions,
     sound: s.sound,
     haptics: s.haptics,
   };

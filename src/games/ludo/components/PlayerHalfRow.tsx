@@ -90,7 +90,8 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
               diceValue={diceValue}
               lastRoll={player.lastRoll}
               onRoll={rollDice}
-              canRoll={gamePhase === 'rolling' && showsLiveDice}
+              canRoll={gamePhase === 'rolling' && showsLiveDice && !isRolling && diceValue === null && !currentPlayer?.isCPU}
+              statusText={isActive ? isRolling ? 'Rolling' : currentPlayer?.isCPU ? 'Bot turn' : gamePhase === 'selecting' ? 'Tap a coin' : gamePhase === 'moving' ? 'Moving' : diceValue === null ? 'Tap dice' : 'Please wait' : 'Waiting'}
               compact={compact}
               isBot={!!player.isCPU}
               arrowSide={podArrowSide}

@@ -23,6 +23,20 @@ Ludo Pitara. This is repository-level context for all coding agents;
 - Dice lift, tumble, land, and bounce, ending on the correct face even when
   rolling the same value twice. Keyboard interaction and reduced motion matter.
 
+## First-time player guidance
+
+- User feedback: beginners cannot tell what to do after rolling a six or when
+  Ludo is waiting for coin selection. Keep the next action visibly explicit.
+- Ludo now has a persistent instruction strip, phase-specific player-card text,
+  and steady outlines/arrows on selectable coins. Six instructions distinguish
+  yard entry from moving a coin already on the path; automatic/bot moves say to wait.
+- Sound feedback calls for subtler effects. The shared audio output is reduced,
+  capture uses triangle harmonics, and move/tap envelopes have soft attacks.
+- Guidance checked locally at 320×568, 390×844, 430×932, 768×1024, 844×390,
+  including keyboard selection and reduced motion. Device listening remains unverified.
+  Instructions default on and can be hidden through Settings → Ludo instructions;
+  the preference persists. Coin markers and accessible announcements remain available.
+
 ## Snakes & Ladders: final placement decision
 
 The user explicitly requested returning to the **original range-based

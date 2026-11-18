@@ -31,6 +31,10 @@ const SettingsPage: React.FC = () => {
           />
         </Section>
 
+        <Section title="Gameplay">
+          <OptionTile label="Ludo instructions" description="Show next-action guidance above the board" checked={settings.ludoInstructions} onChange={v => settings.set('ludoInstructions', v)} />
+        </Section>
+
         <Section title="Data">
           <Btn variant="danger" onClick={settings.reset}>Reset all settings</Btn>
         </Section>

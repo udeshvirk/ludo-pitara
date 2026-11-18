@@ -12,6 +12,7 @@ interface PodProps {
   lastRoll?: number | null;
   onRoll?: () => void;
   canRoll: boolean;
+  statusText?: string;
   compact?: boolean;
   isBot?: boolean;
   arrowSide?: 'left' | 'right';
@@ -20,8 +21,8 @@ interface PodProps {
 // A player identity strip sits above a dedicated dice tray. Names and turn
 // status stay inside the card, with no detached arrows or duplicate captions.
 export default function Pod({ color, label, name, isActive, isRolling, diceValue,
-  lastRoll = null, onRoll, canRoll, compact = false, isBot = false }: PodProps) {
-  const status = isActive ? (isRolling ? 'Rolling' : canRoll ? (isBot ? 'Bot turn' : 'Roll dice') : 'Your move') : 'Waiting';
+  lastRoll = null, onRoll, canRoll, statusText, compact = false, isBot = false }: PodProps) {
+  const status = statusText ?? (isActive ? (isRolling ? 'Rolling' : canRoll ? (isBot ? 'Bot turn' : 'Roll dice') : 'Your move') : 'Waiting');
   return (
     <div className={`player-pod ${compact ? 'player-pod-compact' : ''} ${isActive ? 'player-pod-active' : ''}`}
       aria-current={isActive ? 'true' : undefined} style={{ '--player-color': color } as CSSProperties}>

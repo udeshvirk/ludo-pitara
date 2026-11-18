@@ -161,7 +161,7 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className={isPhone ? 'snl-phone-layout' : undefined} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: isPhone ? '10px 9px 12px' : '14px 13px 13px', overflow: 'hidden', gap: isPhone ? 12 : 18 }}>
+        <div className={isPhone ? 'snl-phone-layout' : undefined} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: isPhone ? '10px 9px 12px' : '14px 13px 13px', overflow: 'hidden', gap: isPhone ? 30 : 18 }}>
           <SNLPlayerHalfRow slots={topSlotsForCount(playerCount)} top />
           <div style={boardStyle}>
             <SNLBoard />

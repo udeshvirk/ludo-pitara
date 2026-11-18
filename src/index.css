@@ -373,6 +373,5 @@ button:focus-visible, a:focus-visible { outline: 3px solid #ffe18c; outline-offs
    above it so that shadow cannot paint over the next card's top border. */
 .snl-phone-layout > .snl-player-row { position: relative; z-index: 1; }
 
-/* Leave physical clearance below the board's 7px raised base and 15px
-   drop shadow; mobile compositing must not decide whether a rim is visible. */
-.snl-phone-layout > .snl-player-row:last-child { margin-top: 18px; }
+/* Phone board-to-card gaps are symmetric (30px in the game layout),
+   clearing the board's raised base and deep shadow on both sides. */

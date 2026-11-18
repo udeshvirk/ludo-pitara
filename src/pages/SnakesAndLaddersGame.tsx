@@ -94,13 +94,8 @@ const SnakesAndLaddersGame: React.FC = () => {
   // The pods sit immediately above/below at gap 18, so the board is
   // explicitly sized via calc and centered horizontally — no flex-1
   // wrapper that would pad gutters between the board and the pods.
-  //   phone  → 5:6 (slightly tall cells, Ludo King reference)
-  //   tablet → 1:1 (square fills iPad-portrait width)
-  //   wide   → 1:1 (square between the two side rails)
-  // Chrome budget: header ≈ 64, top+bottom padding ≈ 27 (14 top so the
-  // active pod's glow isn't clipped, 13 bottom), two pods ≈ 70 each,
-  // two gaps of 18 → ~268 vertical chrome on phone/tablet.
-  const isPhone = layoutMode === 'phone';
+  // Every device uses square cells; stacked controls or side rails
+  // determine the available space without stretching the artwork.
   // Height-primary aspect-ratio sizing — see LudoGame for the
   // matching `max-height = max-width` clamp pattern that keeps the
   // board square even when the parent row is taller than wide.
@@ -113,26 +108,15 @@ const SnakesAndLaddersGame: React.FC = () => {
         maxHeight: 'calc(100vw - 414px)',
         position: 'relative',
       }
-    : isPhone
-      ? {
-          // Phone uses 5:6 aspect — height is 6/5 × width budget.
-          flex: 1,
-          minHeight: 0,
-          aspectRatio: '5 / 6',
-          maxWidth: 'calc(100vw - 26px)',
-          maxHeight: 'calc((100vw - 26px) * 6 / 5)',
-          alignSelf: 'center',
-          position: 'relative',
-        }
-      : {
-          flex: 1,
-          minHeight: 0,
-          aspectRatio: '1',
-          maxWidth: 'calc(100vw - 26px)',
-          maxHeight: 'calc(100vw - 26px)',
-          alignSelf: 'center',
-          position: 'relative',
-        };
+    : {
+        flex: 1,
+        minHeight: 0,
+        aspectRatio: '1',
+        maxWidth: 'calc(100vw - 26px)',
+        maxHeight: 'calc(100vw - 26px)',
+        alignSelf: 'center',
+        position: 'relative',
+      };
 
   return (
     <PhoneShell decorative={false} fluid>

@@ -17,10 +17,10 @@ import { useRecordOnFinish } from '../lib/useRecordOnFinish';
 // 'yellow' | 'blue') to the hex used by the SNL board. Falls back to
 // passing the value through (so a hex from Play-Again still works).
 const SNL_HEX_BY_NAME: Record<string, string> = {
-  red: '#e53935',
-  blue: '#1e6fdb',
-  green: '#2e9d4f',
-  yellow: '#d99e00',
+  red: '#cf304b',
+  blue: '#286cd2',
+  green: '#12965b',
+  yellow: '#d7a719',
 };
 const toSnlHex = (c: string) => SNL_HEX_BY_NAME[c] ?? c;
 
@@ -151,10 +151,10 @@ const SnakesAndLaddersGame: React.FC = () => {
             alignItems: 'stretch',
             justifyContent: 'center',
             gap: 14,
-            // Top padding leaves room for the board's 9px gold frame,
+            // Top padding leaves room for the board's raised pastel frame,
             // which is a box-shadow drawn outside the board (overflow
             // is hidden here, so it would otherwise be clipped).
-            padding: '12px 13px 13px',
+            padding: '12px 13px 18px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',

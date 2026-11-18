@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhoneShell from '../components/ui/PhoneShell';
 import Mandala from '../components/ui/Mandala';
-import Token from '../components/ui/Token';
-import Die from '../components/ui/Die';
+import StoryArt from '../components/ui/StoryArt';
 import Btn from '../components/ui/Btn';
 import { playTap } from '../lib/sound';
 import { detectSaved } from '../lib/gameSaves';
@@ -55,26 +54,13 @@ const Splash: React.FC = () => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6, type: 'spring' }}
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, rgba(255,217,102,0.95), rgba(245,184,0,0.65) 60%, rgba(176,122,0,0.3) 100%)',
-            boxShadow: '0 0 48px rgba(245,184,0,0.55), inset 0 -8px 16px rgba(0,0,0,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            marginBottom: 28,
-          }}
+          style={{ width: 220, marginBottom: 20 }}
         >
-          <Die value={5} size={46} active />
-          <div style={{ position: 'relative', top: 16, marginLeft: -8 }}>
-            <Token color="var(--p-red)" size={32} />
-          </div>
+          <StoryArt kind="ludo" />
         </motion.div>
 
         <motion.h1
+          className="gilded-title"
           initial={{ y: 16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.5 }}
@@ -105,7 +91,7 @@ const Splash: React.FC = () => {
             marginTop: 14,
           }}
         >
-          Two classics. One pitara.
+          Little box. Endless wonder.
         </motion.p>
       </motion.div>
 

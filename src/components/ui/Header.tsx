@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, action }) => {
           style={{
             fontFamily: 'var(--font-display)',
             fontWeight: 600,
-            fontSize: 19,
+            fontSize: 21,
             letterSpacing: 0.2,
             color: 'var(--ink)',
             whiteSpace: 'nowrap',

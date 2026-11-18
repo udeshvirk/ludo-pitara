@@ -1,3 +1,4 @@
+import { clearMoment, showMoment } from '../../lib/gameMoments';
 import { create } from 'zustand';
 import type {
   LudoGameState,
@@ -6,7 +7,7 @@ import type {
   Token,
   PlayerColor,
 } from './types';
-import { PLAYER_ORDER, TEAM_OF_SEAT, TEAM_SEATS } from './constants';
+import { getBoardPosition, isSafePosition, PLAYER_ORDER, TEAM_OF_SEAT, TEAM_SEATS } from './constants';
 import {
   computeMoveOutcome,
   intermediatePathIndex,
@@ -14,7 +15,7 @@ import {
   nextFinishOrder,
 } from './moves';
 import { LUDO_TIMING } from './timing';
-import { playDice, playMove, playCapture, playHomeArrival, playWin } from '../../lib/sound';
+import { playDice, playMove, playCapture, playHomeArrival, playSafeArrival, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { saveDebounced, clear, load } from '../../lib/persist';
 import { STORAGE_KEYS } from '../../lib/gameSaves';
@@ -177,6 +178,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   ...initialState,
 
   initGame: (playerCount, playerNames, customPlayers, options) => {
+    clearMoment('ludo');
     const opts = options ?? DEFAULT_LUDO_OPTIONS;
     const teamFor = (seat: PlayerColor): 0 | 1 | undefined =>
       opts.partners ? TEAM_OF_SEAT[seat] : undefined;
@@ -416,6 +418,14 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
         }, LUDO_TIMING.captureFlyMs);
       }
       const gotCapture = capture !== null;
+      const kind = outcome.finalState === 'home' ? 'home'
+        : gotCapture ? 'capture'
+        : isSafePosition(token.color, outcome.finalIndex) ? 'safe' : null;
+      if (kind) {
+        const pos = kind === 'home' ? { col: 7, row: 7 } : getBoardPosition(token.color, outcome.finalIndex);
+        showMoment('ludo', { kind, x: (pos.col + 0.5) / 15 * 100, y: (pos.row + 0.5) / 15 * 100 });
+        if (kind === 'safe') playSafeArrival();
+      }
 
       // Re-bind `me` to the updated players array (capture detection
       // may have rebuilt it).
@@ -523,6 +533,7 @@ export const useLudoStore = create<LudoStore>((set, get) => ({
   },
 
   resetGame: () => {
+    clearMoment('ludo');
     // Invalidate any in-flight walk/dice timeouts so they can't write
     // stale state on top of the fresh setup we're about to install.
     startAction();

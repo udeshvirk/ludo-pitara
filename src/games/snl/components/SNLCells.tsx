@@ -35,7 +35,7 @@ const SNLCells: React.FC<SNLCellsProps> = ({
       const col = i % BOARD_SIZE;
       const cellNum = rowColToCell(row, col);
       const isDark = (row + col) % 2 === 0;
-      const baseBg = isDark ? 'var(--bg-board)' : 'var(--bg-board-cream)';
+      const baseBg = isDark ? '#d9c38f' : '#eddfbc';
       const occupants = playerPositions.get(cellNum) || [];
       const residents = occupants.filter(o => !o.isMoving);
       const walkers = occupants.filter(o => o.isMoving);
@@ -51,36 +51,36 @@ const SNLCells: React.FC<SNLCellsProps> = ({
       const isLadderTop  = ladderTops.has(cellNum);
       let badgeBg: string | null = null;
       let badgeBorder: string | null = null;
-      let badgeText = 'rgba(120, 80, 20, 0.85)';
-      if (isSnakeHead)        { badgeBg = 'rgba(229, 57, 53, 0.55)'; badgeText = '#fff'; }
-      else if (isLadderBase)  { badgeBg = 'rgba(44, 138, 74, 0.55)'; badgeText = '#fff'; }
-      else if (isSnakeTail)   { badgeBg = 'rgba(255,255,255,0.65)';  badgeBorder = 'rgba(229, 57, 53, 0.55)';  badgeText = 'rgba(154, 26, 24, 0.9)'; }
-      else if (isLadderTop)   { badgeBg = 'rgba(255,255,255,0.65)';  badgeBorder = 'rgba(44, 138, 74, 0.55)';  badgeText = 'rgba(24, 92, 44, 0.9)'; }
+      let badgeText = '#34483d';
+      if (isSnakeHead)        { badgeBg = '#9d3447'; badgeText = '#fff'; }
+      else if (isLadderBase)  { badgeBg = '#326b4d'; badgeText = '#fff'; }
+      else if (isSnakeTail)   { badgeBg = '#eddfbc';  badgeBorder = '#9d3447';  badgeText = 'rgba(154, 26, 24, 0.9)'; }
+      else if (isLadderTop)   { badgeBg = '#eddfbc';  badgeBorder = '#326b4d';  badgeText = 'rgba(24, 92, 44, 0.9)'; }
 
       const isAnchor = badgeBg !== null;
       const isLabel = cellNum === 1 || cellNum === 100;
-      const labelText = cellNum === 1 ? 'Start' : cellNum === 100 ? 'Home' : String(cellNum);
+      const labelText = cellNum === 1 ? 'Start' : cellNum === 100 ? '100' : String(cellNum);
 
       return (
         <div
           key={`${row}-${col}`}
-          className="snl-cell"
+          className={`snl-cell ${cellNum === 100 ? 'garden-finish' : cellNum === 1 ? 'garden-start' : ''}`}
           style={{
             background: baseBg,
             position: 'relative',
-            border: '0.5px solid rgba(120, 80, 20, 0.18)',
+            border: '0.5px solid rgba(95, 148, 117, 0.17)',
           }}
         >
           {isAnchor ? (
             <span
               style={{
                 position: 'absolute',
-                top: 3,
-                left: 3,
-                minWidth: 14,
-                minHeight: 14,
-                width: '32%',
-                height: '32%',
+                top: 2,
+                left: 2,
+                minWidth: 11,
+                minHeight: 11,
+                width: '25%',
+                height: '25%',
                 aspectRatio: '1',
                 borderRadius: '50%',
                 background: badgeBg!,
@@ -88,11 +88,11 @@ const SNLCells: React.FC<SNLCellsProps> = ({
                 color: badgeText,
                 fontFamily: 'var(--font-ui)',
                 fontWeight: 700,
-                fontSize: '0.58em',
+                fontSize: 'clamp(7px, 1.55vmin, 10px)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 2,
+                zIndex: 5,
                 lineHeight: 1,
               }}
             >
@@ -104,17 +104,22 @@ const SNLCells: React.FC<SNLCellsProps> = ({
                 position: 'absolute',
                 top: 3,
                 left: 5,
-                fontSize: isLabel ? '0.66em' : '0.78em',
+                fontSize: isLabel ? 'clamp(7px, 1.7vmin, 11px)' : 'clamp(8px, 1.9vmin, 12px)',
                 fontWeight: isLabel ? 800 : 700,
-                color: cellNum === 100 ? 'var(--gold-deep)' : cellNum === 1 ? 'var(--snake)' : 'rgba(120, 80, 20, 0.85)',
+                color: cellNum === 100 ? 'var(--gold-deep)' : cellNum === 1 ? 'var(--snake)' : '#34483d',
                 fontFamily: 'var(--font-ui)',
                 letterSpacing: isLabel ? 0.6 : 0,
                 textTransform: 'uppercase',
+                zIndex: 5,
+                background: '#eddfbce8',
+                borderRadius: 4,
+                padding: '0 2px',
               }}
             >
               {labelText}
             </span>
           )}
+          {cellNum === 100 && <span className="garden-crown" aria-hidden="true">♛</span>}
           <div style={{ position: 'absolute', inset: 0, zIndex: 4 }}>
             {/* Residents: stack-layout off their own count so a
                 pass-through walker never resizes them. */}

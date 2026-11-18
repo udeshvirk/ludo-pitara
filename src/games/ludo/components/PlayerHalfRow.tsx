@@ -16,9 +16,7 @@ interface PlayerHalfRowProps {
   top?: boolean;
 }
 
-// Ludo pods carry no name caption — the player name is rendered on
-// their colored yard corner inside the board itself, so a duplicate
-// label here would just be visual noise.
+// Player cards include the name and turn status inside their dice tray.
 const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, arrowSide, top = false }) => {
   const players = useLudoStore(s => s.players);
   const currentPlayerIndex = useLudoStore(s => s.currentPlayerIndex);
@@ -86,6 +84,7 @@ const PlayerHalfRow: React.FC<PlayerHalfRowProps> = ({ slots, compact = false, a
             <Pod
               color={PLAYER_COLORS[player.displayColor].bg}
               label={player.name[0]}
+              name={player.name}
               isActive={isActive}
               isRolling={isRolling && showsLiveDice}
               diceValue={diceValue}

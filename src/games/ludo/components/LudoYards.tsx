@@ -35,16 +35,21 @@ const LudoYards: React.FC<LudoYardsProps> = ({ seatToDisplay, yardTokens, nameBy
       return (
         <div
           key={color}
+          className="castle-yard"
           style={{
             gridRow: `${corner.row + 1} / span 6`,
             gridColumn: `${corner.col + 1} / span 6`,
-            background: `linear-gradient(135deg, ${colors.bg}, ${deep})`,
-            border: `2px solid ${deep}`,
+            background: `radial-gradient(ellipse at 25% 0%, ${colors.bgLight}, transparent 70%), linear-gradient(150deg, ${colors.bg}, ${deep})`,
+            border: `1px solid ${deep}50`,
             padding: '14%',
             boxSizing: 'border-box',
             position: 'relative',
           }}
         >
+          <svg className="yard-castle-art" viewBox="0 0 100 100" aria-hidden="true">
+            <path d="M8 30V8H30M70 8H92V30M92 70V92H70M30 92H8V70" fill="none" stroke="#ecd4a0" strokeWidth=".7" opacity=".5"/>
+            <path d="m50 4 5 4-5 4-5-4Zm0 84 5 4-5 4-5-4ZM4 50l4-5 4 5-4 5Zm84 0 4-5 4 5-4 5Z" fill="#ecd4a0" opacity=".45"/>
+          </svg>
           {name && (
             <div
               style={{
@@ -77,9 +82,11 @@ const LudoYards: React.FC<LudoYardsProps> = ({ seatToDisplay, yardTokens, nameBy
           )}
           <div style={{
             width: '100%', height: '100%',
-            background: 'var(--bg-board-cream)',
-            border: `1.5px solid ${deep}`,
-            borderRadius: 6,
+            background: 'linear-gradient(145deg, #efdfb9, #d5b979)',
+            position: 'relative',
+            boxShadow: '0 3px 0 #0002, inset 0 1px 0 #eadcc080',
+            border: `1px solid #a18a66`,
+            borderRadius: 16,
             padding: '10%',
             boxSizing: 'border-box',
           }}>
@@ -99,13 +106,11 @@ const LudoYards: React.FC<LudoYardsProps> = ({ seatToDisplay, yardTokens, nameBy
                     // the coloured ring border, the token reads as
                     // sitting inside a hole rather than on top of a
                     // flat disc.
-                    background: colors.bg,
-                    border: `2px solid ${deep}`,
+                    background: `${colors.bg}35`,
+                    border: `2px solid ${colors.bg}70`,
                     borderRadius: '50%',
                     boxShadow:
-                      'inset 0 5px 8px rgba(0,0,0,0.40), ' +
-                      'inset 0 -2px 2px rgba(255,255,255,0.30), ' +
-                      '0 1px 0 rgba(255,255,255,0.45)',
+                      'inset 0 2px 3px rgba(63,45,109,0.12), 0 1px 0 #e0d2b8',
                     position: 'relative',
                     display: 'flex',
                     alignItems: 'center',

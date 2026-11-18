@@ -44,7 +44,7 @@ const PhoneShell: React.FC<PhoneShellProps> = ({
     <div
       className={`phone-frame ${className || ''}`}
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, var(--bg-panel-hi) 0%, var(--bg-panel) 38%, var(--bg-deep) 80%)',
+        background: 'var(--world-background)',
         overflow: 'hidden',
         color: 'var(--ink)',
         fontFamily: 'var(--font-body)',
@@ -60,6 +60,13 @@ const PhoneShell: React.FC<PhoneShellProps> = ({
           </div>
         </>
       )}
+      <div className="ambient-magic" aria-hidden="true">
+        {Array.from({ length: 9 }, (_, i) => <i key={i} style={{
+          left: `${8 + ((i * 37) % 86)}%`, top: `${5 + ((i * 23) % 90)}%`,
+          animationDelay: `${-i * 1.7}s`, animationDuration: `${7 + i % 4}s`,
+        }} />)}
+      </div>
+      <div className="storybook-cloud cloud-one" aria-hidden="true" /><div className="storybook-cloud cloud-two" aria-hidden="true" />
       {inner}
     </div>
   );

@@ -1,8 +1,10 @@
+import { clearMoment, showMoment } from '../../lib/gameMoments';
+import { cellCenterPct } from './components/snakeGeometry';
 import { create } from 'zustand';
 import type { SNLGameState, SNLGameOptions, SNLPlayer } from './types';
 import { SNL_PLAYER_COLORS } from './constants';
 import { generateSNLLayout, buildLayoutLookup } from './generator';
-import { SNL_TIMING } from './timing';
+import { SNL_TIMING, slideDurationMs } from './timing';
 import { playDice, playMove, playSnake, playLadder, playWin } from '../../lib/sound';
 import { haptics } from '../../lib/haptics';
 import { saveDebounced, clear, load } from '../../lib/persist';
@@ -68,6 +70,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
   ...initialSNL,
 
   initGame: (playerCount, playerNames, isCPUFlags, playerColors, options) => {
+    clearMoment('snl');
     const players: SNLPlayer[] = Array.from({ length: playerCount }, (_, i) => ({
       id: `player-${i}`,
       name: playerNames?.[i] || `Player ${i + 1}`,
@@ -238,9 +241,10 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
           // sliding flag pulls the player out of cell rendering so a
           // floating motion.div can animate along the path. Once the
           // slide finishes, drop the flag and snap position to finalPos.
+          showMoment('snl', { kind: entityType, ...cellCenterPct(newPos), detail: `${newPos} → ${finalPos}` });
           const player = currentPlayer;
-          set({ sliding: { playerId: player.id, fromCell: newPos, toCell: finalPos, type: entityType } });
-          const slideMs = entityType === 'snake' ? SNL_TIMING.slideSnakeMs : SNL_TIMING.slideLadderMs;
+          set({ sliding: { playerId: player.id, fromCell: newPos, toCell: finalPos, type: entityType, sweeping: state.layout.find(e => e.from === newPos)?.sweeping } });
+          const slideMs = slideDurationMs(entityType, newPos, finalPos);
           setTimeout(() => {
             if (!stillCurrent(myGen)) return;
             const ps = [...get().players];
@@ -271,6 +275,7 @@ export const useSNLStore = create<SNLStore>((set, get) => ({
   },
 
   resetGame: () => {
+    clearMoment('snl');
     // Invalidate any in-flight roll/walk timeouts so they can't write
     // stale state on top of the fresh setup.
     startAction();

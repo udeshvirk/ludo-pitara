@@ -23,7 +23,7 @@ export interface SnakeGeometry {
 // Build the wavy path the snake's body traces from head (`from`) to
 // tail (`to`). Returns the SVG `d=` string and the underlying sample
 // points so the slide animation can re-use the same curve.
-export function snakeGeometry(from: number, to: number, cellPct: number): SnakeGeometry {
+function classicSnakeGeometry(from: number, to: number, cellPct: number): SnakeGeometry {
   const a = cellCenterPct(from);
   const b = cellCenterPct(to);
   const dx = b.x - a.x;
@@ -65,6 +65,36 @@ export function snakeGeometry(from: number, to: number, cellPct: number): SnakeG
     bodyPath += (i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`);
   }
   return { a, b, angDeg, bodyPath, points };
+}
+
+// Broad, low-frequency bends, shared by the artwork and sliding token.
+// Legacy saves retain their original curves so their routes do not start crossing.
+export function snakeGeometry(from: number, to: number, cellPct: number, sweeping = false): SnakeGeometry {
+  if (!sweeping) return classicSnakeGeometry(from, to, cellPct);
+  const a = cellCenterPct(from), b = cellCenterPct(to);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const px = -dy / length, py = dx / length;
+  const waves = Math.max(1, Math.round(length / 55));
+  const samples = 96;
+  let amplitude = Math.min(cellPct * 1.1, length * .24);
+  // Account for the actual wave at each point, rather than restricting
+  // the entire body to the clearance of its endpoint near a board edge.
+  for (let i = 1; i < samples; i++) {
+    const t = i / samples;
+    const wave = Math.sin(t * Math.PI * 2 * waves) * Math.sin(Math.PI * t);
+    for (const [base, factor] of [[a.x + dx * t, px * wave], [a.y + dy * t, py * wave]]) {
+      if (factor > 1e-6) amplitude = Math.min(amplitude, (97 - base) / factor);
+      else if (factor < -1e-6) amplitude = Math.min(amplitude, (3 - base) / factor);
+    }
+  }
+  const points = Array.from({ length: samples + 1 }, (_, i) => {
+    const t = i / samples;
+    const offset = Math.sin(t * Math.PI * 2 * waves) * Math.sin(Math.PI * t) * amplitude;
+    return { x: a.x + dx * t + px * offset, y: a.y + dy * t + py * offset };
+  });
+  const bodyPath = points.map((p, i) => `${i ? 'L' : 'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+  return { a, b, points, bodyPath, angDeg: Math.atan2(dy, dx) * 180 / Math.PI };
 }
 
 // Evenly subsample an array of points down to `target` waypoints —

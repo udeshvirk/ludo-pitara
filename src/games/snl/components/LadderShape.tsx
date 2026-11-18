@@ -5,11 +5,12 @@ interface LadderProps {
   from: number;
   to: number;
   cellPct: number;
+  active?: boolean;
 }
 
 // Two rails + evenly-spaced rungs. Width scales with cell size so the
 // ladder always reads as "wider than a coin" regardless of board size.
-const LadderShape: React.FC<LadderProps> = ({ from, to, cellPct }) => {
+const LadderShape: React.FC<LadderProps> = ({ from, to, cellPct, active }) => {
   const a = cellCenterPct(from);
   const b = cellCenterPct(to);
   const dx = b.x - a.x;
@@ -38,14 +39,19 @@ const LadderShape: React.FC<LadderProps> = ({ from, to, cellPct }) => {
     const r1y = ay1 + (by1 - ay1) * t;
     const r2x = ax2 + (bx2 - ax2) * t;
     const r2y = ay2 + (by2 - ay2) * t;
-    items.push(<line key={i} x1={r1x} y1={r1y} x2={r2x} y2={r2y} stroke="var(--ladder)" strokeWidth="0.45" strokeLinecap="round" />);
+    items.push(<line key={i} x1={r1x} y1={r1y} x2={r2x} y2={r2y} stroke="#ebc779" strokeWidth="0.8" strokeLinecap="round" />);
   }
 
   return (
-    <g>
-      <line x1={ax1} y1={ay1} x2={bx1} y2={by1} stroke="var(--ladder)" strokeWidth="0.65" strokeLinecap="round" />
-      <line x1={ax2} y1={ay2} x2={bx2} y2={by2} stroke="var(--ladder)" strokeWidth="0.65" strokeLinecap="round" />
+    <g className={active ? 'garden-ladder is-climbing' : 'garden-ladder'}>
+      <circle cx={a.x} cy={a.y} r="1.55" fill="#a6b48f" stroke="#67ac89" strokeWidth=".25" />
+      <circle cx={b.x} cy={b.y} r="1.55" fill="#cabb8e" stroke="#d8ac54" strokeWidth=".25" />
+      <line x1={ax1} y1={ay1} x2={bx1} y2={by1} stroke="#8d591c" strokeWidth="1.1" strokeLinecap="round" />
+      <line x1={ax2} y1={ay2} x2={bx2} y2={by2} stroke="#8d591c" strokeWidth="1.1" strokeLinecap="round" />
+      <line x1={ax1 - .15} y1={ay1} x2={bx1 - .15} y2={by1} stroke="#d3a248" strokeWidth=".35" strokeLinecap="round" />
+      <line x1={ax2 - .15} y1={ay2} x2={bx2 - .15} y2={by2} stroke="#d3a248" strokeWidth=".35" strokeLinecap="round" />
       {items}
+      <path d={`M ${a.x - .6} ${a.y + .5} L ${a.x} ${a.y - .4} L ${a.x + .6} ${a.y + .5}`} stroke="#37836c" strokeWidth=".3" fill="none" strokeLinecap="round" />
     </g>
   );
 };

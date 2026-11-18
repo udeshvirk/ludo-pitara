@@ -265,8 +265,14 @@ Files: `src/games/snl/{types,constants,generator,store}.ts`,
 The board: a 10×10 grid numbered 1–100 in a serpentine pattern (row 0
 goes 1→10 left-to-right, row 1 goes 20→11 right-to-left, etc.).
 `rowColToCell` and `cellToRowCol` in `constants.ts` do the conversion.
-Snakes and ladders are randomised per game by `generator.ts` and
-stored on `state.layout`.
+`generator.ts` uses the original constrained cell ranges: seven primary
+snakes, two possible extra snakes, and nine ladder specifications. Endpoints
+are unique, snake heads cannot occupy consecutive numbers, and cells 1 and
+100 are reserved. The large snake starts at 98 or 99 and ends at 2–5.
+These rules constrain anchors; they do not guarantee that drawn paths never
+cross. The redesigned snake heads, ladders, markers, and dice are independent
+of placement. New games use the original curves; saved games from the
+experimental sweeping layouts retain their geometry for consistent movement.
 
 A token has a single `position: number` (0 = pre-board, 1–100 = on
 board). The game's animation is just a numeric walk from `currentPos`
@@ -335,6 +341,8 @@ animation:
   alongside the SVG snakes/ladders, position: absolute, `left/top`
   keyframe animation through 16 sampled waypoints from
   `snakeGeometry()` (or 9 for a ladder line).
+- Long falls (45+ cells) take 1450 ms; other snakes take 850 ms and
+  ladders 550 ms. `slideDurationMs` is shared by rendering and the store.
 - After the slide duration, the store snaps `position` to `finalPos`
   and clears `sliding`. Cell-render takes over.
 
@@ -354,11 +362,22 @@ When `completeMove`'s capture detection finds a collision:
 - 520 ms after the capture (just past the arc duration), the store
   clears `flyingCaptures`. Yard render takes over.
 
+### Presentation effects
+
+`lib/gameMoments.ts` holds short-lived, per-game celebration events for
+captures, safe landings, home arrivals, snakes, and ladders. `BoardMagic`
+only renders brief capture and home-arrival particles, without commentary
+bubbles or affecting game state or persistence. Snake and ladder effects
+follow the moving piece directly. Reset and new
+game clear the events. `MotionConfig` respects reduced motion; CSS particles
+and character animations also honour that preference. The menu's board,
+serpent, and dice emblems are local SVGs in `ui/StoryArt.tsx`.
+
 ## Component hierarchy
 
 `PhoneShell` is the outermost frame on every page — a fluid container
-with the cream radial-gradient background and (optionally) decorative
-mandalas. `Header` is the row at the top with optional back button and
+with the dark violet/teal background, subtle atmosphere, and (optionally)
+decorative mandalas. `Header` is the row at the top with optional back button and
 optional `action` slot (used for `SoundToggle` on game pages).
 
 Game pages render:
@@ -375,14 +394,16 @@ PhoneShell
 `PlayerHalfRow` renders the relevant pods for that side. Both Ludo and
 SNL versions use the shared `Pod` (`src/components/ui/Pod.tsx`):
 
-- `Pod` = avatar + die in a bordered card, with active-state border
-  glow and the gold turn-arrow chevron rendered *outside* the card
-  when active.
+- `Pod` = named player strip above an avatar, turn-status label, and
+  separate dice tray. The active card uses its player colour; no detached
+  arrow or external name caption is needed.
 - `Die` = real CSS 3D cube — six faces translated along their outward
   normals, animated with `rotateX`/`rotateY` to land showing the
-  rolled face plus 720° of extra tumble. `transformPerspective`
+  rolled face plus 720° of extra tumble, a short lift, and a landing bounce.
+  Animation controls start from the previous face and respect reduced motion. `transformPerspective`
   applies depth.
-- `Coin` = the metallic SVG token used in both games. Exports a
+- `Coin` = the jewel-coloured SVG token used in both games, with colour-family
+  emblems (heart, leaf, star, diamond). Exports a
   `stackPlacement(stackSize, stackIndex)` helper so tokens fan out
   diagonally when ≥ 2 share a cell.
 - `StackCountBadge` = the small black numeric pill in the cell's
@@ -398,7 +419,7 @@ flush against the board.
 `src/lib/sound.ts` — all sounds are synthesised in WebAudio at call
 time. No assets. Functions: `playDice` (clatter), `playMove` (sine
 ping), `playCapture`, `playSnake`, `playLadder`, `playWin`,
-`playHomeArrival`, `playTap`. Each one builds an `AudioBufferSource` /
+`playHomeArrival`, `playSafeArrival`, `playTap`. Each one builds an `AudioBufferSource` /
 `OscillatorNode` chain with a short envelope and disposes immediately.
 The AudioContext is unlocked on the first user gesture (iOS Safari
 quirk handled in module init).

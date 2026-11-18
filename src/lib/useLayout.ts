@@ -7,9 +7,9 @@ function detect(): LayoutMode {
   const w = window.innerWidth;
   const h = window.innerHeight;
   // Wide layout = landscape AND big enough for side panels next to a board.
-  // Triggers on iPad-landscape, desktop, laptop. Phones in landscape are
-  // typically below 900px wide so they stay in `tablet`.
-  if (w >= 900 && w > h) return 'wide';
+  // Landscape phones also need side rails: stacked controls leave a
+  // tiny board on short screens. At 640px there is room for both rails.
+  if (w >= 640 && w > h) return 'wide';
   if (w >= 600) return 'tablet';
   return 'phone';
 }

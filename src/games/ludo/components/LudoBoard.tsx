@@ -1,3 +1,4 @@
+import BoardMagic from '../../../components/effects/BoardMagic';
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useLudoStore } from '../store';
@@ -169,7 +170,7 @@ const LudoBoard: React.FC = () => {
 
   return (
     <motion.div
-      className="relative mx-auto"
+      className="relative mx-auto enchanted-board"
       style={{
         width: '100%',
         height: '100%',
@@ -206,6 +207,7 @@ const LudoBoard: React.FC = () => {
       {flyingCaptures.map(fly => (
         <FlyingCaptureToken key={fly.tokenId} fly={fly} />
       ))}
+      <BoardMagic game="ludo" />
     </motion.div>
   );
 };

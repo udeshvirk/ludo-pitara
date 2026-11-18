@@ -26,6 +26,20 @@ describe('generateSNLLayout', () => {
     }
   });
 
+  it('keeps one near-finish drop and no consecutive snake heads', () => {
+    for (let game = 0; game < 100; game++) {
+      const layout = generateSNLLayout();
+      const snakes = layout.filter(e => e.type === 'snake');
+      const bigSnake = snakes.filter(e => e.from >= 98);
+      expect(bigSnake).toHaveLength(1);
+      expect(bigSnake[0].to).toBeGreaterThanOrEqual(2);
+      expect(bigSnake[0].to).toBeLessThanOrEqual(5);
+      const heads = new Set(snakes.map(e => e.from));
+      for (const head of heads) expect(heads.has(head + 1)).toBe(false);
+      expect(layout.every(e => e.sweeping === undefined)).toBe(true);
+    }
+  });
+
   it('all 7 mandatory snakes are placed', () => {
     const layout = generateSNLLayout();
     const snakeCount = layout.filter(e => e.type === 'snake').length;

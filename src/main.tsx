@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
@@ -12,10 +13,12 @@ if ('serviceWorker' in navigator) {
 }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>
-      <HashRouter>
-        <App />
-      </HashRouter>
-    </ErrorBoundary>
+    <MotionConfig reducedMotion="user">
+      <ErrorBoundary>
+        <HashRouter>
+          <App />
+        </HashRouter>
+      </ErrorBoundary>
+    </MotionConfig>
   </StrictMode>,
 )

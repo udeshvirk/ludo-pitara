@@ -23,7 +23,6 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
   const gamePhase = useSNLStore(s => s.gamePhase);
   const rollDice = useSNLStore(s => s.rollDice);
 
-  const nameSize = compact ? 11 : 12;
 
   // Single-slot rows (side rails) center the pod; two-slot rows pin the
   // pods to the row's two outer edges so they hug the board corners.
@@ -83,6 +82,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
               <Pod
                 color={player.color}
                 label={player.name[0]}
+                name={player.name}
                 isActive={isActive}
                 isRolling={isRolling}
                 diceValue={diceValue}
@@ -94,23 +94,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
                 arrowSide={podArrowSide}
               />
             </div>
-            <div
-              style={{
-                maxWidth: '100%',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: nameSize,
-                lineHeight: 1.1,
-                color: isActive ? '#fff' : 'var(--ink-dim)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                textAlign: 'center',
-                transform: top ? 'rotate(180deg)' : undefined,
-              }}
-            >
-              {player.name}
-            </div>
+
           </div>
         );
       })}

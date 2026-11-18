@@ -31,7 +31,7 @@ const WEDGE_POLYGONS: Record<PlayerColor, string> = {
 };
 
 const LudoCenter: React.FC<LudoCenterProps> = ({ seatToDisplay, homeTokens }) => (
-  <div style={{
+  <div className="castle-center" style={{
     gridRow: '7 / span 3',
     gridColumn: '7 / span 3',
     position: 'relative',
@@ -71,7 +71,9 @@ const LudoCenter: React.FC<LudoCenterProps> = ({ seatToDisplay, homeTokens }) =>
       {/* Medallion */}
       <circle cx="50" cy="50" r="16" fill="url(#centerDisc)" stroke="var(--gold-deep)" strokeWidth="1.5" />
       <circle cx="50" cy="50" r="13" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-      <text x="50" y="58.5" textAnchor="middle" fontSize="22" fontWeight="700" fill="#3a1f00" fontFamily="var(--font-display)">★</text>
+      <path d="M38 57V44L44 49 50 39 56 49 62 44V57Z" fill="#fff9e8" stroke="#af7a32" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M39 60H61" stroke="#af7a32" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="50" cy="52" r="2" fill="#e68aa9"/>
     </svg>
 
     {(['red', 'green', 'yellow', 'blue'] as PlayerColor[]).map(color => {

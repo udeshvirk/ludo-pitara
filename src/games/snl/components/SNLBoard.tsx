@@ -1,3 +1,4 @@
+import BoardMagic from '../../../components/effects/BoardMagic';
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BOARD_SIZE } from '../constants';
@@ -52,7 +53,7 @@ const SNLBoard: React.FC = () => {
 
   return (
     <motion.div
-      className="relative mx-auto"
+      className="relative mx-auto enchanted-board garden-board"
       style={{
         width: '100%',
         height: '100%',
@@ -79,15 +80,15 @@ const SNLBoard: React.FC = () => {
         preserveAspectRatio="none"
       >
         {ladders.map(l => (
-          <LadderShape key={`l-${l.from}-${l.to}`} from={l.from} to={l.to} cellPct={cellPct} />
+          <LadderShape active={sliding?.fromCell === l.from} key={`l-${l.from}-${l.to}`} from={l.from} to={l.to} cellPct={cellPct} />
         ))}
         {/* Two passes so every snake's head sits above every body, even
             when bodies cross other heads. */}
         {snakes.map(s => (
-          <SnakeBody key={`sb-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
+          <SnakeBody sweeping={s.sweeping} key={`sb-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
         ))}
         {snakes.map(s => (
-          <SnakeHead key={`sh-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
+          <SnakeHead sweeping={s.sweeping} awake={sliding?.fromCell === s.from} key={`sh-${s.from}-${s.to}`} from={s.from} to={s.to} cellPct={cellPct} />
         ))}
       </svg>
 
@@ -97,9 +98,11 @@ const SNLBoard: React.FC = () => {
           fromCell={sliding.fromCell}
           toCell={sliding.toCell}
           type={sliding.type}
+          sweeping={sliding.sweeping}
           cellPct={cellPct}
         />
       )}
+      <BoardMagic game="snl" />
     </motion.div>
   );
 };

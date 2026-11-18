@@ -3,10 +3,10 @@ export const TOTAL_CELLS = 100;
 
 // Player colors for SNL — match the Ludo player palette.
 export const SNL_PLAYER_COLORS = [
-  { name: 'Red', color: '#e53935', glow: 'rgba(229,57,53,0.5)' },
-  { name: 'Blue', color: '#1e6fdb', glow: 'rgba(30,111,219,0.5)' },
-  { name: 'Green', color: '#2e9d4f', glow: 'rgba(46,157,79,0.5)' },
-  { name: 'Yellow', color: '#d99e00', glow: 'rgba(217,158,0,0.5)' },
+  { name: 'Red', color: '#cf304b', glow: 'rgba(229,57,53,0.5)' },
+  { name: 'Blue', color: '#286cd2', glow: 'rgba(30,111,219,0.5)' },
+  { name: 'Green', color: '#12965b', glow: 'rgba(46,157,79,0.5)' },
+  { name: 'Yellow', color: '#d7a719', glow: 'rgba(217,158,0,0.5)' },
 ];
 
 // Convert cell number (1-100) to row,col (0-indexed)

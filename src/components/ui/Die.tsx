@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
 
 interface DieProps {
   value?: number;
@@ -55,44 +55,77 @@ const Die: React.FC<DieProps> = ({
   onClick,
   disabled,
 }) => {
+  const reduced = useReducedMotion();
   const cell = size / 4;
   const half = size / 2;
   const radius = size * 0.22;
 
-  const faceBg = active
-    ? `linear-gradient(135deg, var(--gold-hi) 0%, var(--gold) 60%, var(--gold-deep) 100%)`
-    : `linear-gradient(135deg, #ffffff 0%, ${color} 60%, #f0e4c8 100%)`;
+  const faceBg = color !== '#ffffff'
+    ? `linear-gradient(145deg, ${color}, #c6b893)`
+    : 'linear-gradient(145deg, #fff2d3 0%, #f0dcaa 65%, #cfad65 100%)';
 
   const interactive = !!onClick && !disabled;
 
-  const target = TARGET_ROTATION[value] || TARGET_ROTATION[1];
-  // While rolling, end at the target +2 full turns so the cube
-  // visibly tumbles. After rolling stops, snap to the bare target so
-  // we don't unwind those extra turns visibly.
-  const targetX = rolling ? 720 + target.x : target.x;
-  const targetY = rolling ? 720 + target.y : target.y;
+  const controls = useAnimationControls();
+  const previousFace = useRef(value);
+  useEffect(() => {
+    const target = TARGET_ROTATION[value] || TARGET_ROTATION[1];
+    controls.stop();
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!rolling || reduced || preference.matches) {
+      controls.set({ rotateX: target.x, rotateY: target.y, rotateZ: 0, y: 0, scale: 1 });
+      previousFace.current = value;
+      return;
+    }
+    const start = TARGET_ROTATION[previousFace.current] || TARGET_ROTATION[1];
+    // Lift, tumble, impact, then a small settling bounce. The final face
+    // is exact; the store's 800ms settle remains later than this 780ms roll.
+    void controls.start({
+      rotateX: [start.x, start.x + 160, target.x + 470, target.x + 720, target.x + 720, target.x + 720],
+      rotateY: [start.y, start.y + 100, target.y + 390, target.y + 720, target.y + 720, target.y + 720],
+      rotateZ: [0, -15, 12, -3, 2, 0],
+      y: [0, -size * .28, -size * .18, 0, -size * .055, 0],
+      scale: [1, 1.04, 1.04, .94, 1.01, 1],
+      transition: { duration: .78, times: [0, .2, .52, .78, .9, 1], ease: 'easeInOut' },
+    });
+    const onPreferenceChange = () => {
+      if (preference.matches) {
+        controls.stop();
+        controls.set({ rotateX: target.x, rotateY: target.y, rotateZ: 0, y: 0, scale: 1 });
+      }
+    };
+    preference.addEventListener('change', onPreferenceChange);
+    return () => {
+      preference.removeEventListener('change', onPreferenceChange);
+      controls.stop();
+    };
+  }, [controls, reduced, rolling, size, value]);
 
   return (
-    <div
+    <button
+      type="button"
+      className="table-die"
+      aria-label={rolling ? 'Rolling dice' : interactive ? `Roll dice, current value ${value}` : `Dice showing ${value}`}
+      disabled={!interactive}
       onClick={interactive ? onClick : undefined}
-      role={interactive ? 'button' : undefined}
-      tabIndex={interactive ? 0 : undefined}
       style={{
         width: size,
         height: size,
-        perspective: size * 4,
+        perspective: size * 8,
+        background: 'transparent',
+        border: 'none',
+        padding: 0,
+        borderRadius: radius,
+        display: 'block',
+        boxShadow: '0 4px 6px #0005',
         cursor: interactive ? 'pointer' : 'default',
-        opacity: disabled && !active ? 0.55 : 1,
+        opacity: 1,
         flexShrink: 0,
       }}
     >
       <motion.div
-        animate={{ rotateX: targetX, rotateY: targetY }}
-        transition={
-          rolling
-            ? { duration: 0.78, ease: 'easeOut' }
-            : { duration: 0 }
-        }
+        aria-hidden="true"
+        animate={controls}
         whileTap={interactive ? { scale: 0.94 } : undefined}
         style={{
           width: size,
@@ -111,7 +144,7 @@ const Die: React.FC<DieProps> = ({
               height: size,
               borderRadius: radius,
               background: faceBg,
-              border: '1px solid rgba(0,0,0,0.08)',
+              border: '1px solid #9c8c6d',
               boxShadow: active
                 ? 'inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.18)'
                 : 'inset 0 2px 0 rgba(255,255,255,0.85), inset 0 -3px 0 rgba(0,0,0,0.14)',
@@ -129,7 +162,7 @@ const Die: React.FC<DieProps> = ({
                   width: cell * 0.7,
                   height: cell * 0.7,
                   borderRadius: '50%',
-                  background: active ? '#3a1f00' : dotColor,
+                  background: dotColor,
                   boxShadow: 'inset 0 1.5px 2px rgba(0,0,0,0.35)',
                 }}
               />
@@ -137,7 +170,7 @@ const Die: React.FC<DieProps> = ({
           </div>
         ))}
       </motion.div>
-    </div>
+    </button>
   );
 };
 

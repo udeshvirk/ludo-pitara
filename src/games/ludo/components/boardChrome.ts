@@ -6,10 +6,10 @@ import type { PlayerColor } from '../types';
 // tweak ripples to all the surfaces.
 
 export const COLOR_DEEP: Record<PlayerColor, string> = {
-  red: '#9a1a18',
-  green: '#185c2c',
-  yellow: '#7a5a00',
-  blue: '#0e3e7a',
+  red: '#8f1e42',
+  green: '#075f49',
+  yellow: '#956910',
+  blue: '#17478f',
 };
 
 // Path direction by colour — the triangle-glyph that points along the

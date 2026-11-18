@@ -65,7 +65,7 @@ const Avatar: React.FC<AvatarProps> = ({
           width: '100%',
           height: '100%',
           borderRadius: '50%',
-          background: `linear-gradient(140deg, ${color}, ${color}cc)`,
+          background: `linear-gradient(#0000, #0003), ${color}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

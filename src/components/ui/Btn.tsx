@@ -24,13 +24,13 @@ interface BtnProps {
 
 const VARIANT_STYLES: Record<Variant, React.CSSProperties> = {
   primary: {
-    background: 'linear-gradient(180deg, #ffa771, var(--saffron) 55%, #c25a1f)',
-    color: '#fff',
-    boxShadow: '0 6px 18px rgba(255, 138, 61, 0.45), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.18)',
+    background: 'linear-gradient(180deg, #dcc393, #b99660)',
+    color: '#241d16',
+    boxShadow: '0 3px 0 #715735, 0 6px 14px #0003, inset 0 1px 0 #ead9b5',
     border: '1px solid rgba(255, 195, 150, 0.55)',
   },
   danger: {
-    background: 'linear-gradient(180deg, #ff7a5a, var(--rose))',
+    background: 'linear-gradient(180deg, #9c344c, #78253d)',
     color: '#fff',
     boxShadow: '0 6px 18px rgba(229, 57, 53, 0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
     border: '1px solid rgba(255, 180, 170, 0.4)',
@@ -75,7 +75,7 @@ const Btn: React.FC<BtnProps> = ({
       ref={buttonRef}
       whileTap={disabled ? undefined : { scale: 0.96 }}
       onClick={handleClick}
-      className={className}
+      className={`pitara-button ${className || ''}`}
       type={type}
       disabled={disabled}
       aria-label={rest['aria-label']}
@@ -86,12 +86,12 @@ const Btn: React.FC<BtnProps> = ({
         gap: 8,
         padding: small ? '10px 18px' : '15px 26px',
         borderRadius: 999,
-        fontWeight: 700,
+        fontWeight: 600,
         letterSpacing: 0.2,
         fontSize: small ? 14 : 16,
         cursor: disabled ? 'not-allowed' : 'pointer',
         userSelect: 'none',
-        fontFamily: 'var(--font-ui)',
+        fontFamily: 'var(--font-display)',
         whiteSpace: 'nowrap',
         width: fullWidth ? '100%' : undefined,
         opacity: disabled ? 0.55 : 1,

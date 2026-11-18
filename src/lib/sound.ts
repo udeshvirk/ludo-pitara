@@ -282,3 +282,24 @@ export function playTap() {
   osc.start(now);
   osc.stop(now + 0.05);
 }
+
+// A quiet glass-bell interval for a protected landing.
+export function playSafeArrival() {
+  if (!enabled) return;
+  const ac = getCtx();
+  if (!ac) return;
+  [880, 1320].forEach((frequency, i) => {
+    const at = ac.currentTime + i * 0.09;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(0.1, at + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, at + 0.28);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(at);
+    osc.stop(at + 0.3);
+  });
+}

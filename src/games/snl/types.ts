@@ -20,6 +20,8 @@ export interface Slide {
   fromCell: number;
   toCell: number;
   type: 'snake' | 'ladder';
+  // Preserve geometry in saves from the experimental sweeping layouts.
+  sweeping?: boolean;
 }
 
 export interface SNLGameOptions {
@@ -50,4 +52,6 @@ export interface SnakeOrLadder {
   from: number;
   to: number;
   type: 'snake' | 'ladder';
+  // Preserve geometry in saves from the experimental sweeping layouts.
+  sweeping?: boolean;
 }

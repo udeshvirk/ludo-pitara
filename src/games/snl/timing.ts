@@ -14,6 +14,7 @@ export const SNL_TIMING = {
   // Snake slide is intentionally slower than a ladder climb — feels
   // weightier and gives the user a moment to register the misfortune.
   slideSnakeMs: 850,
+  slideLongSnakeMs: 1450,
   slideLadderMs: 550,
 
   // Cool-down between the slide ending and the next-player banner.
@@ -29,3 +30,9 @@ export const SNL_TIMING = {
   // Overshoot ("need exact roll") pause before next player.
   overshootHoldMs: 600,
 } as const;
+
+// Rendering and store completion must use the same duration.
+export function slideDurationMs(type: 'snake' | 'ladder', from: number, to: number): number {
+  if (type === 'ladder') return SNL_TIMING.slideLadderMs;
+  return from - to >= 45 ? SNL_TIMING.slideLongSnakeMs : SNL_TIMING.slideSnakeMs;
+}

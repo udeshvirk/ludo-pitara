@@ -179,10 +179,10 @@ const LudoGame: React.FC = () => {
             alignItems: 'stretch',
             justifyContent: 'center',
             gap: 14,
-            // Top padding leaves room for the board's 9px gold frame,
+            // Top padding leaves room for the board's raised pastel frame,
             // which is a box-shadow drawn outside the board (overflow
             // is hidden here, so it would otherwise be clipped).
-            padding: '12px 13px 13px',
+            padding: '12px 13px 18px',
             maxWidth: 1600,
             margin: '0 auto',
             width: '100%',

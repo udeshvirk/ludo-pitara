@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Btn from './ui/Btn';
 
 interface WinnerModalProps {
@@ -24,6 +24,7 @@ interface ConfettiPiece {
 const CONFETTI_COLORS = ['#e53935', '#2e9d4f', '#f5b800', '#1e6fdb', '#ff8a3d', '#ffd966'];
 
 const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerColor, stat, onPlayAgain, onGoHome }) => {
+  const reduced = useReducedMotion();
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
   const playAgainRef = useRef<HTMLButtonElement | null>(null);
   const goHomeRef = useRef<HTMLButtonElement | null>(null);
@@ -111,7 +112,7 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
           {/* Expanding gold ring */}
           <motion.div
             initial={{ scale: 0, opacity: 0.7 }}
-            animate={{ scale: 6, opacity: 0 }}
+            animate={{ scale: reduced ? 1 : 6, opacity: 0 }}
             transition={{ duration: 1.4, ease: 'easeOut' }}
             style={{
               position: 'absolute',
@@ -124,7 +125,7 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
           />
 
           {/* Confetti */}
-          {confetti.map(p => (
+          {!reduced && confetti.map(p => (
             <motion.div
               key={p.id}
               style={{
@@ -138,12 +139,12 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
               }}
               initial={{ y: -20, rotate: p.rotate, opacity: 1 }}
               animate={{ y: '110vh', rotate: p.rotate + 720, opacity: 0 }}
-              transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: 'linear' }}
+              transition={{ duration: p.duration, delay: p.delay, repeat: 1, ease: 'linear' }}
             />
           ))}
 
           <motion.div
-            className="relative z-10 mx-4 max-w-sm w-full text-center"
+            className="winner-card relative z-10 mx-4 max-w-sm w-full text-center"
             initial={{ scale: 0.7, y: 30 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.7, y: 30 }}
@@ -151,13 +152,14 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
             style={{
               padding: 28,
               borderRadius: 26,
-              background: 'rgba(42, 18, 72, 0.85)',
+              background: 'radial-gradient(ellipse at 50% 0%, #59406e, #27143f 65%)',
               border: '1px solid rgba(255,255,255,0.12)',
               boxShadow: 'var(--shadow)',
             }}
           >
+            <div className="winner-eyebrow">A LITTLE LEGEND IS BORN</div>
             <motion.div
-              animate={{ scale: [1, 1.1, 1], rotate: [0, -6, 6, 0] }}
+              animate={reduced ? {} : { scale: [1, 1.1, 1], rotate: [0, -6, 6, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               style={{
                 width: 96,
@@ -173,8 +175,8 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ isOpen, winnerName, winnerCol
               }}
             >🏆</motion.div>
 
-            <div id={titleId} style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 36, lineHeight: 1.05, color: winnerColor }}>{winnerName}</div>
-            <div style={{ marginTop: 6, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ink-dim)' }}>wins the round</div>
+            <div id={titleId} style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 36, lineHeight: 1.05, color: 'var(--ink)', textShadow: `0 2px 24px ${winnerColor}66`, overflowWrap: 'anywhere' }}>{winnerName}</div>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ink-dim)' }}>What a wonderful win.</div>
 
             {stat && <div style={{ marginTop: 14, fontSize: 13, color: 'var(--ink-dim)' }}>{stat}</div>}
 

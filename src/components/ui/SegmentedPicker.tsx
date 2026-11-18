@@ -54,10 +54,10 @@ function SegmentedPicker<T extends string | number>({
               fontSize: chunky ? 14 : 12,
               letterSpacing: chunky ? 0.4 : 0.4,
               textTransform: 'capitalize',
-              color: selected ? (chunky ? '#fff' : 'var(--saffron)') : 'var(--ink-dim)',
+              color: selected ? (chunky ? '#241d16' : 'var(--saffron)') : 'var(--ink-dim)',
               background: selected
                 ? (chunky
-                    ? 'linear-gradient(180deg, #ffa771, var(--saffron))'
+                    ? 'linear-gradient(180deg, #dcc393, #b99660)'
                     : 'rgba(255, 138, 61, 0.16)')
                 : 'transparent',
               boxShadow: selected && chunky ? 'inset 0 1px 0 rgba(255,255,255,0.35)' : 'none',

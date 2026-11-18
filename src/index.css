@@ -2,42 +2,42 @@
 
 /* ===== Design Tokens (from design_handoff_ludo_pitara/screens-shared.jsx) ===== */
 :root {
+  --world-background: radial-gradient(ellipse at 10% 0%, #392057 0%, transparent 55%), radial-gradient(ellipse at 100% 85%, #12354a 0%, transparent 55%), linear-gradient(155deg, #201234, #111526);
   /* surfaces */
-  --bg-deep: #190a2e;
-  --bg-panel: #2a1248;
-  --bg-panel-hi: #3a1a5e;
+  --bg-deep: #171623;
+  --bg-panel: #292438;
+  --bg-panel-hi: #3c324e;
   --bg-card: rgba(255, 255, 255, 0.06);
   --bg-card-hi: rgba(255, 255, 255, 0.10);
-  --bg-board: #fbf0d4;
-  --bg-board-cream: #fff7e1;
+  --bg-board: #dfc588;
+  --bg-board-cream: #efdfb9;
 
   /* ink */
-  --ink: #fff8e7;
-  --ink-dim: rgba(255, 248, 231, 0.62);
-  --ink-faint: rgba(255, 248, 231, 0.32);
+  --ink: #eee4d1;
+  --ink-dim: #c5bccb;
+  --ink-faint: #a99eb3;
   --ink-on-light: #2a1248;
 
   /* accents */
-  --gold: #f5b800;
-  --gold-hi: #ffd966;
-  --gold-deep: #b07a00;
-  --saffron: #ff8a3d;
-  --rose: #e53935;
+  --gold: #deb347;
+  --gold-hi: #f1d27d;
+  --gold-deep: #82643b;
+  --saffron: #dab87f;
+  --rose: #cf304b;
 
-  /* player tokens — yellow softened from #f5b800 to a deeper amber so it
-     doesn't out-shout red/green/blue on the board. */
-  --p-red: #e53935;
-  --p-green: #2e9d4f;
-  --p-yellow: #d99e00;
-  --p-blue: #1e6fdb;
-  --p-red-deep: #9a1a18;
-  --p-green-deep: #185c2c;
-  --p-yellow-deep: #7a5a00;
-  --p-blue-deep: #0e3e7a;
+  /* Toy colours stay distinct on the cream playing surface. */
+  --p-red: #cf304b;
+  --p-green: #12965b;
+  --p-yellow: #d7a719;
+  --p-blue: #286cd2;
+  --p-red-deep: #8f1e42;
+  --p-green-deep: #075f49;
+  --p-yellow-deep: #956910;
+  --p-blue-deep: #17478f;
 
   /* board features */
-  --snake: #2c8a4a;
-  --ladder: #c8853a;
+  --snake: #46bba1;
+  --ladder: #bb8650;
 
   /* shadows */
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -46,11 +46,7 @@
     0 6px 18px rgba(245, 184, 0, 0.45),
     inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
     inset 0 -2px 0 rgba(0, 0, 0, 0.18);
-  --shadow-board:
-    0 0 0 4px var(--gold-deep),
-    0 0 0 6px var(--gold-hi),
-    0 0 0 9px var(--gold-deep),
-    0 18px 50px rgba(0, 0, 0, 0.55);
+  --shadow-board: 0 0 0 2px #b59a6b, 0 0 0 6px #514052, 0 7px 0 6px #171322, 0 15px 28px #0006;
 
   /* type — Fredoka for display (rounded, playful — fits the game feel),
      Inter for UI / body (clean, highly legible at small sizes). */
@@ -210,3 +206,147 @@ body {
     0 1px 0 rgba(255, 255, 255, 0.85),
     0 0 6px rgba(245, 184, 0, 0.55);
 }
+
+/* Small celebrations around the action. */
+button:focus-visible, a:focus-visible { outline: 3px solid #ffe18c; outline-offset: 4px; }
+.ambient-magic { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ambient-magic i {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: #ffe1a0; box-shadow: 0 0 12px 3px #ffc97740;
+  animation: firefly 8s ease-in-out infinite; opacity: 0.25;
+}
+@keyframes firefly {
+  0%, 100% { transform: translateY(10px); opacity: 0.12; }
+  50% { transform: translateY(-14px); opacity: 0.65; }
+}
+.gilded-title { text-shadow: 0 4px 0 #4b3976, 0 8px 35px #e8c9ff40; }
+.game-library-intro { padding: 8px 4px 6px; }
+.eyebrow, .winner-eyebrow { font: 600 10px var(--font-ui); letter-spacing: 2.2px; color: #e7c589; }
+.game-library-intro h1 {
+  font: 500 clamp(32px, 8vw, 42px)/1.04 var(--font-display);
+  letter-spacing: -0.7px; margin: 12px 0 10px; color: #fff1d8;
+}
+.game-library-intro p { font-size: 12px; color: var(--ink-dim); margin: 0; line-height: 1.6; }
+.game-tile::after, .pitara-button::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, #fff4d91a 45%, transparent 65%);
+  transform: translateX(-110%); transition: transform 650ms ease;
+}
+.game-tile:hover::after, .pitara-button:hover::after { transform: translateX(110%); }
+.pitara-button { position: relative; overflow: hidden; }
+.enchanted-board { isolation: isolate; }
+.board-magic { position: absolute; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.magic-origin { position: absolute; width: 0; height: 0; }
+.magic-ring {
+  position: absolute; width: 72px; height: 72px; left: -36px; top: -36px;
+  border: 2px solid var(--magic-color); border-radius: 50%;
+  box-shadow: 0 0 18px var(--magic-color), inset 0 0 16px var(--magic-color);
+  animation: magic-ring 850ms ease-out both;
+}
+.magic-ring-second { animation-delay: 130ms; border-style: dashed; }
+.magic-emblem {
+  position: absolute; width: 48px; left: -24px; top: -32px; text-align: center;
+  font: 40px var(--font-display); color: #fff9e7;
+  text-shadow: 0 0 12px var(--magic-color), 0 2px 4px #241137;
+  animation: magic-emblem 1000ms ease-out both;
+}
+.magic-spark {
+  position: absolute; width: 5px; height: 5px; left: -2px; top: -2px;
+  background: var(--magic-color); box-shadow: 0 0 8px var(--magic-color);
+  border-radius: 1px; animation: magic-spark 800ms var(--spark-delay) ease-out both;
+}
+.magic-safe .magic-ring { border-radius: 35% 35% 48% 48%; }
+.magic-home .magic-ring-second { border-width: 4px; }
+.magic-snake .magic-ring { border-style: dashed; }
+@keyframes magic-ring { from { transform: scale(0.2); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+@keyframes magic-emblem { 0% { transform: scale(0.4); opacity: 0; } 25% { transform: scale(1.2); opacity: 1; } 100% { transform: translateY(-24px) scale(0.9); opacity: 0; } }
+@keyframes magic-spark { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--spark-x), var(--spark-y)) rotate(150deg); opacity: 0; } }
+.journey-trail { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 40; pointer-events: none; filter: drop-shadow(0 0 3px currentColor); }
+.journey-ladder { color: #61e8c0; }
+.journey-snake { color: #bb65eb; }
+.journey-coin { filter: drop-shadow(0 0 8px currentColor); }
+.capture-comet { filter: drop-shadow(0 0 7px #ffbe79); }
+.winner-card { overflow: hidden; }
+.winner-card::before {
+  content: ''; position: absolute; inset: 7px; border: 1px solid #f7d28755;
+  border-radius: 21px; pointer-events: none;
+}
+.winner-eyebrow { margin: 4px 0 24px; font-size: 9px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+  .ambient-magic, .magic-ring, .magic-spark, .magic-emblem { display: none; }
+  .animate-pulse-ring, .animate-float-y, .animate-shimmer { animation: none; }
+  .game-tile::after, .pitara-button::after { display: none; }
+}
+
+/* Enchanted game table: restrained light, rich colours, readable surfaces. */
+
+.storybook-cloud { position: absolute; width: 360px; height: 160px; border-radius: 50%; background: #e7d9ff; filter: blur(2px); opacity: .025; pointer-events: none; }
+.cloud-one { top: 17%; right: -220px; box-shadow: -80px 20px 0 -20px #e7d9ff; }
+.cloud-two { bottom: -90px; left: -80px; width: 600px; height: 220px; box-shadow: 170px -15px 0 -40px #e7d9ff; }
+.game-library-intro { padding: 12px 2px 10px; }
+.game-library-intro h1 { font-size: clamp(32px, 8vw, 43px); line-height: 1.04; margin: 12px 0; color: #eee4d1; }
+.game-library-intro h1 em { font-style: normal; color: #d7b77d; }
+.game-library-intro p { color: #c5bccb; }
+.eyebrow { color: #c8ac7b; font-size: 9px; letter-spacing: 2px; }
+.game-tile {
+  position: relative; display: flex; align-items: center; width: 100%; min-height: 174px;
+  border: 1px solid #77617b; border-radius: 21px; padding: 14px 16px 14px 6px;
+  text-align: left; overflow: hidden; cursor: pointer; color: #eee4d1;
+  background: linear-gradient(120deg, #47206b, #291b43); box-shadow: 0 5px 12px #0003, inset 0 1px 0 #ffffff0d;
+}
+.game-tile-snl { background: linear-gradient(120deg, #125a46, #16382f); border-color: #57756a; color: #eee4d1; }
+.game-tile-dice { background: linear-gradient(120deg, #654321, #34271f); border-color: #79664b; color: #eee4d1; min-height: 144px; }
+.game-world-art { width: 43%; flex-shrink: 0; transform: rotate(-4deg); }
+.game-world-art svg { display: block; width: 100%; height: auto; }
+.game-world-copy { flex: 1; min-width: 0; padding: 8px 0; position: relative; }
+.game-world-label { font: 700 8px var(--font-ui); letter-spacing: 1.4px; opacity: .8; }
+.game-world-copy h2 { font: 600 clamp(23px, 6.5vw, 31px)/1.02 var(--font-display); margin: 7px 0; letter-spacing: -.4px; }
+.game-world-copy p { font: 500 11px/1.5 var(--font-ui); margin: 0; opacity: .85; }
+.game-world-cta { display: inline-flex; align-items: center; gap: 22px; background: #e3bc64; color: #241d18; border: 1px solid #f1d486; border-radius: 999px; box-shadow: 0 3px 0 #65418b15; padding: 8px 15px; margin-top: 13px; font: 600 15px var(--font-display); }
+.game-tile-snl .game-world-cta { color: #241d18; }
+.game-tile-dice .game-world-cta { color: #241d18; }
+.game-world-cta span { font-size: 19px; line-height: 1; }
+.game-tile:hover .game-world-art { transform: rotate(0deg) translateY(-2px); }
+.game-world-art { transition: transform 300ms ease; }
+.castle-yard { overflow: hidden; }
+.yard-castle-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ludo-cell { border-color: #76684b55; border-radius: 2px; box-shadow: inset 0 1px 0 #ffffff25, inset 0 -1px 0 #3b2c331a; }
+.safe-star::after { color: #8c682b; text-shadow: none; }
+.garden-board .snl-cell { box-shadow: inset 0 1px 0 #ffffff20; }
+.garden-finish { background: #e5bb51 !important; }
+.garden-start { background: #b1d5a8 !important; }
+.garden-crown { font-size: clamp(20px, 5vmin, 34px); color: #c19037; opacity: .65; line-height: 1; transform: translate(2px, 3px); }
+.garden-ladder.is-climbing { filter: drop-shadow(0 0 1px #fff09a); }
+.garden-ladder.is-climbing line { animation: rung-light 650ms ease-in-out both; }
+.garden-snake.is-awake .snake-eyes { transform-box: fill-box; transform-origin: center; animation: snake-blink 600ms ease both; }
+@keyframes snake-blink { 0%, 40%, 100% { transform: scaleY(1); } 20% { transform: scaleY(.15); } }
+@keyframes rung-light { 50% { stroke: #fffbd0; } }
+@media (max-width: 360px) {
+  .game-tile { padding-right: 12px; min-height: 156px; }
+  .game-world-label { letter-spacing: .8px; font-size: 7px; }
+  .game-world-copy h2 { font-size: 23px; }
+  .game-world-copy p { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-world-art { transition: none; }
+  .game-tile:hover .game-world-art { transform: none; }
+  .garden-ladder.is-climbing line, .garden-snake.is-awake .snake-eyes { animation: none; }
+}
+
+/* Player card: named colour strip above a solid dice tray. */
+.player-pod { width: 128px; border-radius: 14px; background: #171c30; border: 1px solid #55556e; box-shadow: 0 4px 0 #090d19, 0 7px 14px #0004; overflow: visible; }
+.player-pod-name { display: flex; align-items: center; gap: 6px; padding: 5px 9px; background: #272f48; border-radius: 13px 13px 0 0; border-bottom: 1px solid #414860; color: #f3ecd9; font: 600 12px var(--font-display); }
+.player-pod-name > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-seat-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--player-color); flex-shrink: 0; }
+.player-pod-tray { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; }
+.player-pod-identity { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 42px; }
+.player-pod-status { color: #c6ccdf; font: 600 8px var(--font-ui); white-space: nowrap; }
+.player-pod-active { border-color: var(--player-color); box-shadow: 0 4px 0 #090d19, 0 0 0 1px var(--player-color), 0 7px 14px #0004; }
+.player-pod-active .player-pod-name { background: color-mix(in srgb, var(--player-color) 55%, #17223b); }
+.player-pod-active .player-pod-status { color: #f4d478; }
+.player-pod-compact { width: 118px; }
+.player-pod-compact .player-pod-name { padding: 4px 8px; font-size: 11px; }
+.player-pod-compact .player-pod-tray { padding: 7px 9px; }
+.dice-well { padding: 3px; border-radius: 10px; background: #101323; box-shadow: inset 0 2px 4px #0006; }
+.table-die:focus-visible { outline: 2px solid #f1d27d; outline-offset: 6px; }

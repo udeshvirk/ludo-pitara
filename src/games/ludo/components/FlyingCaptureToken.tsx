@@ -1,6 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { PLAYER_COLORS } from '../constants';
+import { LUDO_TIMING } from '../timing';
 import Coin from '../../../components/ui/Coin';
 import type { CaptureFly } from '../types';
 
@@ -10,6 +11,7 @@ import type { CaptureFly } from '../types';
 // skips the captured token until flyingCaptures clears, so visually
 // the arc lands and the yard render takes over.
 const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
+  const reduced = useReducedMotion();
   const cellPct = 100 / 15;
   const fromX = (fly.from.col + 0.5) * cellPct;
   const fromY = (fly.from.row + 0.5) * cellPct;
@@ -33,13 +35,14 @@ const FlyingCaptureToken: React.FC<{ fly: CaptureFly }> = ({ fly }) => {
         zIndex: 60,
         pointerEvents: 'none',
       }}
-      animate={{
+      className="capture-comet"
+      animate={reduced ? { left: `${toX - half}%`, top: `${toY - half}%` } : {
         left: [`${fromX - half}%`, `${midX - half}%`, `${toX - half}%`],
         top: [`${fromY - half}%`, `${midY - half}%`, `${toY - half}%`],
         scale: [1, 1.15, 0.85],
         rotate: [0, dir * 180, dir * 360],
       }}
-      transition={{ duration: 0.5, ease: 'easeInOut' }}
+      transition={{ duration: reduced ? 0 : (LUDO_TIMING.captureFlyMs - 20) / 1000, ease: 'easeInOut' }}
     >
       <Coin color={PLAYER_COLORS[fly.displayColor].bg} />
     </motion.div>

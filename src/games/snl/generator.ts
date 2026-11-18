@@ -2,7 +2,7 @@
 //
 // Each snake / ladder is defined by inclusive cell ranges; the generator
 // picks one cell at random from each range and verifies all cross-rules
-// (no overlap, no adjacent snake heads, snake.start > snake.end,
+// (no shared endpoints, no adjacent snake heads, snake.start > snake.end,
 // ladder.start < ladder.end). Cells 1 and 100 are reserved.
 //
 // "Primary" snakes / ladders are mandatory. "Occasional" snakes have a

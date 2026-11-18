@@ -358,3 +358,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid #ffe18c; outline-offs
 .ludo-coin-choice { border-radius: 50%; outline: 2px solid #fff2ba; outline-offset: 1px; box-shadow: 0 0 0 4px #37291d; }
 .ludo-coin-choice:focus-visible { outline: 3px solid white; outline-offset: 3px; }
 .ludo-coin-marker { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); color: #fff2ba; font-size: 12px; line-height: 12px; text-shadow: 0 1px 2px #000, 1px 0 2px #000; pointer-events: none; }
+
+/* SNL portrait phones: compact cards let the full-width board dominate.
+   Keep the 40px die and its tray padding for comfortable tapping. */
+.snl-phone-layout .player-pod { width: 108px; border-radius: 11px; }
+.snl-phone-layout .player-pod-name { padding: 4px 7px; font-size: 11px; border-radius: 10px 10px 0 0; }
+.snl-phone-layout .player-pod-tray { padding: 5px 7px; gap: 5px; }
+.snl-phone-layout .player-pod-identity { min-width: 0; flex: 1; }
+.snl-phone-layout .player-pod-identity > div { display: none; }
+.snl-phone-layout .player-pod-status { font-size: 9px; }

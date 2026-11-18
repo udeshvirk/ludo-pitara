@@ -26,8 +26,8 @@ export default defineConfig({
         // Phone screenshots give Android Chrome its richer install sheet.
         screenshots: [
           { src: 'screenshots/ludo.png?v=c3c603b508', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Ludo' },
-          { src: 'screenshots/snakes-and-ladders.png?v=5b553b49f7', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Snakes & Ladders' },
-          { src: 'screenshots/game-select.png?v=ba4f5e03cf', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Choose a game' },
+          { src: 'screenshots/snakes-and-ladders.png?v=2631b79e77', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Snakes & Ladders' },
+          { src: 'screenshots/game-select.png?v=6445e6c566', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Choose a game' },
         ],
         icons: [
           {

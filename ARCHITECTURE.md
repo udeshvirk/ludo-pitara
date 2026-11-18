@@ -419,6 +419,9 @@ Board sizing uses a height-driven 1:1 aspect ratio and matching width/height
 limits. Both boards have square cells on phones and tablets; the old SNL
 5:6 mobile ratio was removed because it stretched artwork. Player cards sit
 above/below in portrait and beside the board at landscape widths ≥640px.
+SNL portrait phones (<600px) use 108px cards without the redundant avatar,
+retain the 40px die, and reduce board gutters to 9px. Tablet and landscape
+layouts retain their existing proportions.
 Check that the board and all four cards fit on short screens.
 
 ## Sound and haptics

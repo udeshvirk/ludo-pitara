@@ -89,6 +89,7 @@ const SnakesAndLaddersGame: React.FC = () => {
   const playerCount = players.length;
   const layoutMode = useLayoutMode();
   const isWide = layoutMode === 'wide';
+  const isPhone = layoutMode === 'phone';
 
   // Board width = min(viewport-width budget, viewport-height budget).
   // The pods sit immediately above/below at gap 18, so the board is
@@ -112,8 +113,8 @@ const SnakesAndLaddersGame: React.FC = () => {
         flex: 1,
         minHeight: 0,
         aspectRatio: '1',
-        maxWidth: 'calc(100vw - 26px)',
-        maxHeight: 'calc(100vw - 26px)',
+        maxWidth: isPhone ? 'calc(100vw - 18px)' : 'calc(100vw - 26px)',
+        maxHeight: isPhone ? 'calc(100vw - 18px)' : 'calc(100vw - 26px)',
         alignSelf: 'center',
         position: 'relative',
       };
@@ -160,7 +161,7 @@ const SnakesAndLaddersGame: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: '14px 13px 13px', overflow: 'hidden', gap: 18 }}>
+        <div className={isPhone ? 'snl-phone-layout' : undefined} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', padding: isPhone ? '10px 9px 12px' : '14px 13px 13px', overflow: 'hidden', gap: isPhone ? 12 : 18 }}>
           <SNLPlayerHalfRow slots={topSlotsForCount(playerCount)} top />
           <div style={boardStyle}>
             <SNLBoard />

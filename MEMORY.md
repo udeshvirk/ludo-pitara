@@ -76,8 +76,9 @@ placement logic with the new looks**. That is the current implementation in
 - Portrait phone layout only (<600px): cards are 108px wide, omit the redundant
   avatar, retain name/status and the 40px die, and use tighter spacing. Board
   gutters are 9px; the board remains square. Tablet and wide layouts unchanged.
-- Phone name strips use explicit line height and wrap long names instead of
-  clipping/ellipsis, following the next mobile screenshot report.
+- The mobile screenshot report was clarified: the card TOP BORDER, not its
+  name, was obscured. Phone player rows must paint above the positioned board
+  and its deep shadow. Explicit name line height/wrapping remains in place.
 - Checked 320×568, 390×844, 430×932, 768×1024 and 844×390 with four players.
   Publishing includes refreshed screenshots and social preview assets.
 

@@ -29,6 +29,7 @@ const SNLPlayerHalfRow: React.FC<SNLPlayerHalfRowProps> = ({ slots, top, compact
   const isSingle = slots.length === 1;
   return (
     <div
+      className="snl-player-row"
       style={{
         display: 'grid',
         gridTemplateColumns: isSingle ? '1fr' : '1fr 1fr',

@@ -368,3 +368,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #ffe18c; outline-offs
 .snl-phone-layout .player-pod-identity { min-width: 0; flex: 1; }
 .snl-phone-layout .player-pod-identity > div { display: none; }
 .snl-phone-layout .player-pod-status { font-size: 9px; }
+
+/* The board is positioned and casts a deep shadow. Keep phone player rows
+   above it so that shadow cannot paint over the next card's top border. */
+.snl-phone-layout > .snl-player-row { position: relative; z-index: 1; }

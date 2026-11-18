@@ -81,7 +81,8 @@ placement logic with the new looks**. That is the current implementation in
   and its deep shadow. S25 Ultra/Chrome still showed the lower card rim
   obscured after stacking changes. User confirmed 30px physical clearance
   fixes the border on S25 Ultra/Chrome, then requested consistent spacing.
-  Use equal 30px gaps above and below the board on portrait phones.
+  User then requested tighter spacing: use equal 24px gaps above and below
+  the board on portrait phones. Device confirmation of 24px remains pending.
   Explicit name line height/wrapping remains in place.
 - Checked 320×568, 390×844, 430×932, 768×1024 and 844×390 with four players.
   Publishing includes refreshed screenshots and social preview assets.

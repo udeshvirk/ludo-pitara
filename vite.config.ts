@@ -25,9 +25,9 @@ export default defineConfig({
         theme_color: '#190a2e',
         // Phone screenshots give Android Chrome its richer install sheet.
         screenshots: [
-          { src: 'screenshots/ludo.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Ludo' },
-          { src: 'screenshots/snakes-and-ladders.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Snakes & Ladders' },
-          { src: 'screenshots/game-select.png', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Choose a game' },
+          { src: 'screenshots/ludo.png?v=e45e0717f7', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Ludo' },
+          { src: 'screenshots/snakes-and-ladders.png?v=ad81b54c2c', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Snakes & Ladders' },
+          { src: 'screenshots/game-select.png?v=dab704a093', sizes: '585x1266', type: 'image/png', form_factor: 'narrow', label: 'Choose a game' },
         ],
         icons: [
           {
@@ -53,7 +53,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Marketing images aren't needed to play offline.
-        globIgnores: ['og-image.png', 'screenshots/**'],
+        globIgnores: ['og-image*.png', 'screenshots/**'],
       },
     }),
   ],

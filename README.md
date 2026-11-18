@@ -76,6 +76,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for a tour of the code.
 
 Screenshots are real gameplay captured at phone size. The link-preview card
 (`public/og-image.png`) is built from them with `node scripts/gen-og.mjs`.
+The generator also writes a content-versioned image and updates Open Graph,
+Twitter, and install-screenshot URLs. Refresh the screenshots after visual
+changes, then run the generator before publishing. Existing messages can retain
+a platform-cached preview even after deployment.
 
 ## License
 

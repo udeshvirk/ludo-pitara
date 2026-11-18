@@ -1,9 +1,11 @@
 // Build the 1200×630 social preview card (public/og-image.png) from the
 // gameplay screenshots in public/screenshots/. Run by hand after
 // refreshing screenshots: node scripts/gen-og.mjs
-// The output is committed; this is not part of the build.
+// Outputs and share/install metadata updates are committed; this is not part of the build.
 
 import sharp from 'sharp';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -44,11 +46,40 @@ const ph = 560;
 const ludo = await phone('ludo.png', ph);
 const snl = await phone('snakes-and-ladders.png', ph - 40);
 
-await sharp(bg)
+const card = await sharp(bg)
   .composite([
     { input: snl, left: 660, top: 55 },
     { input: ludo, left: 900, top: 30 },
   ])
   .png({ compressionLevel: 9 })
-  .toFile(resolve(root, 'public/og-image.png'));
-console.log('wrote public/og-image.png');
+  .toBuffer();
+
+// A new image URL avoids reusing cached image bytes after visual updates.
+// Keep the stable filename for local docs; retain old versioned files so
+// previously scraped share cards can still fetch their original image.
+const digest = buffer => createHash('sha256').update(buffer).digest('hex').slice(0, 10);
+const versionedName = `og-image-${digest(card)}.png`;
+await writeFile(resolve(root, 'public/og-image.png'), card);
+await writeFile(resolve(root, 'public', versionedName), card);
+const imageUrl = `https://udeshvirk.github.io/ludo-pitara/${versionedName}`;
+const htmlPath = resolve(root, 'index.html');
+let html = await readFile(htmlPath, 'utf8');
+html = html.replace(/(<meta property="og:image" content=")[^"]+("\s*\/>)/, `$1${imageUrl}$2`);
+if (html.includes('name="twitter:image"')) {
+  html = html.replace(/(<meta name="twitter:image" content=")[^"]+("\s*\/>)/, `$1${imageUrl}$2`);
+} else {
+  html = html.replace('<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:image" content="${imageUrl}" />`);
+}
+await writeFile(htmlPath, html);
+
+// Give install-sheet screenshots fresh URLs too, without duplicating the PNGs.
+const configPath = resolve(root, 'vite.config.ts');
+let config = await readFile(configPath, 'utf8');
+for (const name of ['ludo', 'snakes-and-ladders', 'game-select']) {
+  const buffer = await readFile(resolve(root, 'public/screenshots', `${name}.png`));
+  const pattern = new RegExp(`screenshots/${name}\\.png(?:\\?v=[a-f0-9]+)?`, 'g');
+  config = config.replace(pattern, `screenshots/${name}.png?v=${digest(buffer)}`);
+}
+await writeFile(configPath, config);
+console.log(`wrote public/og-image.png and public/${versionedName}; refreshed share/install metadata`);

@@ -72,7 +72,8 @@ persistence. (`GameId` in `useFlow` is still `'ludo' | 'snl'`.)
 
 ## State stores
 
-Four Zustand stores. Each one is a singleton; components subscribe via
+Four main Zustand stores, plus the transient presentation-event store.
+Each one is a singleton; components subscribe via
 hooks (`useStoreName(s => s.field)`).
 
 ### `useFlow` — cross-screen setup
@@ -129,8 +130,7 @@ Same shape, simpler:
 Actions: `initGame`, `rollDice`, `resetGame`.
 
 ### `useSettings` — `src/games/settings/store.ts`
-Persistent preferences: `sound`, `haptics`, `animationSpeed`,
-`boardTheme`. Mutations propagate to `lib/sound.ts` and `lib/haptics.ts`
+Persistent preferences: `sound` and `haptics`. Mutations propagate to `lib/sound.ts` and `lib/haptics.ts`
 so the next call respects the setting.
 
 ## Persistence
@@ -403,16 +403,17 @@ SNL versions use the shared `Pod` (`src/components/ui/Pod.tsx`):
   Animation controls start from the previous face and respect reduced motion. `transformPerspective`
   applies depth.
 - `Coin` = the jewel-coloured SVG token used in both games, with colour-family
-  emblems (heart, leaf, star, diamond). Exports a
-  `stackPlacement(stackSize, stackIndex)` helper so tokens fan out
+  emblems (heart, leaf, star, diamond). The separate
+  `ui/stackPlacement.ts` helper makes tokens fan out
   diagonally when ≥ 2 share a cell.
 - `StackCountBadge` = the small black numeric pill in the cell's
   top-right when ≥ 2 tokens overlap.
 
-Board sizing: each game page hard-codes a viewport-calc that picks
-`min(viewport-width budget, viewport-height budget)` so the board
-fits exactly between the pod rows. No flex-1 wrappers — pods sit
-flush against the board.
+Board sizing uses a height-driven 1:1 aspect ratio and matching width/height
+limits. Both boards have square cells on phones and tablets; the old SNL
+5:6 mobile ratio was removed because it stretched artwork. Player cards sit
+above/below in portrait and beside the board at landscape widths ≥640px.
+Check that the board and all four cards fit on short screens.
 
 ## Sound and haptics
 
@@ -460,10 +461,13 @@ browsers (X, Instagram, Facebook…). In-app browsers can't install, so
 those visitors are told to "Open in browser" first.
 
 Sharing: `index.html` carries Open Graph / Twitter card tags pointing at
-`public/og-image.png` (1200×630), built from the gameplay screenshots in
+a content-versioned `public/og-image-<hash>.png` (1200×630), built from the gameplay screenshots in
 `public/screenshots/` by `node scripts/gen-og.mjs`. That script is run by
 hand and is not part of the build. The same screenshots are listed in the
-manifest so Android shows a richer install sheet. Both are excluded from
+manifest so Android shows a richer install sheet. The generator updates the
+Open Graph/Twitter image URLs and versions screenshot URLs by content hash.
+`public/og-image.png` remains a stable local copy. Third-party chat services
+may keep old previews on existing messages even after these assets change. Both are excluded from
 the service-worker precache (`globIgnores`) so installs stay small.
 
 ## Build / deploy

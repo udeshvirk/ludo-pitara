@@ -2,11 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Shared context for all agents
+
+Read `AGENTS.md` and `MEMORY.md` at the start of work. `MEMORY.md` holds the
+user’s latest design decisions, rejected directions, published state, and
+validation limits. Update it when those decisions change.
+
 ## What this is
 
 Ludo Pitara — a React 19 + TypeScript + Vite PWA hosted on GitHub Pages
 (`udeshvirk.github.io/ludo-pitara`). Two single-device games: Ludo and
-Snakes & Ladders, with optional CPU opponents. No backend, no runtime
+Snakes & Ladders, with optional CPU opponents, plus standalone Dice mode. No backend, no runtime
 network calls — sounds are synthesised in WebAudio so the app is fully
 offline once installed.
 
@@ -112,12 +118,14 @@ before making non-trivial changes. Highlights worth knowing up front:
   collision happens (e.g. an empty Ludo yard, a name clash), substitute
   or randomize the conflicting element rather than hiding it. Keep the
   visual real-estate filled.
-- **English-only UI**; no status pill on the active player; coin tokens
+- **English-only UI**; turn status belongs inside the player card; coin tokens
   (not pawn-shape); default colour order is fixed; CPU players are
   named "Bot N".
 - **Layout sizing**: `useLayoutMode` (`src/lib/useLayout.ts`) drives
   breakpoints; game pages use a height-primary aspect-ratio calc so the
-  board fits exactly between the pod rows (no `flex-1` wrappers).
+  board fits between the player rows. Both boards stay square on every device;
+  do not restore SNL’s old 5:6 phone aspect ratio. Landscape widths ≥640px
+  use side rails.
 - Fonts (Fredoka, Inter) are self-hosted from `@fontsource-variable`
   via `src/fonts.css`, Latin + Latin-ext subsets only. Don't import
   Fontsource's own CSS (it ships every script subset into the
